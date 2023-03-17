@@ -93,20 +93,8 @@ const speakPrompt = (text, audioFilename, triggerRecord) => {
     async result => {
       synthesizer.close()
       await sound.play(audioPath)
+      if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
       resolveSpeakTextList()
-      if (triggerRecord && STATUS.isSpeechTalk) {
-        STATUS.isRecording = true
-        getSpeechText(openai, SPEECH_AUDIO_PATH)
-        .then(adminTalk=>{
-          STATUS.isRecording = false
-          messageLogAndSend({
-            id: nanoid(),
-            from: `(${ADMIN_NAME})`,
-            text: adminTalk
-          })
-          resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
-        })
-      }
     },
     error => {
       console.log(error)
@@ -154,7 +142,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
     history.conversationHistory = _.takeRight(history.conversationHistory, 20)
     history.useHistory += 1
     fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
-    if (history.useHistory >= history.conversationLimit) {
+    if (history.useHistory >= history.limitHistory.conversationLimit) {
       updateMemory()
     }
     messageLogAndSend({
@@ -190,9 +178,23 @@ const updateMemory = ()=>{
     messages
   })
   .then(async res=>{
-    history.memory = res.data.choices[0].message.content
+    history.memory = res.data.choices[0].message.content.slice(0, history.limitHistory.memoryLength)
     fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
   })
+}
+
+const triggerSpeech = async ()=>{
+  STATUS.isRecording = true
+  mainWindow.setProgressBar(100, {mode: 'indeterminate'})
+  let adminTalk = await getSpeechText(openai, SPEECH_AUDIO_PATH)
+  STATUS.isRecording = false
+  mainWindow.setProgressBar(-1)
+  messageLogAndSend({
+    id: nanoid(),
+    from: `(${ADMIN_NAME})`,
+    text: adminTalk
+  })
+  resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
 }
 
 setInterval(()=>mainWindow.webContents.send('send-status', STATUS), 1000)
@@ -207,15 +209,8 @@ ipcMain.handle('open-config', async (event)=>{
 })
 ipcMain.handle('switch-speech-talk', async ()=>{
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
+  mainWindow.setProgressBar(-1)
   if (STATUS.isSpeechTalk) {
-    STATUS.isRecording = true
-    let adminTalk = await getSpeechText(openai, SPEECH_AUDIO_PATH)
-    STATUS.isRecording = false
-    messageLogAndSend({
-      id: nanoid(),
-      from: `(${ADMIN_NAME})`,
-      text: adminTalk
-    })
-    resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
+    triggerSpeech()
   }
 })
