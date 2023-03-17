@@ -1,0 +1,47 @@
+{
+  "name": "chat-xiuliu",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "chcp 65001 && electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "electron.chat.xiuliu",
+    "files": [
+      "dist/index.html",
+      "dist/assets/*",
+      "index.js",
+      "preload.js",
+      "modules/*",
+      "utils/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.0.0",
+    "electron": "^23.1.0",
+    "electron-builder": "^23.6.0",
+    "naive-ui": "^2.34.3",
+    "stylus": "^0.59.0",
+    "unplugin-auto-import": "^0.14.2",
+    "unplugin-vue-components": "^0.23.0",
+    "vite": "^4.1.0",
+    "vue": "^3.2.45"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "microsoft-cognitiveservices-speech-sdk": "^1.25.1",
+    "nanoid": "^3.3.2",
+    "openai": "^3.2.1",
+    "sound-play": "^1.1.0"
+  }
+}
