@@ -14,7 +14,7 @@ const {
   OPENAI_API_KEY, USE_MODEL,
   SPEECH_KEY, SPEECH_AREA, SpeechSynthesisLanguage, SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
-  speechPrompt,
+  systemPrompt,
 } = config
 
 let logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), {flags: 'w'})
@@ -121,7 +121,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
     context.push({role: 'assistant', content: conversation.assistant})
   }
   messages = [
-    {role: 'system', content: speechPrompt},
+    {role: 'system', content: systemPrompt},
     {role: 'user', content: `我和${AI_NAME}的对话内容?`},
     {role: 'assistant', content: history.memory},
     {role: 'user', content: `我的名字是${ADMIN_NAME}`},
@@ -165,7 +165,7 @@ const updateMemory = ()=>{
     context.push({role: 'assistant', content: conversation.assistant})
   }
   let messages = [
-    {role: 'system', content: speechPrompt},
+    {role: 'system', content: systemPrompt},
     {role: 'user', content: `我和${AI_NAME}的对话内容?`},
     {role: 'assistant', content: history.memory},
     {role: 'user', content: `我的名字是${ADMIN_NAME}`},

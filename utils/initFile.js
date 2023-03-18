@@ -37,9 +37,9 @@ try {
     SPEECH_AREA: 'eastasia',
     SpeechSynthesisLanguage: 'zh-CN',
     SpeechSynthesisVoiceName: 'zh-CN-XiaoyiNeural',
-    ADMIN_NAME: '雪儿',
+    ADMIN_NAME: 'Chell',
     AI_NAME: '休留',
-    speechPrompt: '你是女高中生休留'
+    systemPrompt: '你是女高中生休留'
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), {encoding: 'utf-8'})
 }
