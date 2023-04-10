@@ -3,18 +3,19 @@ const path = require('node:path')
 const fs = require('node:fs')
 const { format } = require('node:util')
 const { nanoid } = require('nanoid')
-const { SpeechConfig, AudioConfig, SpeechSynthesizer } = require('microsoft-cognitiveservices-speech-sdk')
 const sound = require('sound-play')
 const _ = require('lodash')
 const { Configuration, OpenAIApi } = require('openai')
 
 const { config, history, STORE_PATH, LOG_PATH, AUDIO_PATH, SPEECH_AUDIO_PATH } = require('./utils/initFile.js')
 const { getSpeechText } = require('./modules/speech.js')
+const { ttsPromise } = require('./modules/edge-tts.js')
 const {
   OPENAI_API_KEY, USE_MODEL,
-  SPEECH_KEY, SPEECH_AREA, SpeechSynthesisLanguage, SpeechSynthesisVoiceName,
+  SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
+  proxy
 } = config
 
 let logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), {flags: 'w'})
@@ -80,27 +81,18 @@ const STATUS = {
 
 let speechList = []
 
-const speakPrompt = (text, audioFilename, triggerRecord) => {
-  if (!audioFilename) audioFilename = nanoid()
-  let audioPath = path.join(AUDIO_PATH, `${audioFilename}.wav`)
-  const speechConfig = SpeechConfig.fromSubscription(SPEECH_KEY, SPEECH_AREA)
-  speechConfig.speechSynthesisLanguage = SpeechSynthesisLanguage
-  speechConfig.speechSynthesisVoiceName = SpeechSynthesisVoiceName
-  const audioConfig = AudioConfig.fromAudioFileOutput(audioPath)
-  const synthesizer = new SpeechSynthesizer(speechConfig, audioConfig)
-  synthesizer.speakTextAsync(
-    text,
-    async result => {
-      synthesizer.close()
-      await sound.play(audioPath)
-      if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
-      resolveSpeakTextList()
-    },
-    error => {
-      console.log(error)
-      synthesizer.close()
-    }
-  )
+const speakPrompt = async (text, audioFilename, triggerRecord) => {
+  try {
+    if (!audioFilename) audioFilename = nanoid()
+    let audioPath = path.join(AUDIO_PATH, `${audioFilename}.mp3`)
+    await ttsPromise(text, audioPath, SpeechSynthesisVoiceName)
+    await sound.play(audioPath)
+    if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
+    resolveSpeakTextList()
+  } catch (e) {
+    console.log(e)
+    resolveSpeakTextList()
+  }
 }
 
 const resolveSpeakTextList = async () => {
@@ -132,7 +124,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
   openai.createChatCompletion({
     model: USE_MODEL,
     messages,
-  })
+  }, { proxy })
   .then(res=>{
     let resText = res.data.choices[0].message.content
     history.conversationHistory.push({
@@ -176,7 +168,7 @@ const updateMemory = ()=>{
   openai.createChatCompletion({
     model: USE_MODEL,
     messages
-  })
+  }, { proxy })
   .then(async res=>{
     history.memory = res.data.choices[0].message.content.slice(0, history.limitHistory.memoryLength)
     fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
@@ -186,7 +178,7 @@ const updateMemory = ()=>{
 const triggerSpeech = async ()=>{
   STATUS.isRecording = true
   mainWindow.setProgressBar(100, {mode: 'indeterminate'})
-  let adminTalk = await getSpeechText(openai, SPEECH_AUDIO_PATH)
+  let adminTalk = await getSpeechText(openai, SPEECH_AUDIO_PATH, proxy)
   STATUS.isRecording = false
   mainWindow.setProgressBar(-1)
   messageLogAndSend({

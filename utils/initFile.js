@@ -33,13 +33,15 @@ try {
   config = {
     OPENAI_API_KEY: '',
     USE_MODEL: 'gpt-3.5-turbo',
-    SPEECH_KEY: '',
-    SPEECH_AREA: 'eastasia',
-    SpeechSynthesisLanguage: 'zh-CN',
     SpeechSynthesisVoiceName: 'zh-CN-XiaoyiNeural',
     ADMIN_NAME: 'Chell',
     AI_NAME: '休留',
-    systemPrompt: '你是女高中生休留'
+    systemPrompt: '你是女高中生休留',
+    proxy: {
+      type: 'http',
+      host: '127.0.0.1',
+      port: 7890
+    }
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), {encoding: 'utf-8'})
 }

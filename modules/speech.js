@@ -20,11 +20,13 @@ let recordPromise = (SPEECH_AUDIO_PATH)=>{
   })
 }
 
-let getSpeechText = async (openai, SPEECH_AUDIO_PATH)=>{
+let getSpeechText = async (openai, SPEECH_AUDIO_PATH, proxy)=>{
   let audioFilePath = await recordPromise(SPEECH_AUDIO_PATH)
   const resp = await openai.createTranscription(
     fs.createReadStream(audioFilePath),
-    'whisper-1'
+    'whisper-1',
+    undefined,undefined,undefined,undefined,
+    { proxy }
   )
   return resp.data.text
 }

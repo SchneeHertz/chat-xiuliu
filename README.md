@@ -16,9 +16,27 @@
 4. 将libmp3lame.dll放入sox所在文件夹
 5. 打开chat-xiuliu, 点击Open Config, 编辑配置文件
 5. 获取一个openai的API key, 填入配置文件中
-6. 创建一个Azure的语音资源 https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices , 区域见配置文件，将取得的API key 填入配置文件中
+6. 安装Python，然后安装edge-tts `pip install edge-tts`
 7. 修改配置文件的其他部分（可选）
 8. 保存配置文件后重启chat-xiuliu
+
+### 配置文件参考
+```
+{
+  "OPENAI_API_KEY": "sk-",
+  "USE_MODEL": "gpt-3.5-turbo",
+  "SpeechSynthesisVoiceName": "zh-CN-XiaoyiNeural",
+  "ADMIN_NAME": "Chell",
+  "AI_NAME": "休留",
+  "systemPrompt": "你是女高中生休留",
+  "proxy": {
+    "type": "http",
+    "host": "127.0.0.1",
+    "port": 7890
+  }
+}
+```
+
 
 ## 其他
 关注休留喵，关注休留谢谢喵~
