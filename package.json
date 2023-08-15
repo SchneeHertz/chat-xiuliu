@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",
-    "electron": "^23.1.0",
-    "electron-builder": "^23.6.0",
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.3",
     "naive-ui": "^2.34.3",
     "stylus": "^0.59.0",
     "unplugin-auto-import": "^0.14.2",
@@ -40,9 +40,8 @@
   },
   "dependencies": {
     "lodash": "^4.17.21",
-    "microsoft-cognitiveservices-speech-sdk": "^1.25.1",
-    "nanoid": "^3.3.2",
-    "openai": "^3.2.1",
+    "nanoid": "^3.3.6",
+    "openai": "^3.3.0",
     "sound-play": "^1.1.0"
   }
 }

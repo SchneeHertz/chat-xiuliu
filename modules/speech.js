@@ -3,11 +3,11 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { nanoid } = require('nanoid')
 
-
+const sox = path.join(process.cwd(), 'resources/extraResources/sox.exe')
 let recordPromise = (SPEECH_AUDIO_PATH)=>{
   let audioFilePath = path.join(SPEECH_AUDIO_PATH, nanoid() + '.mp3')
   return new Promise((resolve, reject)=>{
-    const spawned = spawn('sox', ['-d', '-t', 'mp3', audioFilePath, 'silence', '1', '0.1', '3%', '1', '3.0', '3%'])
+    const spawned = spawn(sox, ['-d', '-t', 'mp3', audioFilePath, 'silence', '1', '0.1', '3%', '1', '3.0', '3%'])
     spawned.on('error', data=>{
       reject(data)
     })
