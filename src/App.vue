@@ -5,11 +5,11 @@
   let ADMIN_NAME
 
   onMounted(()=>{
-    ipcRenderer['get-admin-name']()
+    ipcRenderer.invoke('get-admin-name')
     .then(name=>{
       ADMIN_NAME = name
     })
-    ipcRenderer['send-message']((event, arg)=>{
+    ipcRenderer.on('send-message', (event, arg)=>{
       messageHistory.value.push(arg)
       messageHistory.value = _.takeRight(messageHistory.value, 1000)
       nextTick(()=>scrollToBottom('message-list'))
@@ -17,7 +17,7 @@
   })
   const inputText = ref('')
   const sendText = ()=>{
-    ipcRenderer['send-prompt'](inputText.value)
+    ipcRenderer.invoke('send-prompt', inputText.value)
     messageHistory.value.push({
       id: nanoid(),
       from: ADMIN_NAME,
@@ -27,22 +27,22 @@
     inputText.value = ''
   }
   const scrollToBottom = (id) => {
-      const element = document.getElementById(id)
-      element.scrollTop = element.scrollHeight
+    const element = document.getElementById(id)
+    element.scrollTop = element.scrollHeight
   }
   const isSpeechTalk = ref(false)
   const isRecording = ref(false)
   onMounted(()=>{
-    ipcRenderer['send-status']((event, arg)=>{
+    ipcRenderer.on('send-status', (event, arg)=>{
       isSpeechTalk.value = arg.isSpeechTalk
       isRecording.value = arg.isRecording
     })
   })
   const switchSpeechTalk = ()=>{
-    ipcRenderer['switch-speech-talk']()
+    ipcRenderer.invoke('switch-speech-talk')
   }
   const openConfig = ()=>{
-    ipcRenderer['open-config']()
+    ipcRenderer.invoke('open-config')
   }
 </script>
 
