@@ -8,7 +8,7 @@ const _ = require('lodash')
 const { Configuration, OpenAIApi } = require('openai')
 
 const { config, history, STORE_PATH, LOG_PATH, AUDIO_PATH, SPEECH_AUDIO_PATH } = require('./utils/initFile.js')
-const { getSpeechText } = require('./modules/speech.js')
+const { getSpeechText } = require('./modules/whisper.js')
 const { ttsPromise } = require('./modules/edge-tts.js')
 const {
   OPENAI_API_KEY, USE_MODEL,
@@ -178,7 +178,7 @@ const updateMemory = ()=>{
 const triggerSpeech = async ()=>{
   STATUS.isRecording = true
   mainWindow.setProgressBar(100, {mode: 'indeterminate'})
-  let adminTalk = await getSpeechText(openai, SPEECH_AUDIO_PATH, proxy)
+  let adminTalk = await getSpeechText()
   STATUS.isRecording = false
   mainWindow.setProgressBar(-1)
   messageLogAndSend({
