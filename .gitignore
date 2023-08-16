@@ -16,8 +16,10 @@ audio/*.wav
 speakAudio/*
 log/*.txt
 resources/extraResources/_models
-resources/extraResources/cublas*
-resources/extraResources/cudnn*
+resources/extraResources/cublas64_11.dll
+resources/extraResources/cublasLt64_11.dll
+resources/extraResources/cudnn_cnn_infer64_8.dll
+resources/extraResources/cudnn_ops_infer64_8.dll
 resources/extraResources/whisper-faster.exe
 resources/extraResources/zlibwapi.dll
 

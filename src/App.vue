@@ -1,22 +1,52 @@
 <script setup>
   import { onMounted, ref, nextTick } from 'vue'
   import { nanoid } from 'nanoid'
+  import hljs from 'highlight.js'
+  import 'highlight.js/styles/github-dark.css'
+
+  import CopyButtonPlugin from 'highlightjs-copy'
+  hljs.addPlugin(new CopyButtonPlugin())
+
   const messageHistory = ref([])
+
   let ADMIN_NAME
+  onMounted(()=>ipcRenderer.invoke('get-admin-name').then(name=>ADMIN_NAME = name))
+
+  const renderCodeBlocks = (text)=>{
+    return text.replace(/```([\w-]+)?\n([\s\S]*?)\n```/g, (match, language, code) => {
+      return `<pre class="code-block${language ? ` language-${language}` : ''}"><code class="${language ? `language-${language}` : ''}">${code.trim()}</code></pre>`
+    })
+  }
+  const escapeHtml = (unsafe) => {
+    return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  }
 
   onMounted(()=>{
-    ipcRenderer.invoke('get-admin-name')
-    .then(name=>{
-      ADMIN_NAME = name
-    })
     ipcRenderer.on('send-message', (event, arg)=>{
-      messageHistory.value.push(arg)
-      messageHistory.value = _.takeRight(messageHistory.value, 1000)
-      nextTick(()=>scrollToBottom('message-list'))
+      arg.text = renderCodeBlocks(escapeHtml(arg.text))
+      let findExist = _.find(messageHistory.value, {id: arg.id})
+      if (findExist) {
+        findExist.text = arg.text
+      } else {
+        messageHistory.value.push(arg)
+        messageHistory.value = _.takeRight(messageHistory.value, 1000)
+      }
+      nextTick(()=>{
+        scrollToBottom('message-list')
+        document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
+          hljs.highlightElement(el)
+        })
+      })
     })
   })
   const inputText = ref('')
-  const sendText = ()=>{
+  const sendText = (event)=>{
+    event.stopPropagation()
+    event.preventDefault()
+    if (event.shiftKey) {
+      inputText.value += '\n'
+      return
+    }
     ipcRenderer.invoke('send-prompt', inputText.value)
     messageHistory.value.push({
       id: nanoid(),
@@ -58,13 +88,13 @@
           class="message-card"
           embedded
         >
-          <pre>{{message.text}}</pre>
+          <pre v-html="message.text" :class="{'message-right-text': [ADMIN_NAME, `(${ADMIN_NAME})`].includes(message.from)}"></pre>
         </n-card>
       </n-list>
-      <n-input-group class="input-text">
-        <n-input v-model:value="inputText" @keyup.enter="sendText"></n-input>
-        <n-button @click="sendText">Send</n-button>
-      </n-input-group>
+      <n-input
+        class="input-text" v-model:value="inputText" @keydown.enter="sendText"
+        type="textarea" :autosize="{ minRows: 1 }"
+      ></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
       <n-button :type="isSpeechTalk ? isRecording ? 'error' : 'primary'  : 'default'" @click="switchSpeechTalk">{{ isSpeechTalk ? isRecording ? 'Recording' : 'Answering' : 'Speech Off' }}</n-button>
@@ -77,7 +107,6 @@
 #message-list
   max-height: calc(100vh - 85px)
   overflow-y: auto
-  padding-right: 10px
 .message-card
   margin: 4px 0 6px
   .n-card-header
@@ -89,6 +118,19 @@
     white-space: break-spaces
 .message-right
   text-align: right
+.message-right-text
+  text-align: left
+  float: right
+
+.code-block
+  position: relative
+.hljs-copy-button
+  position: absolute
+  right: 4px
+  top: 4px
+.hljs-copy-alert
+  display: none
+
 .input-text
   margin-top: 4px
 #function-button
