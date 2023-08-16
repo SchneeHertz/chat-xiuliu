@@ -7,15 +7,16 @@ const sound = require('sound-play')
 const _ = require('lodash')
 const { Configuration, OpenAIApi } = require('openai')
 
-const { config, history, STORE_PATH, LOG_PATH, AUDIO_PATH, SPEECH_AUDIO_PATH } = require('./utils/initFile.js')
+const { config, history, STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { ttsPromise } = require('./modules/edge-tts.js')
+const { openaiChat, openaiChatStream } = require('./modules/common.js')
 const {
-  OPENAI_API_KEY, USE_MODEL,
+  OPENAI_API_KEY, DEFAULT_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
-  proxy
+  proxyObject
 } = config
 
 let logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), {flags: 'w'})
@@ -107,42 +108,31 @@ const resolveSpeakTextList = async () => {
 resolveSpeakTextList()
 
 const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
-  let context = []
-  for (let conversation of _.takeRight(history.conversationHistory, history.useHistory)) {
-    context.push({role: 'user', content: conversation.user})
-    context.push({role: 'assistant', content: conversation.assistant})
-  }
-  messages = [
+  let messages = [
     {role: 'system', content: systemPrompt},
-    {role: 'user', content: `我和${AI_NAME}的对话内容?`},
-    {role: 'assistant', content: history.memory},
     {role: 'user', content: `我的名字是${ADMIN_NAME}`},
     {role: 'assistant', content: `你好, ${ADMIN_NAME}`},
-    ...context,
+    ..._.takeRight(history, 10),
     {role: 'user', content: prompt}
   ]
   openai.createChatCompletion({
-    model: USE_MODEL,
+    model: DEFAULT_MODEL,
     messages,
-  }, { proxy })
+  }, { proxyObject })
   .then(res=>{
     let resText = res.data.choices[0].message.content
-    history.conversationHistory.push({
-      user: prompt,
-      assistant: resText.slice(0, 200)
-    })
-    history.conversationHistory = _.takeRight(history.conversationHistory, 20)
-    history.useHistory += 1
+    history.push(
+      {role: 'user', content: prompt},
+      {role: 'assistant', content: resText}
+    )
+    history = _.takeRight(history, 50)
     fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
-    if (history.useHistory >= history.limitHistory.conversationLimit) {
-      updateMemory()
-    }
     messageLogAndSend({
       id: nanoid(),
       from: triggerRecord ? `(${AI_NAME})` : AI_NAME,
       text: resText
     })
-    speechList.push({text: `${resText}`, triggerRecord})
+    if (triggerRecord) speechList.push({text: `${resText}`, triggerRecord})
   })
   .catch(e=>{
     console.log(e)
@@ -150,30 +140,6 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
   })
 }
 
-const updateMemory = ()=>{
-  let context = []
-  for (let conversation of _.takeRight(history.conversationHistory, history.useHistory)) {
-    context.push({role: 'user', content: conversation.user})
-    context.push({role: 'assistant', content: conversation.assistant})
-  }
-  let messages = [
-    {role: 'system', content: systemPrompt},
-    {role: 'user', content: `我和${AI_NAME}的对话内容?`},
-    {role: 'assistant', content: history.memory},
-    {role: 'user', content: `我的名字是${ADMIN_NAME}`},
-    {role: 'assistant', content: `你好, ${ADMIN_NAME}`},
-    ...context,
-    {role: 'user', content: `${ADMIN_NAME}：总结你和我的对话内容,要强调细节`}
-  ]
-  openai.createChatCompletion({
-    model: USE_MODEL,
-    messages
-  }, { proxy })
-  .then(async res=>{
-    history.memory = res.data.choices[0].message.content.slice(0, history.limitHistory.memoryLength)
-    fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
-  })
-}
 
 const triggerSpeech = async ()=>{
   STATUS.isRecording = true

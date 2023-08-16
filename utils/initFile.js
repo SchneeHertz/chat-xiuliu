@@ -32,12 +32,12 @@ try {
 } catch {
   config = {
     OPENAI_API_KEY: '',
-    USE_MODEL: 'gpt-3.5-turbo',
+    DEFAULT_MODEL: 'gpt-3.5-turbo',
     SpeechSynthesisVoiceName: 'zh-CN-XiaoyiNeural',
     ADMIN_NAME: 'Chell',
     AI_NAME: '休留',
     systemPrompt: '你是女高中生休留',
-    proxy: {
+    proxyObject: {
       type: 'http',
       host: '127.0.0.1',
       port: 7890
@@ -51,12 +51,7 @@ let history
 try {
   history = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'history.json'), {encoding: 'utf-8'}))
 } catch {
-  history = {
-    memory: '-',
-    limitHistory: {conversationLimit: 5, memoryLength: 500},
-    useHistory: 0,
-    conversationHistory: []
-  }
+  history = []
   fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
 }
 
