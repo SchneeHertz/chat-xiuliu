@@ -26,39 +26,7 @@ fs.mkdir(SPEECH_AUDIO_PATH, {recursive: true}, (err) => {
   if (err) throw err
 })
 
-let config
-try {
-  config = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'config.json'), {encoding: 'utf-8'}))
-} catch {
-  config = {
-    OPENAI_API_KEY: '',
-    DEFAULT_MODEL: 'gpt-3.5-turbo',
-    SpeechSynthesisVoiceName: 'zh-CN-XiaoyiNeural',
-    ADMIN_NAME: 'Chell',
-    AI_NAME: '休留',
-    systemPrompt: '你是女高中生休留',
-    proxyObject: {
-      type: 'http',
-      host: '127.0.0.1',
-      port: 7890
-    },
-    proxyString: 'http://127.0.0.1:7890',
-  }
-  fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), {encoding: 'utf-8'})
-}
-
-let history
-try {
-  history = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'history.json'), {encoding: 'utf-8'}))
-} catch {
-  history = []
-  fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
-}
-
-
 module.exports = {
-  config,
-  history,
   STORE_PATH,
   LOG_PATH,
   AUDIO_PATH,

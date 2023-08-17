@@ -41,10 +41,13 @@
     "vue": "^3.2.45"
   },
   "dependencies": {
+    "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
+    "https-proxy-agent": "^7.0.1",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
-    "openai": "^3.3.0",
-    "sound-play": "^1.1.0"
+    "openai": "^4.0.0",
+    "sound-play": "^1.1.0",
+    "vectordb": "^0.2.1"
   }
 }

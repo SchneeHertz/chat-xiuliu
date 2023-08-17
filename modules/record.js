@@ -1,7 +1,15 @@
+const { app } = require('electron')
 const { spawn } = require('node:child_process')
 const path = require('node:path')
+const fs = require('node:fs')
 const { nanoid } = require('nanoid')
-const { SPEECH_AUDIO_PATH } = require('../utils/initFile.js')
+
+
+let STORE_PATH = app.getPath('userData')
+if (!fs.existsSync(STORE_PATH)) {
+  fs.mkdirSync(STORE_PATH)
+}
+const SPEECH_AUDIO_PATH = path.join(STORE_PATH, 'speechAudio')
 
 const sox = path.join(process.cwd(), 'resources/extraResources/sox.exe')
 const recordPromise = ()=>{

@@ -1,11 +1,11 @@
 const { spawn } = require('node:child_process')
-const { config } = require('../utils/initFile.js')
+const { config } = require('../utils/loadConfig.js')
 
-let ttsPromise = (text, audioPath, SpeechSynthesisVoiceName = 'zh-CN-XiaoyiNeural')=>{
+let ttsPromise = (text, audioPath)=>{
   let vttPath = audioPath + '.vtt'
   return new Promise((resolve, reject)=>{
     const spawned = spawn('edge-tts', [
-      '-v', SpeechSynthesisVoiceName,
+      '-v', config.SpeechSynthesisVoiceName,
       '--text', text,
       '--write-media', audioPath,
       '--write-subtitles', vttPath,

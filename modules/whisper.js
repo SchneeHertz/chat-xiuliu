@@ -1,7 +1,7 @@
 const { spawn } = require('node:child_process')
 const path = require('node:path')
 const fs = require('node:fs')
-const { recordPromise } = require('./speech.js')
+const { recordPromise } = require('./record.js')
 
 const whisper = path.join(process.cwd(), 'resources/extraResources/whisper-faster.exe')
 
