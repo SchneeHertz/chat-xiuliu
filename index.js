@@ -126,7 +126,6 @@ const speakPrompt = async ({text, preAudioPath}) => {
       resolveSpeakTextList(nextAudioPath)
     } else if (preAudioPath) {
       await sound.play(preAudioPath)
-      triggerSpeech()
       resolveSpeakTextList()
     }
   } catch (e) {
@@ -149,14 +148,25 @@ const resolveSpeakTextList = async (preAudioPath) => {
   speakTextList = _.sortBy(speakTextList, 'speakIndex')
   if (preAudioPath) {
     if (speakTextList.length > 0) {
-      let { text } = speakTextList.shift()
-      speakPrompt({text, preAudioPath})
+      let { text, triggerRecord } = speakTextList.shift()
+      if (triggerRecord) {
+        await speakPrompt({preAudioPath})
+        triggerSpeech()
+        setTimeout(resolveSpeakTextList, 1000)
+      } else {
+        speakPrompt({text, preAudioPath})
+      }
     } else {
       speakPrompt({preAudioPath})
     }
   } else if (speakTextList.length > 0) {
-    let { text } = speakTextList.shift()
-    speakPrompt({text})
+    let { text, triggerRecord } = speakTextList.shift()
+    if (triggerRecord) {
+      triggerSpeech()
+      setTimeout(resolveSpeakTextList, 1000)
+    } else {
+      speakPrompt({text})
+    }
   } else {
     setTimeout(resolveSpeakTextList, 1000)
   }
@@ -239,14 +249,16 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
         from,
         text: resText
       })
-      let splitResText = resContent.split('\n')
-      splitResText = _.compact(splitResText)
-      for (let paragraph of splitResText ){
-        let speakText = paragraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-        speakTextList.push({
-          text: speakText,
-          speakIndex
-        })
+      if (triggerRecord) {
+        let splitResText = resContent.split('\n')
+        splitResText = _.compact(splitResText)
+        for (let paragraph of splitResText ){
+          let speakText = paragraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+          speakTextList.push({
+            text: speakText,
+            speakIndex
+          })
+        }
       }
     } else {
       for await (const token of openaiChatStream({
@@ -288,10 +300,23 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
         })
       }
     }
+    messageLog({
+      id: clientMessageId,
+      from,
+      text: resText
+    })
     history.push({role: 'assistant', content: resText})
     history = _.takeRight(history, 50)
     setStore('history', history)
     memoryTable.add([{text: resText}])
+    if (triggerRecord) {
+      let speakIndex = STATUS.speakIndex
+      STATUS.isSpeechTalk += 1
+      speakTextList.push({
+        triggerRecord: true,
+        speakIndex
+      })
+    }
   } catch (e) {
     console.log(e)
     if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
@@ -305,21 +330,19 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
  * @return {Promise<void>} Returns a promise that resolves when the function is complete.
  */
 const triggerSpeech = async ()=>{
-  while (STATUS.isSpeechTalk) {
+  if (STATUS.isSpeechTalk) {
     STATUS.isRecording = true
     mainWindow.setProgressBar(100, {mode: 'indeterminate'})
     let adminTalk = await getSpeechText()
-    if (adminTalk.startsWith(AI_NAME)) {
-      STATUS.isRecording = false
-      mainWindow.setProgressBar(-1)
-      messageLogAndSend({
-        id: nanoid(),
-        from: `(${ADMIN_NAME})`,
-        text: adminTalk
-      })
-      resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
-      break
-    }
+    console.log(adminTalk)
+    STATUS.isRecording = false
+    mainWindow.setProgressBar(-1)
+    messageLogAndSend({
+      id: nanoid(),
+      from: `(${ADMIN_NAME})`,
+      text: adminTalk
+    })
+    resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
   }
 }
 
