@@ -244,7 +244,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
       for (let paragraph of splitResText ){
         let speakText = paragraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
         speakTextList.push({
-          text: `${speakText}`,
+          text: speakText,
           speakIndex
         })
       }

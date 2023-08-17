@@ -18,7 +18,7 @@ ChatGPT双向语音助手
 - 获取一个openai的API key, 填入配置文件中
 - 修改配置文件的其他部分（可选）
 - 安装Python，然后安装edge-tts `pip install edge-tts`
-- 下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)(最好有张N卡，不然运行时很慢)
+- 下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢)
   - 在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources文件夹
   ```
   resources/extraResources/_models/faster-whisper-large-v2/config.json

@@ -9,12 +9,12 @@ const getSpeechAudioJSON = (audioFilePath)=>{
   return new Promise((resolve, reject)=>{
     const spawned = spawn(whisper, [
       audioFilePath,
-      '--model=large',
-      '--output_format=json',
-      `--output_dir=${path.dirname(audioFilePath)}`,
-      '--beep=false',
-      '--language=Chinese',
-      '--initial_prompt=以下是普通话的句子。'
+      '-m', 'large',
+      '--output_format', 'json',
+      '--output_dir', path.dirname(audioFilePath),
+      '--beep_off',
+      '-l', 'Chinese',
+      '-prompt', '以下是普通话的句子。'
     ])
     spawned.on('error', data=>{
       reject(data)
