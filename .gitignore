@@ -16,16 +16,7 @@ audio/*.wav
 speakAudio/*
 log/*.txt
 data
-resources/extraResources/_models/faster-whisper-large-v2/config.json
-resources/extraResources/_models/faster-whisper-large-v2/model.bin
-resources/extraResources/_models/faster-whisper-large-v2/tokenizer.json
-resources/extraResources/_models/faster-whisper-large-v2/vocabulary.txt
-resources/extraResources/cublas64_11.dll
-resources/extraResources/cublasLt64_11.dll
-resources/extraResources/cudnn_cnn_infer64_8.dll
-resources/extraResources/cudnn_ops_infer64_8.dll
-resources/extraResources/whisper-faster.exe
-resources/extraResources/zlibwapi.dll
+resources/extraResources/whisper
 
 # Editor directories and files
 .vscode/*

@@ -20,6 +20,15 @@
       "modules/*",
       "utils/*"
     ],
+    "extraResources": [
+      {
+        "from": "resources/extraResources",
+        "to": "extraResources",
+        "filter": [
+          "sox"
+        ]
+      }
+    ],
     "win": {
       "target": [
         "nsis"

@@ -3,7 +3,7 @@ const path = require('node:path')
 const fs = require('node:fs')
 const { recordPromise } = require('./record.js')
 
-const whisper = path.join(process.cwd(), 'resources/extraResources/whisper-faster.exe')
+const whisper = path.join(process.cwd(), 'resources/extraResources/whisper/whisper-faster.exe')
 
 const getSpeechAudioJSON = (audioFilePath)=>{
   return new Promise((resolve, reject)=>{

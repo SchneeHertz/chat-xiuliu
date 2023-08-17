@@ -10,7 +10,7 @@ if (!fs.existsSync(STORE_PATH)) {
 }
 const SPEECH_AUDIO_PATH = path.join(STORE_PATH, 'speechAudio')
 
-const sox = path.join(process.cwd(), 'resources/extraResources/sox.exe')
+const sox = path.join(process.cwd(), 'resources/extraResources/sox/sox.exe')
 const recordPromise = ()=>{
   let audioFilePath = path.join(SPEECH_AUDIO_PATH, nanoid() + '.wav')
   return new Promise((resolve, reject)=>{

@@ -19,18 +19,18 @@ ChatGPT双向语音助手
 - 修改配置文件的其他部分（可选）
 - 安装Python，然后安装edge-tts `pip install edge-tts`
 - 下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢)
-  - 在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources文件夹
+  - 在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹
   ```
-  resources/extraResources/_models/faster-whisper-large-v2/config.json
-  resources/extraResources/_models/faster-whisper-large-v2/model.bin
-  resources/extraResources/_models/faster-whisper-large-v2/tokenizer.json
-  resources/extraResources/_models/faster-whisper-large-v2/vocabulary.txt
-  resources/extraResources/cublas64_11.dll
-  resources/extraResources/cublasLt64_11.dll
-  resources/extraResources/cudnn_cnn_infer64_8.dll
-  resources/extraResources/cudnn_ops_infer64_8.dll
-  resources/extraResources/whisper-faster.exe
-  resources/extraResources/zlibwapi.dll
+  resources/extraResources/whisper/_models/faster-whisper-large-v2/config.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v2/model.bin
+  resources/extraResources/whisper/_models/faster-whisper-large-v2/tokenizer.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v2/vocabulary.txt
+  resources/extraResources/whisper/cublas64_11.dll
+  resources/extraResources/whisper/cublasLt64_11.dll
+  resources/extraResources/whisper/cudnn_cnn_infer64_8.dll
+  resources/extraResources/whisper/cudnn_ops_infer64_8.dll
+  resources/extraResources/whisper/whisper-faster.exe
+  resources/extraResources/whisper/zlibwapi.dll
   ```
 - 保存配置文件后重启chat-xiuliu.exe
 - 点击Speech Off切换录音开关，前提是你有可以正常工作的麦克风
