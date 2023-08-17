@@ -1,77 +1,48 @@
 const { StringDecoder } = require('node:string_decoder')
-const { Configuration, OpenAIApi } = require('openai')
+const OpenAI = require('openai')
+const { HttpsProxyAgent } = require('https-proxy-agent')
 const axios = require('axios')
 const _ = require('lodash')
-const { config } = require('../utils/initFile.js')
 
-const {
+const {config:{
   OPENAI_API_KEY,
   AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION,
   DEFAULT_MODEL,
-  proxyObject,
-} = config
+  proxyObject, proxyString
+}} = require('../utils/loadConfig.js')
 
-const configuration = new Configuration({
-  apiKey: OPENAI_API_KEY
+const openai = new OpenAI({
+  apiKey: OPENAI_API_KEY,
+  httpAgent: new HttpsProxyAgent(proxyString),
+  timeout: 40000
 })
-const openai = new OpenAIApi(configuration)
-const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call, timeoutMs = 40000 }) => {
-  return openai.createChatCompletion({
+const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call }) => {
+  return openai.chat.completions.create({
     model, messages, functions, function_call,
     presence_penalty: 0.2,
     frequency_penalty: 0.2
-  }, {
-    timeout: timeoutMs,
-    proxy: proxyObject
   })
 }
-const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, timeoutMs = 20000 }) {
-  const response = await openai.createChatCompletion(
-    {
+const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages }) {
+  const response = await openai.chat.completions.create({
       model, messages,
       presence_penalty: 0.2,
       frequency_penalty: 0.2,
       stream: true,
-    },
-    {
-      timeout: timeoutMs,
-      proxy: proxyObject,
-      responseType: 'stream',
-    },
-  )
-
-  for await (const chunk of response.data) {
-    const lines = chunk
-      .toString('utf8')
-      .split('\n')
-      .filter((line) => line.trim().startsWith('data: '))
-
-    for (const line of lines) {
-      const message = line.replace(/^data: /, '')
-      if (message === '[DONE]') {
-        return
-      }
-
-      const json = JSON.parse(message)
-      const token = _.get(json, 'choices[0].delta.content')
-      const functionName = _.get(json, 'choices[0].delta.function_call.name')
-      if (functionName) console.log('!!!second function call ' + functionName)
-      if (token) {
-        yield token
-      }
-    }
+  })
+  for await (const part of response) {
+    if (_.get(part, 'choices[0].delta.finish_reason') === 'stop') return
+    const token = _.get(part, 'choices[0].delta.content')
+    if (token) yield token
   }
 }
 
-const openaiEmbedding = ({ input, model = 'text-embedding-ada-002', timeoutMs = 20000 })=>{
-  return openai.createEmbedding({
+const openaiEmbedding = ({ input, model = 'text-embedding-ada-002' })=>{
+  return openai.embeddings.create({
     model, input
-  }, {
-    timeout: timeoutMs,
-    proxy: proxyObject
   })
   .then(res => {
-    return _.get(res, 'data.data[0].embedding')
+    return _.get(res, 'data[0].embedding')
   })
 }
 
