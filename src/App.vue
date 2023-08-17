@@ -40,11 +40,16 @@
     })
   })
   const inputText = ref('')
+  const inputArea = ref(null)
   const sendText = (event)=>{
-    event.stopPropagation()
+    // event.stopPropagation()
     event.preventDefault()
     if (event.shiftKey) {
-      inputText.value += '\n'
+      let textareaElement = inputArea.value.wrapperElRef.children[0].children[0].children[0]
+      let pos = textareaElement.selectionStart
+      inputText.value = inputText.value.slice(0, pos) + '\n' + inputText.value.slice(pos)
+      textareaElement.value = inputText.value
+      textareaElement.selectionStart = textareaElement.selectionEnd = pos + 1
       return
     }
     ipcRenderer.invoke('send-prompt', inputText.value)
@@ -93,7 +98,7 @@
       </n-list>
       <n-input
         class="input-text" v-model:value="inputText" @keydown.enter="sendText"
-        type="textarea" :autosize="{ minRows: 1 }"
+        ref="inputArea" type="textarea" :autosize="{ minRows: 1 }"
       ></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
