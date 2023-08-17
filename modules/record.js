@@ -22,7 +22,7 @@ const recordPromise = ()=>{
       if (code === 0) {
         return resolve(audioFilePath)
       }
-      return reject('close code is ' + code)
+      return reject('sox close code is ' + code)
     })
   })
 }

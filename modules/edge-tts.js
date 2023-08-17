@@ -18,7 +18,7 @@ let ttsPromise = (text, audioPath)=>{
       if (code === 0) {
         return resolve(vttPath)
       }
-      return reject('close code is ' + code)
+      return reject('edge-tts close code is ' + code)
     })
   })
 }

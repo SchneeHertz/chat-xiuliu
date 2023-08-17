@@ -14,7 +14,7 @@ const getSpeechAudioJSON = (audioFilePath)=>{
       '--output_dir', path.dirname(audioFilePath),
       '--beep_off',
       '-l', 'Chinese',
-      '-prompt', '以下是普通话的句子。'
+      '-prompt', '休留，讲普通话。'
     ])
     spawned.on('error', data=>{
       reject(data)
@@ -23,7 +23,7 @@ const getSpeechAudioJSON = (audioFilePath)=>{
       if (code === 0) {
         return resolve()
       }
-      return reject('close code is ' + code)
+      return reject('whisper close code is ' + code)
     })
   })
 }
