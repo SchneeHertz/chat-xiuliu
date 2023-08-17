@@ -1,43 +1,58 @@
 # chat-xiuliu
 
-虚拟主播休留的双向语音单机版
-[Bilibili 直播间](https://live.bilibili.com/27228804)
+ChatGPT双向语音助手
 
-<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/public/chat-xiuliu.png" alt="chat-xiuliu.png" width="256"/>
+这个项目是由虚拟猫娘休留(直播搞不下去了)的后台fork来的，去掉了弹幕互动的部分，增加了语音输入
+截止到2023年8月15日，使用LLM模拟人格的尝试，在我这里没有看到效果及成本可以接受的希望。
+所以模拟人格先放下一段时间，再看看未来LLM的发展吧
 
 ## 功能
 - 从麦克风或界面接收问题
 - 使用语音回答问题并显示在界面
+- 对话内容回忆
+- 联网搜索关键词
+- 猫娘发言风格
 
 ## 使用说明
-1. 下载并安装sox https://sourceforge.net/projects/sox/files/sox/14.4.1/
-2. 将sox所在文件夹添加到环境变量Path中
-3. 下载sox MP3组件 https://www.videohelp.com/software?d=sox-14.4.0-libmad-libmp3lame.zip
-4. 将libmp3lame.dll放入sox所在文件夹
-5. 打开chat-xiuliu, 点击Open Config, 编辑配置文件
-5. 获取一个openai的API key, 填入配置文件中
-6. 安装Python，然后安装edge-tts `pip install edge-tts`
-7. 修改配置文件的其他部分（可选）
-8. 保存配置文件后重启chat-xiuliu
+- 解压后打开chat-xiuliu.exe, 点击Open Config, 编辑配置文件
+- 获取一个openai的API key, 填入配置文件中
+- 修改配置文件的其他部分（可选）
+- 安装Python，然后安装edge-tts `pip install edge-tts`
+- 下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)(最好有张N卡，不然运行时很慢)
+  - 在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources文件夹
+  ```
+  resources/extraResources/_models/faster-whisper-large-v2/config.json
+  resources/extraResources/_models/faster-whisper-large-v2/model.bin
+  resources/extraResources/_models/faster-whisper-large-v2/tokenizer.json
+  resources/extraResources/_models/faster-whisper-large-v2/vocabulary.txt
+  resources/extraResources/cublas64_11.dll
+  resources/extraResources/cublasLt64_11.dll
+  resources/extraResources/cudnn_cnn_infer64_8.dll
+  resources/extraResources/cudnn_ops_infer64_8.dll
+  resources/extraResources/whisper-faster.exe
+  resources/extraResources/zlibwapi.dll
+  ```
+- 保存配置文件后重启chat-xiuliu.exe
+- 点击Speech Off切换录音开关，前提是你有可以正常工作的麦克风
 
 ### 配置文件参考
 ```
 {
   "OPENAI_API_KEY": "sk-",
-  "USE_MODEL": "gpt-3.5-turbo",
+  "DEFAULT_MODEL": "gpt-3.5-turbo-16k",
   "SpeechSynthesisVoiceName": "zh-CN-XiaoyiNeural",
   "ADMIN_NAME": "Chell",
   "AI_NAME": "休留",
-  "systemPrompt": "你是女高中生休留",
-  "proxy": {
+  "systemPrompt": "你是虚拟猫娘休留",
+  "proxyObject": {
     "type": "http",
     "host": "127.0.0.1",
     "port": 7890
-  }
+  },
+  "proxyString": "http://127.0.0.1:7890"
 }
 ```
 
-
-## 其他
-关注休留喵，关注休留谢谢喵~
-上舰或者[爱发电](https://afdian.net/a/xiuliu)捐赠等额可进舰长群727536542, 管理员提供附加的有限的技术支持
+## 赞助
+https://afdian.net/@SeldonHorizon
+如果你觉得休留很萌，可以请管理员喝杯奶茶
