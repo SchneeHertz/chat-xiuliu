@@ -33,17 +33,28 @@ const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call 
  *   - messages {array}: An array of message objects representing the conversation.
  * @return {generator} A generator that yields tokens from the chat stream.
  */
-const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages }) {
-  const response = await openai.chat.completions.create({
+const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, functions, function_call }) {
+  let response
+  if (functions) {
+    response = await openai.chat.completions.create({
+      model, messages, functions, function_call,
+      presence_penalty: 0.2,
+      frequency_penalty: 0.2,
+      stream: true,
+    })
+  } else {
+    response = await openai.chat.completions.create({
       model, messages,
       presence_penalty: 0.2,
       frequency_penalty: 0.2,
       stream: true,
-  })
+    })
+  }
   for await (const part of response) {
-    if (_.get(part, 'choices[0].delta.finish_reason') === 'stop') return
+    if (['stop', 'function_call'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
     const token = _.get(part, 'choices[0].delta.content')
-    if (token) yield token
+    const f_token = _.get(part, 'choices[0].delta.function_call', {})
+    if (token || !_.isEmpty(f_token)) yield {token, f_token}
   }
 }
 
@@ -136,6 +147,7 @@ const azureOpenaiEmbedding = ({ input, model = 'text-embedding-ada-002', timeout
 
 
 module.exports = {
+  openai,
   openaiChat,
   openaiChatStream,
   openaiEmbedding,

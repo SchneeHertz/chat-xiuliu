@@ -11,7 +11,7 @@ const { STORE_PATH, LOG_PATH, AUDIO_PATH, SPEECH_AUDIO_PATH } = require('./utils
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { ttsPromise } = require('./modules/edge-tts.js')
-const { openaiChat, openaiChatStream, openaiEmbedding } = require('./modules/common.js')
+const { openaiChatStream, openaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const {config: {
   DEFAULT_MODEL,
@@ -193,19 +193,56 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
     {role: 'user', content: prompt}
   ]
 
-  let resContent = ''
+  history.push({role: 'user', content: prompt})
+  history = _.takeRight(history, 50)
+  setStore('history', history)
+
+  let resTextTemp = ''
+  let resText = ''
+  let clientMessageId = nanoid()
+  let speakIndex = STATUS.speakIndex
+  STATUS.speakIndex += 1
   let resFunction
   let resArgument = ''
-  await openaiChat({
-    model: DEFAULT_MODEL,
-    messages,
-    functions: functionInfo
-  })
-  .then(async res=>{
-    resContent = res.choices[0].message.content
-    resFunction = res.choices[0].message?.function_call?.name
-    resArgument = res.choices[0].message?.function_call?.arguments
-    if (resFunction && resArgument) {
+
+  try {
+    for await (const {token, f_token} of openaiChatStream({
+      model: DEFAULT_MODEL,
+      messages,
+      functions: functionInfo
+    })) {
+      if (token) {
+        resTextTemp += token
+        resText += token
+        messageSend({
+          id: clientMessageId,
+          from,
+          text: resText
+        })
+        if (triggerRecord) {
+          if (resTextTemp.includes('\n')) {
+            let splitResText = resTextTemp.split('\n')
+            splitResText = _.compact(splitResText)
+            if (splitResText.length > 1) {
+              resTextTemp = splitResText.pop()
+            } else {
+              resTextTemp = ''
+            }
+            let pickFirstParagraph = splitResText.join('\n')
+            let speakText = pickFirstParagraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+            speakTextList.push({
+              text: speakText,
+              speakIndex,
+            })
+          }
+        }
+      }
+      let {name, arguments: arg} = f_token
+      if (name) resFunction = name
+      if (arg) resArgument += arg
+    }
+
+    if (!resText && resFunction && resArgument) {
       messageLogAndSend({
         id: nanoid(),
         from,
@@ -225,43 +262,17 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
         console.log(e)
         functionCallResult = ''
       }
-      let functionCalling = [res.choices[0].message, {role: "function", name: resFunction, content: functionCallResult}]
+      let functionCalling = [
+        {role: "assistant", content: null, function_call: {name: resFunction, arguments: resArgument}},
+        {role: "function", name: resFunction, content: functionCallResult}
+      ]
       messages.push(...functionCalling)
       history.push(...functionCalling)
       history = _.takeRight(history, 50)
       setStore('history', history)
       if (functionCallResult) console.log(functionCalling)
-    }
-  })
-  .catch(e=>console.log(e))
 
-  let resTextTemp = ''
-  let resText = ''
-  let clientMessageId = nanoid()
-  let speakIndex = STATUS.speakIndex
-  STATUS.speakIndex += 1
-
-  try {
-    if (resContent && !resFunction) {
-      resText = resContent
-      messageSend({
-        id: clientMessageId,
-        from,
-        text: resText
-      })
-      if (triggerRecord) {
-        let splitResText = resContent.split('\n')
-        splitResText = _.compact(splitResText)
-        for (let paragraph of splitResText ){
-          let speakText = paragraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-          speakTextList.push({
-            text: speakText,
-            speakIndex
-          })
-        }
-      }
-    } else {
-      for await (const token of openaiChatStream({
+      for await (const {token} of openaiChatStream({
         model: DEFAULT_MODEL,
         messages,
       })) {
@@ -291,6 +302,8 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
         }
       }
     }
+
+
     if (triggerRecord) {
       if (resTextTemp) {
         let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
@@ -300,6 +313,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
         })
       }
     }
+
     messageLog({
       id: clientMessageId,
       from,
