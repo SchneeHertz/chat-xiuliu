@@ -5,32 +5,41 @@ const { format } = require('node:util')
 const { nanoid } = require('nanoid')
 const sound = require('sound-play')
 const _ = require('lodash')
-const { Configuration, OpenAIApi } = require('openai')
+const lancedb = require('vectordb')
 
-const { config, history, STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
+const { STORE_PATH, LOG_PATH, AUDIO_PATH, SPEECH_AUDIO_PATH } = require('./utils/initFile.js')
+const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { ttsPromise } = require('./modules/edge-tts.js')
-const { openaiChat, openaiChatStream } = require('./modules/common.js')
-const {
-  OPENAI_API_KEY, DEFAULT_MODEL,
-  SpeechSynthesisVoiceName,
+const { openaiChat, openaiChatStream, openaiEmbedding } = require('./modules/common.js')
+const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
+const {config: {
+  DEFAULT_MODEL,
   ADMIN_NAME, AI_NAME,
-  systemPrompt,
-  proxyObject
-} = config
+  systemPrompt
+}} = require('./utils/loadConfig.js')
 
-let logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), {flags: 'w'})
-
-const messageLogAndSend = (message)=>{
+const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), {flags: 'w'})
+const messageLog = (message)=>{
   logFile.write(format(new Date().toLocaleString('zh-CN'), JSON.stringify(message)) + '\n')
+}
+const messageSend = (message)=>{
   mainWindow.webContents.send('send-message', message)
 }
+const messageLogAndSend = (message)=>{
+  messageLog(message)
+  messageSend(message)
+}
 
-const configuration = new Configuration({
-  apiKey: OPENAI_API_KEY
-})
+let memoryTable
 
-const openai = new OpenAIApi(configuration)
+const STATUS = {
+  isSpeechTalk: false,
+  isRecording: true,
+  speakIndex: 0,
+}
+
+let speakTextList = []
 
 let mainWindow
 function createWindow () {
@@ -61,8 +70,25 @@ function createWindow () {
 }
 
 app.whenReady()
-.then(()=>{
+.then(async ()=>{
+  const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
+  const embedding = {
+    sourceColumn:'text',
+    embed: async (batch)=>{
+      let result = []
+      for (let text of batch) {
+        result.push(await openaiEmbedding({input: text}))
+      }
+      return result
+    }
+  }
+  try {
+    memoryTable = await memorydb.openTable('memory', embedding)
+  } catch {
+    memoryTable = await memorydb.createTable('memory', [{'text': 'Hello world!'}], embedding)
+  }
   mainWindow = createWindow()
+  setInterval(()=>mainWindow.webContents.send('send-status', STATUS), 1000)
 })
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -75,31 +101,42 @@ app.on('window-all-closed', () => {
   }
 })
 
-const STATUS = {
-  isSpeechTalk: false,
-  isRecording: true,
-}
-
-let speechList = []
-
-const speakPrompt = async (text, audioFilename, triggerRecord) => {
+const speakPrompt = async ({text, preAudioPath}) => {
   try {
-    if (!audioFilename) audioFilename = nanoid()
-    let audioPath = path.join(AUDIO_PATH, `${audioFilename}.mp3`)
-    await ttsPromise(text, audioPath, SpeechSynthesisVoiceName)
-    await sound.play(audioPath)
-    if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
-    resolveSpeakTextList()
+    let nextAudioPath = path.join(AUDIO_PATH, `${nanoid()}.mp3`)
+    if (text) {
+      if (preAudioPath) {
+        await Promise.allSettled([
+          ttsPromise(text, nextAudioPath),
+          sound.play(preAudioPath)
+        ])
+      } else {
+        await ttsPromise(text, nextAudioPath)
+      }
+      resolveSpeakTextList(nextAudioPath)
+    } else if (preAudioPath) {
+      await sound.play(preAudioPath)
+      triggerSpeech()
+      resolveSpeakTextList()
+    }
   } catch (e) {
     console.log(e)
     resolveSpeakTextList()
   }
 }
 
-const resolveSpeakTextList = async () => {
-  if (speechList.length > 0) {
-    let { text, audioFilename, triggerRecord } = speechList.shift()
-    speakPrompt(text, audioFilename, triggerRecord)
+const resolveSpeakTextList = async (preAudioPath) => {
+  speakTextList = _.sortBy(speakTextList, 'speakIndex')
+  if (preAudioPath) {
+    if (speakTextList.length > 0) {
+      let { text } = speakTextList.shift()
+      speakPrompt({text, preAudioPath})
+    } else {
+      speakPrompt({preAudioPath})
+    }
+  } else if (speakTextList.length > 0) {
+    let { text } = speakTextList.shift()
+    speakPrompt({text})
   } else {
     setTimeout(resolveSpeakTextList, 1000)
   }
@@ -108,54 +145,151 @@ const resolveSpeakTextList = async () => {
 resolveSpeakTextList()
 
 const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
+  let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
+  let history = getStore('history')
   let messages = [
     {role: 'system', content: systemPrompt},
     {role: 'user', content: `我的名字是${ADMIN_NAME}`},
     {role: 'assistant', content: `你好, ${ADMIN_NAME}`},
-    ..._.takeRight(history, 10),
+    ..._.takeRight(history, 12),
     {role: 'user', content: prompt}
   ]
-  openai.createChatCompletion({
+
+  let resContent = ''
+  let resFunction
+  let resArgument = ''
+  await openaiChat({
     model: DEFAULT_MODEL,
     messages,
-  }, { proxyObject })
-  .then(res=>{
-    let resText = res.data.choices[0].message.content
-    history.push(
-      {role: 'user', content: prompt},
-      {role: 'assistant', content: resText}
-    )
+    functions: functionInfo
+  })
+  .then(async res=>{
+    resContent = res.choices[0].message.content
+    resFunction = res.choices[0].message?.function_call?.name
+    resArgument = res.choices[0].message?.function_call?.arguments
+    if (resFunction && resArgument) {
+      messageLogAndSend({
+        id: nanoid(),
+        from,
+        text: functionAction[resFunction](JSON.parse(resArgument))
+      })
+      let functionCallResult
+      try {
+        switch (resFunction) {
+          case 'getHistoricalConversationContent':
+            functionCallResult = await functionList[resFunction](_.assign({dbTable: memoryTable}, JSON.parse(resArgument)))
+            break
+          default:
+            functionCallResult = await functionList[resFunction](JSON.parse(resArgument))
+            break
+        }
+      } catch (e) {
+        console.log(e)
+        functionCallResult = ''
+      }
+      let functionCalling = [res.choices[0].message, {role: "function", name: resFunction, content: functionCallResult}]
+      messages.push(...functionCalling)
+      history.push(...functionCalling)
+      history = _.takeRight(history, 50)
+      setStore('history', history)
+      if (functionCallResult) console.log(functionCalling)
+    }
+  })
+  .catch(e=>console.log(e))
+
+  let resTextTemp = ''
+  let resText = ''
+  let clientMessageId = nanoid()
+  let speakIndex = STATUS.speakIndex
+  STATUS.speakIndex += 1
+
+  try {
+    if (resContent && !resFunction) {
+      resText = resContent
+      messageSend({
+        id: clientMessageId,
+        from,
+        text: resText
+      })
+      let splitResText = resContent.split('\n')
+      splitResText = _.compact(splitResText)
+      for (let paragraph of splitResText ){
+        let speakText = paragraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+        speakTextList.push({
+          text: `${speakText}`,
+          speakIndex
+        })
+      }
+    } else {
+      for await (const token of openaiChatStream({
+        model: DEFAULT_MODEL,
+        messages,
+      })) {
+        resTextTemp += token
+        resText += token
+        messageSend({
+          id: clientMessageId,
+          from,
+          text: resText
+        })
+        if (triggerRecord) {
+          if (resTextTemp.includes('\n')) {
+            let splitResText = resTextTemp.split('\n')
+            splitResText = _.compact(splitResText)
+            if (splitResText.length > 1) {
+              resTextTemp = splitResText.pop()
+            } else {
+              resTextTemp = ''
+            }
+            let pickFirstParagraph = splitResText.join('\n')
+            let speakText = pickFirstParagraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+            speakTextList.push({
+              text: speakText,
+              speakIndex,
+            })
+          }
+        }
+      }
+    }
+    if (triggerRecord) {
+      if (resTextTemp) {
+        let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+        speakTextList.push({
+          text: speakText,
+          speakIndex,
+        })
+      }
+    }
+    history.push({role: 'assistant', content: resText})
     history = _.takeRight(history, 50)
-    fs.writeFileSync(path.join(STORE_PATH, 'history.json'), JSON.stringify(history, null, '  '), {encoding: 'utf-8'})
-    messageLogAndSend({
-      id: nanoid(),
-      from: triggerRecord ? `(${AI_NAME})` : AI_NAME,
-      text: resText
-    })
-    if (triggerRecord) speechList.push({text: `${resText}`, triggerRecord})
-  })
-  .catch(e=>{
+    setStore('history', history)
+    memoryTable.add([{text: resText}])
+  } catch (e) {
     console.log(e)
-    STATUS.isSpeechTalk = false
-  })
+    if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
+  }
 }
 
 
 const triggerSpeech = async ()=>{
-  STATUS.isRecording = true
-  mainWindow.setProgressBar(100, {mode: 'indeterminate'})
-  let adminTalk = await getSpeechText()
-  STATUS.isRecording = false
-  mainWindow.setProgressBar(-1)
-  messageLogAndSend({
-    id: nanoid(),
-    from: `(${ADMIN_NAME})`,
-    text: adminTalk
-  })
-  resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
+  while (STATUS.isSpeechTalk) {
+    STATUS.isRecording = true
+    mainWindow.setProgressBar(100, {mode: 'indeterminate'})
+    let adminTalk = await getSpeechText()
+    if (adminTalk.startsWith(AI_NAME)) {
+      STATUS.isRecording = false
+      mainWindow.setProgressBar(-1)
+      messageLogAndSend({
+        id: nanoid(),
+        from: `(${ADMIN_NAME})`,
+        text: adminTalk
+      })
+      resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
+      break
+    }
+  }
 }
 
-setInterval(()=>mainWindow.webContents.send('send-status', STATUS), 1000)
 ipcMain.handle('send-prompt', async (event, text)=>{
   resloveAdminPrompt({prompt: text})
 })
