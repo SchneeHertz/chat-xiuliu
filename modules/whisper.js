@@ -33,6 +33,11 @@ const changeExtension = (filePath, extension)=>{
   return path.join(path.dirname(filePath), basename + extension)
 }
 
+/**
+ * Retrieves the text from a speech audio file.
+ *
+ * @return {string} The text extracted from the speech audio file.
+ */
 const getSpeechText = async ()=>{
   let audioFilePath = await recordPromise()
   let jsonFilePath = changeExtension(audioFilePath, '.json')

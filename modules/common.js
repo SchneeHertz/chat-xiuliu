@@ -16,6 +16,7 @@ const openai = new OpenAI({
   httpAgent: new HttpsProxyAgent(proxyString),
   timeout: 40000
 })
+
 const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call }) => {
   return openai.chat.completions.create({
     model, messages, functions, function_call,
@@ -23,6 +24,15 @@ const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call 
     frequency_penalty: 0.2
   })
 }
+
+/**
+ * Generates a chat stream using the OpenAI API.
+ *
+ * @param {object} options - An object containing the following properties:
+ *   - model {string}: The model to use for generating the chat stream.
+ *   - messages {array}: An array of message objects representing the conversation.
+ * @return {generator} A generator that yields tokens from the chat stream.
+ */
 const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages }) {
   const response = await openai.chat.completions.create({
       model, messages,
@@ -61,6 +71,7 @@ const azureOpenaiChat = ({ model = DEFAULT_MODEL, messages, timeoutMs = 40000 })
     }
   )
 }
+
 const azureOpenaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, timeoutMs = 20000 }) {
   model = model.replace('.', '')
   let response = await axios.post(

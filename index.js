@@ -103,6 +103,14 @@ app.on('window-all-closed', () => {
   }
 })
 
+/**
+ * Executes text-to-speech and plays audio prompts.
+ *
+ * @param {Object} options - The options object.
+ * @param {string} options.text - The text to be converted to speech.
+ * @param {string} options.preAudioPath - The path to the pre-recorded audio prompt.
+ * @return {Promise} A promise that resolves when the audio prompts have been played successfully.
+ */
 const speakPrompt = async ({text, preAudioPath}) => {
   try {
     let nextAudioPath = path.join(AUDIO_PATH, `${nanoid()}.mp3`)
@@ -127,6 +135,16 @@ const speakPrompt = async ({text, preAudioPath}) => {
   }
 }
 
+/**
+ * Resolves the speak text list by sorting it based on the speak index. If a preAudioPath is provided, it will
+ * get the first speak text from the list and call the speakPrompt function with the text and the preAudioPath.
+ * If the list is empty after shifting the first element, it will call the speakPrompt function with only the preAudioPath.
+ * If no preAudioPath is provided, it will get the first speak text from the list and call the speakPrompt function with the text.
+ * If the list is empty after shifting the first element, it will wait for 1000 milliseconds and then call itself again.
+ *
+ * @param {string} preAudioPath - The path to the pre-recorded audio file.
+ * @return {undefined}
+ */
 const resolveSpeakTextList = async (preAudioPath) => {
   speakTextList = _.sortBy(speakTextList, 'speakIndex')
   if (preAudioPath) {
@@ -146,6 +164,14 @@ const resolveSpeakTextList = async (preAudioPath) => {
 
 resolveSpeakTextList()
 
+/**
+ * Asynchronously resolves an admin prompt by generating a response based on a given prompt and trigger record.
+ *
+ * @param {Object} options - An object containing the prompt and trigger record.
+ * @param {string} options.prompt - The user prompt.
+ * @param {Object} options.triggerRecord - The trigger record object.
+ * @return {Promise<void>} - A promise that resolves with the generated response.
+ */
 const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
@@ -273,6 +299,11 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
 }
 
 
+/**
+ * Trigger speech function that listens for admin prompts and handles them accordingly.
+ *
+ * @return {Promise<void>} Returns a promise that resolves when the function is complete.
+ */
 const triggerSpeech = async ()=>{
   while (STATUS.isSpeechTalk) {
     STATUS.isRecording = true
