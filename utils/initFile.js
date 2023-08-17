@@ -1,8 +1,7 @@
-const { app } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 
-let STORE_PATH = app.getPath('userData')
+let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
   fs.mkdirSync(STORE_PATH)
 }

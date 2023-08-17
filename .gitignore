@@ -15,6 +15,7 @@ devtools
 audio/*.wav
 speakAudio/*
 log/*.txt
+data
 resources/extraResources/_models/faster-whisper-large-v2/config.json
 resources/extraResources/_models/faster-whisper-large-v2/model.bin
 resources/extraResources/_models/faster-whisper-large-v2/tokenizer.json

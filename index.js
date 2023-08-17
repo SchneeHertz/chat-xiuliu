@@ -85,7 +85,9 @@ app.whenReady()
   try {
     memoryTable = await memorydb.openTable('memory', embedding)
   } catch {
-    memoryTable = await memorydb.createTable('memory', [{'text': 'Hello world!'}], embedding)
+    try {
+      memoryTable = await memorydb.createTable('memory', [{'text': 'Hello world!'}], embedding)
+    } catch {}
   }
   mainWindow = createWindow()
   setInterval(()=>mainWindow.webContents.send('send-status', STATUS), 1000)
