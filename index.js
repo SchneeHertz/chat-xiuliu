@@ -209,7 +209,8 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
     for await (const {token, f_token} of openaiChatStream({
       model: DEFAULT_MODEL,
       messages,
-      functions: functionInfo
+      functions: functionInfo,
+      function_call: 'auto'
     })) {
       if (token) {
         resTextTemp += token
