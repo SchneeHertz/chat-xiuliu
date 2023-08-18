@@ -16,20 +16,20 @@ const functionInfo = [
       "required": ["queryString"],
     }
  },
-//  {
-//    "name": "getHistoricalConversationContent",
-//    "description": "Searching historical conversation content in conversation history.",
-//    "parameters": {
-//       "type": "object",
-//       "properties": {
-//         "relatedText": {
-//           "type": "string",
-//           "description": "The related text to find historical conversation content",
-//         },
-//       },
-//       "required": ["relatedText"],
-//     }
-//   },
+ {
+   "name": "getHistoricalConversationContent",
+   "description": "Searching historical conversation content in conversation history.",
+   "parameters": {
+      "type": "object",
+      "properties": {
+        "relatedText": {
+          "type": "string",
+          "description": "The related text to find historical conversation content",
+        },
+      },
+      "required": ["relatedText"],
+    }
+  },
 ]
 
 const functionAction = {
