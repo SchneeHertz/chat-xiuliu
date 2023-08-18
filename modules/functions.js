@@ -1,5 +1,5 @@
 const google = require('@schneehertz/google-it')
-const { config } = require('../utils/loadConfig.js')
+const { config: {proxyString, AI_NAME} } = require('../utils/loadConfig.js')
 
 const functionInfo = [
   {
@@ -34,15 +34,15 @@ const functionInfo = [
 
 const functionAction = {
   getInformationFromGoogle ({queryString}) {
-    return `休留正在搜索${queryString}`
+    return `${AI_NAME}正在搜索${queryString}`
   },
   getHistoricalConversationContent ({relatedText}) {
-    return `休留想起了关于${relatedText}的事情`
+    return `${AI_NAME}想起了关于${relatedText}的事情`
   }
 }
 
 const getInformationFromGoogle = async ({queryString}) => {
-  let options = { proxy: config.proxyString }
+  let options = { proxy: proxyString }
   let additionalQueryParam = {
     lr: 'lang_zh-CN',
     hl: 'zh-CN',
