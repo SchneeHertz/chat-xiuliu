@@ -4,12 +4,12 @@ const { HttpsProxyAgent } = require('https-proxy-agent')
 const axios = require('axios')
 const _ = require('lodash')
 
-const {config:{
+const { config: {
   OPENAI_API_KEY,
   AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION,
   DEFAULT_MODEL,
   proxyObject, proxyString
-}} = require('../utils/loadConfig.js')
+} } = require('../utils/loadConfig.js')
 
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,
@@ -54,17 +54,17 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, fun
     if (['stop', 'function_call'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
     const token = _.get(part, 'choices[0].delta.content')
     const f_token = _.get(part, 'choices[0].delta.function_call', {})
-    if (token || !_.isEmpty(f_token)) yield {token, f_token}
+    if (token || !_.isEmpty(f_token)) yield { token, f_token }
   }
 }
 
-const openaiEmbedding = ({ input, model = 'text-embedding-ada-002' })=>{
+const openaiEmbedding = ({ input, model = 'text-embedding-ada-002' }) => {
   return openai.embeddings.create({
     model, input
   })
-  .then(res => {
-    return _.get(res, 'data[0].embedding')
-  })
+    .then(res => {
+      return _.get(res, 'data[0].embedding')
+    })
 }
 
 const azureOpenaiChat = ({ model = DEFAULT_MODEL, messages, timeoutMs = 40000 }) => {
@@ -128,7 +128,7 @@ const azureOpenaiChatStream = async function* ({ model = DEFAULT_MODEL, messages
   }
 }
 
-const azureOpenaiEmbedding = ({ input, model = 'text-embedding-ada-002', timeoutMs = 20000 })=>{
+const azureOpenaiEmbedding = ({ input, model = 'text-embedding-ada-002', timeoutMs = 20000 }) => {
   return axios.post(
     `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${model}/embeddings?api-version=${AZURE_API_VERSION}`,
     { input },

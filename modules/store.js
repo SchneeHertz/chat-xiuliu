@@ -8,21 +8,21 @@ if (!fs.existsSync(STORE_PATH)) {
 
 let storeData
 try {
-  storeData = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'storeData.json'), {encoding: 'utf-8'}))
+  storeData = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'storeData.json'), { encoding: 'utf-8' }))
 } catch {
   storeData = {
     history: []
   }
-  fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), {encoding: 'utf-8'})
+  fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), { encoding: 'utf-8' })
 }
 
-const getStore = (key, defaultValue)=>{
+const getStore = (key, defaultValue) => {
   return storeData[key] || defaultValue
 }
 
-const setStore = (key, value)=>{
+const setStore = (key, value) => {
   storeData[key] = value
-  fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), {encoding: 'utf-8'})
+  fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), { encoding: 'utf-8' })
 }
 
 module.exports = {

@@ -1,5 +1,5 @@
 const google = require('@schneehertz/google-it')
-const { config: {proxyString, AI_NAME} } = require('../utils/loadConfig.js')
+const { config: { proxyString, AI_NAME } } = require('../utils/loadConfig.js')
 
 const functionInfo = [
   {
@@ -15,11 +15,11 @@ const functionInfo = [
       },
       "required": ["queryString"],
     }
- },
- {
-   "name": "getHistoricalConversationContent",
-   "description": "Searching historical conversation content in conversation history.",
-   "parameters": {
+  },
+  {
+    "name": "getHistoricalConversationContent",
+    "description": "Searching historical conversation content in conversation history.",
+    "parameters": {
       "type": "object",
       "properties": {
         "relatedText": {
@@ -33,15 +33,15 @@ const functionInfo = [
 ]
 
 const functionAction = {
-  getInformationFromGoogle ({queryString}) {
+  getInformationFromGoogle({ queryString }) {
     return `${AI_NAME}正在搜索${queryString}`
   },
-  getHistoricalConversationContent ({relatedText}) {
+  getHistoricalConversationContent({ relatedText }) {
     return `${AI_NAME}想起了关于${relatedText}的事情`
   }
 }
 
-const getInformationFromGoogle = async ({queryString}) => {
+const getInformationFromGoogle = async ({ queryString }) => {
   let options = { proxy: proxyString }
   let additionalQueryParam = {
     lr: 'lang_zh-CN',
@@ -50,14 +50,14 @@ const getInformationFromGoogle = async ({queryString}) => {
     gl: 'cn',
     safe: 'high'
   }
-  let googleRes = await google({options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam})
+  let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam })
   // return googleRes.map(r=>r.snippet).join('\n').slice(0, 800)
   return JSON.stringify(googleRes)
 }
 
-const getHistoricalConversationContent = async ({relatedText, dbTable}) => {
+const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
   let MemoryTexts = await dbTable.search(relatedText).limit(2).execute()
-  return MemoryTexts.map(s=>s.text).join('\n')
+  return MemoryTexts.map(s => s.text).join('\n')
 }
 
 

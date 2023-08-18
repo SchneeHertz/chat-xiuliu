@@ -13,20 +13,20 @@ const { getSpeechText } = require('./modules/whisper.js')
 const { ttsPromise } = require('./modules/edge-tts.js')
 const { openaiChatStream, openaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
-const {config: {
+const { config: {
   DEFAULT_MODEL,
   ADMIN_NAME, AI_NAME,
   systemPrompt
-}} = require('./utils/loadConfig.js')
+} } = require('./utils/loadConfig.js')
 
-const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), {flags: 'w'})
-const messageLog = (message)=>{
+const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), { flags: 'w' })
+const messageLog = (message) => {
   logFile.write(format(new Date().toLocaleString('zh-CN'), JSON.stringify(message)) + '\n')
 }
-const messageSend = (message)=>{
+const messageSend = (message) => {
   mainWindow.webContents.send('send-message', message)
 }
-const messageLogAndSend = (message)=>{
+const messageLogAndSend = (message) => {
   messageLog(message)
   messageSend(message)
 }
@@ -42,7 +42,7 @@ const STATUS = {
 let speakTextList = []
 
 let mainWindow
-function createWindow () {
+function createWindow() {
   const win = new BrowserWindow({
     width: 960,
     height: 512,
@@ -58,7 +58,7 @@ function createWindow () {
     win.loadURL('http://localhost:5173')
   }
   win.setMenuBarVisibility(false)
-  win.webContents.on('did-finish-load', ()=>{
+  win.webContents.on('did-finish-load', () => {
     let name = require('./package.json').name
     let version = require('./package.json').version
     win.setTitle(name + ' ' + version)
@@ -70,28 +70,28 @@ function createWindow () {
 }
 
 app.whenReady()
-.then(async ()=>{
-  const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
-  const embedding = {
-    sourceColumn:'text',
-    embed: async (batch)=>{
-      let result = []
-      for (let text of batch) {
-        result.push(await openaiEmbedding({input: text}))
+  .then(async () => {
+    const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
+    const embedding = {
+      sourceColumn: 'text',
+      embed: async (batch) => {
+        let result = []
+        for (let text of batch) {
+          result.push(await openaiEmbedding({ input: text }))
+        }
+        return result
       }
-      return result
     }
-  }
-  try {
-    memoryTable = await memorydb.openTable('memory', embedding)
-  } catch {
     try {
-      memoryTable = await memorydb.createTable('memory', [{'text': 'Hello world!'}], embedding)
-    } catch {}
-  }
-  mainWindow = createWindow()
-  setInterval(()=>mainWindow.webContents.send('send-status', STATUS), 1000)
-})
+      memoryTable = await memorydb.openTable('memory', embedding)
+    } catch {
+      try {
+        memoryTable = await memorydb.createTable('memory', [{ 'text': 'Hello world!' }], embedding)
+      } catch { }
+    }
+    mainWindow = createWindow()
+    setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
+  })
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     mainWindow = createWindow()
@@ -111,7 +111,7 @@ app.on('window-all-closed', () => {
  * @param {string} options.preAudioPath - The path to the pre-recorded audio prompt.
  * @return {Promise} A promise that resolves when the audio prompts have been played successfully.
  */
-const speakPrompt = async ({text, preAudioPath}) => {
+const speakPrompt = async ({ text, preAudioPath }) => {
   try {
     let nextAudioPath = path.join(AUDIO_PATH, `${nanoid()}.mp3`)
     if (text) {
@@ -150,14 +150,14 @@ const resolveSpeakTextList = async (preAudioPath) => {
     if (speakTextList.length > 0) {
       let { text, triggerRecord } = speakTextList.shift()
       if (triggerRecord) {
-        await speakPrompt({preAudioPath})
+        await speakPrompt({ preAudioPath })
         triggerSpeech()
         setTimeout(resolveSpeakTextList, 1000)
       } else {
-        speakPrompt({text, preAudioPath})
+        speakPrompt({ text, preAudioPath })
       }
     } else {
-      speakPrompt({preAudioPath})
+      speakPrompt({ preAudioPath })
     }
   } else if (speakTextList.length > 0) {
     let { text, triggerRecord } = speakTextList.shift()
@@ -165,7 +165,7 @@ const resolveSpeakTextList = async (preAudioPath) => {
       triggerSpeech()
       setTimeout(resolveSpeakTextList, 1000)
     } else {
-      speakPrompt({text})
+      speakPrompt({ text })
     }
   } else {
     setTimeout(resolveSpeakTextList, 1000)
@@ -182,18 +182,18 @@ resolveSpeakTextList()
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
+const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
   let messages = [
-    {role: 'system', content: systemPrompt},
-    {role: 'user', content: `我的名字是${ADMIN_NAME}`},
-    {role: 'assistant', content: `你好, ${ADMIN_NAME}`},
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: `我的名字是${ADMIN_NAME}` },
+    { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
     ..._.takeRight(history, 12),
-    {role: 'user', content: prompt}
+    { role: 'user', content: prompt }
   ]
 
-  history.push({role: 'user', content: prompt})
+  history.push({ role: 'user', content: prompt })
   history = _.takeRight(history, 50)
   setStore('history', history)
 
@@ -206,7 +206,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
   let resArgument = ''
 
   try {
-    for await (const {token, f_token} of openaiChatStream({
+    for await (const { token, f_token } of openaiChatStream({
       model: DEFAULT_MODEL,
       messages,
       functions: functionInfo,
@@ -238,7 +238,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
           }
         }
       }
-      let {name, arguments: arg} = f_token
+      let { name, arguments: arg } = f_token
       if (name) resFunction = name
       if (arg) resArgument += arg
     }
@@ -253,7 +253,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
       try {
         switch (resFunction) {
           case 'getHistoricalConversationContent':
-            functionCallResult = await functionList[resFunction](_.assign({dbTable: memoryTable}, JSON.parse(resArgument)))
+            functionCallResult = await functionList[resFunction](_.assign({ dbTable: memoryTable }, JSON.parse(resArgument)))
             break
           default:
             functionCallResult = await functionList[resFunction](JSON.parse(resArgument))
@@ -264,8 +264,8 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
         functionCallResult = ''
       }
       let functionCalling = [
-        {role: "assistant", content: null, function_call: {name: resFunction, arguments: resArgument}},
-        {role: "function", name: resFunction, content: functionCallResult}
+        { role: "assistant", content: null, function_call: { name: resFunction, arguments: resArgument } },
+        { role: "function", name: resFunction, content: functionCallResult }
       ]
       messages.push(...functionCalling)
       history.push(...functionCalling)
@@ -273,7 +273,7 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
       setStore('history', history)
       if (functionCallResult) console.log(functionCalling)
 
-      for await (const {token} of openaiChatStream({
+      for await (const { token } of openaiChatStream({
         model: DEFAULT_MODEL,
         messages,
       })) {
@@ -320,10 +320,10 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
       from,
       text: resText
     })
-    history.push({role: 'assistant', content: resText})
+    history.push({ role: 'assistant', content: resText })
     history = _.takeRight(history, 50)
     setStore('history', history)
-    memoryTable.add([{text: resText}])
+    memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
       STATUS.isSpeechTalk += 1
@@ -344,10 +344,10 @@ const resloveAdminPrompt = async ({prompt, triggerRecord})=> {
  *
  * @return {Promise<void>} Returns a promise that resolves when the function is complete.
  */
-const triggerSpeech = async ()=>{
+const triggerSpeech = async () => {
   if (STATUS.isSpeechTalk) {
     STATUS.isRecording = true
-    mainWindow.setProgressBar(100, {mode: 'indeterminate'})
+    mainWindow.setProgressBar(100, { mode: 'indeterminate' })
     let adminTalk = await getSpeechText()
     console.log(adminTalk)
     STATUS.isRecording = false
@@ -357,20 +357,20 @@ const triggerSpeech = async ()=>{
       from: `(${ADMIN_NAME})`,
       text: adminTalk
     })
-    resloveAdminPrompt({prompt: adminTalk, triggerRecord: true})
+    resloveAdminPrompt({ prompt: adminTalk, triggerRecord: true })
   }
 }
 
-ipcMain.handle('send-prompt', async (event, text)=>{
-  resloveAdminPrompt({prompt: text})
+ipcMain.handle('send-prompt', async (event, text) => {
+  resloveAdminPrompt({ prompt: text })
 })
-ipcMain.handle('get-admin-name', async (event)=>{
+ipcMain.handle('get-admin-name', async (event) => {
   return ADMIN_NAME
 })
-ipcMain.handle('open-config', async (event)=>{
+ipcMain.handle('open-config', async (event) => {
   shell.openExternal(path.join(STORE_PATH, 'config.json'))
 })
-ipcMain.handle('switch-speech-talk', async ()=>{
+ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
   mainWindow.setProgressBar(-1)
   if (STATUS.isSpeechTalk) {

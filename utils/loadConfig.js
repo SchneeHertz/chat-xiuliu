@@ -8,7 +8,7 @@ if (!fs.existsSync(STORE_PATH)) {
 
 let config
 try {
-  config = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'config.json'), {encoding: 'utf-8'}))
+  config = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'config.json'), { encoding: 'utf-8' }))
 } catch {
   config = {
     OPENAI_API_KEY: 'sk-',
@@ -24,7 +24,7 @@ try {
     },
     proxyString: 'http://127.0.0.1:7890',
   }
-  fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), {encoding: 'utf-8'})
+  fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), { encoding: 'utf-8' })
 }
 
 module.exports = {

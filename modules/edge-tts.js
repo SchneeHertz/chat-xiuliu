@@ -1,9 +1,9 @@
 const { spawn } = require('node:child_process')
 const { config } = require('../utils/loadConfig.js')
 
-let ttsPromise = (text, audioPath)=>{
+const ttsPromise = (text, audioPath) => {
   let vttPath = audioPath + '.vtt'
-  return new Promise((resolve, reject)=>{
+  return new Promise((resolve, reject) => {
     const spawned = spawn('edge-tts', [
       '-v', config.SpeechSynthesisVoiceName,
       '--text', text,
@@ -11,10 +11,10 @@ let ttsPromise = (text, audioPath)=>{
       '--write-subtitles', vttPath,
       '--proxy', config.proxyString
     ])
-    spawned.on('error', data=>{
+    spawned.on('error', data => {
       reject(data)
     })
-    spawned.on('exit', code=>{
+    spawned.on('exit', code => {
       if (code === 0) {
         return resolve(vttPath)
       }
