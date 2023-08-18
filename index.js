@@ -42,7 +42,7 @@ const STATUS = {
 let speakTextList = []
 
 let mainWindow
-function createWindow() {
+const createWindow = () => {
   const win = new BrowserWindow({
     width: 960,
     height: 512,
@@ -92,15 +92,9 @@ app.whenReady()
     mainWindow = createWindow()
     setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
   })
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    mainWindow = createWindow()
-  }
-})
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })
 
 /**
