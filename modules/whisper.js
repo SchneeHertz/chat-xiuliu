@@ -38,8 +38,9 @@ const changeExtension = (filePath, extension) => {
  *
  * @return {string} The text extracted from the speech audio file.
  */
-const getSpeechText = async () => {
+const getSpeechText = async (STATUS) => {
   let audioFilePath = await recordPromise()
+  STATUS.recordStatus = 'Recognizing'
   let jsonFilePath = changeExtension(audioFilePath, '.json')
   await getSpeechAudioJSON(audioFilePath)
   let resp = JSON.parse(fs.readFileSync(jsonFilePath, { encoding: 'utf-8' }))

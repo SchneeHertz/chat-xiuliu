@@ -35,7 +35,7 @@ let memoryTable
 
 const STATUS = {
   isSpeechTalk: false,
-  isRecording: true,
+  recordStatus: 'Recording',
   speakIndex: 0,
 }
 
@@ -144,7 +144,7 @@ const resolveSpeakTextList = async (preAudioPath) => {
     if (speakTextList.length > 0) {
       let { text, triggerRecord } = speakTextList.shift()
       if (triggerRecord) {
-        await speakPrompt({ preAudioPath })
+        await sound.play(preAudioPath)
         triggerSpeech()
         setTimeout(resolveSpeakTextList, 1000)
       } else {
@@ -345,11 +345,11 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
  */
 const triggerSpeech = async () => {
   if (STATUS.isSpeechTalk) {
-    STATUS.isRecording = true
+    STATUS.recordStatus = 'Recording'
     mainWindow.setProgressBar(100, { mode: 'indeterminate' })
-    let adminTalk = await getSpeechText()
+    let adminTalk = await getSpeechText(STATUS)
     console.log(adminTalk)
-    STATUS.isRecording = false
+    STATUS.recordStatus = 'Answering'
     mainWindow.setProgressBar(-1)
     messageLogAndSend({
       id: nanoid(),

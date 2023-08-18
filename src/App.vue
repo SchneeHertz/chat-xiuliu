@@ -66,11 +66,11 @@ const scrollToBottom = (id) => {
   element.scrollTop = element.scrollHeight
 }
 const isSpeechTalk = ref(false)
-const isRecording = ref(false)
+const recordStatus = ref(false)
 onMounted(() => {
   ipcRenderer.on('send-status', (event, arg) => {
     isSpeechTalk.value = arg.isSpeechTalk
-    isRecording.value = arg.isRecording
+    recordStatus.value = arg.recordStatus
   })
 })
 const switchSpeechTalk = () => {
@@ -99,7 +99,13 @@ const openConfig = () => {
       <n-input class="input-text" v-model:value="inputText" @keydown.enter="sendText" ref="inputArea" type="textarea" :autosize="{ minRows: 1 }"></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
-      <n-button :type="isSpeechTalk ? isRecording ? 'error' : 'primary'  : 'default'" @click="switchSpeechTalk">{{ isSpeechTalk ? isRecording ? 'Recording' : 'Answering' : 'Speech Off' }}</n-button>
+      <n-button :type="isSpeechTalk
+        ? recordStatus === 'Recording'
+          ? 'error'
+          : recordStatus === 'Recognizing'
+            ? 'warning'
+            : 'primary'
+        : 'default'" @click="switchSpeechTalk">{{ isSpeechTalk ? recordStatus : 'Speech Off' }}</n-button>
       <n-button type="default" @click="openConfig">Open Config</n-button>
     </n-gi>
   </n-grid>
