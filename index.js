@@ -196,6 +196,11 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
   history.push({ role: 'user', content: prompt })
   history = _.takeRight(history, 50)
   setStore('history', history)
+  messageLog({
+    id: nanoid(),
+    from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
+    text: prompt
+  })
 
   let resTextTemp = ''
   let resText = ''
