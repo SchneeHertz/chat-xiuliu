@@ -52,7 +52,7 @@ const getInformationFromGoogle = async ({ queryString }) => {
   }
   let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam })
   // return googleRes.map(r=>r.snippet).join('\n').slice(0, 800)
-  return JSON.stringify(googleRes)
+  return googleRes.map(l=>l.title + '\n' + l.snippet).join('\n')
 }
 
 const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
