@@ -79,6 +79,9 @@ const switchSpeechTalk = () => {
 const openConfig = () => {
   ipcRenderer.invoke('open-config')
 }
+const emptyHistory = () => {
+  ipcRenderer.invoke('empty-history')
+}
 </script>
 
 <template>
@@ -106,6 +109,7 @@ const openConfig = () => {
             ? 'warning'
             : 'primary'
         : 'default'" @click="switchSpeechTalk">{{ isSpeechTalk ? recordStatus : 'Speech Off' }}</n-button>
+      <n-button type="default" @click="emptyHistory">Clear History</n-button>
       <n-button type="default" @click="openConfig">Open Config</n-button>
     </n-gi>
   </n-grid>

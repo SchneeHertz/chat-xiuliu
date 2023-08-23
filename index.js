@@ -264,7 +264,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
       }
       let functionCalling = [
         { role: "assistant", content: null, function_call: { name: resFunction, arguments: resArgument } },
-        { role: "function", name: resFunction, content: functionCallResult }
+        { role: "function", name: resFunction, content: functionCallResult + '' }
       ]
       messages.push(...functionCalling)
       history.push(...functionCalling)
@@ -375,4 +375,7 @@ ipcMain.handle('switch-speech-talk', async () => {
   if (STATUS.isSpeechTalk) {
     triggerSpeech()
   }
+})
+ipcMain.handle('empty-history', async()=>{
+  setStore('history', [])
 })

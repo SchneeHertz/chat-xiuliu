@@ -15,15 +15,9 @@ try {
   fs.rmSync(SPEECH_AUDIO_PATH, { recursive: true, force: true })
 } catch { }
 
-fs.mkdir(LOG_PATH, { recursive: true }, (err) => {
-  if (err) throw err
-})
-fs.mkdir(AUDIO_PATH, { recursive: true }, (err) => {
-  if (err) throw err
-})
-fs.mkdir(SPEECH_AUDIO_PATH, { recursive: true }, (err) => {
-  if (err) throw err
-})
+fs.mkdirSync(LOG_PATH, { recursive: true })
+fs.mkdirSync(AUDIO_PATH, { recursive: true })
+fs.mkdirSync(SPEECH_AUDIO_PATH, { recursive: true })
 
 module.exports = {
   STORE_PATH,

@@ -17,6 +17,7 @@ speakAudio/*
 log/*.txt
 data
 resources/extraResources/whisper
+utils/test.js
 
 # Editor directories and files
 .vscode/*
