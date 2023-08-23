@@ -1,8 +1,10 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const google = require('@schneehertz/google-it')
+const axios = require('axios')
+const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
-let { config: { proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
+let { config: { proxyObject, proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
 
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
@@ -22,6 +24,20 @@ const functionInfo = [
         },
       },
       "required": ["queryString"],
+    }
+  },
+  {
+    "name": "getContentOfWebpage",
+    "description": "get text content of webpage based on url.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The url of webpage",
+        },
+      },
+      "required": ["url"],
     }
   },
   {
@@ -90,6 +106,9 @@ const functionAction = {
   getInformationFromGoogle({ queryString }) {
     return `${AI_NAME}正在搜索${queryString}`
   },
+  getContentOfWebpage({ url }) {
+    return `${AI_NAME}正在访问 ${url}`
+  },
   getHistoricalConversationContent({ relatedText }) {
     return `${AI_NAME}想起了关于${relatedText}的事情`
   },
@@ -115,7 +134,23 @@ const getInformationFromGoogle = async ({ queryString }) => {
   }
   let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam })
   // return googleRes.map(r=>r.snippet).join('\n').slice(0, 800)
-  return googleRes.map(l=>l.title + '\n' + l.snippet).join('\n')
+  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n##\n')
+}
+
+const getContentOfWebpage = async ({ url }) => {
+  return await axios.get(url, { proxy: proxyObject })
+  .then(async res=>{
+    let html = await res.data
+    let content = convert(html, {
+      wordwrap: false,
+      selectors: [
+        { selector: 'a', options: { ignoreHref: true } },
+        { selector: 'img', format: 'skip' },
+        { selector: 'hr', options: { length: 0 }}
+      ]
+    })
+    return content.slice(0, 2000)
+  })
 }
 
 const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
@@ -148,6 +183,7 @@ module.exports = {
   functionAction,
   functionList: {
     getInformationFromGoogle,
+    getContentOfWebpage,
     getHistoricalConversationContent,
     writeFileToDisk,
     readFileFromDisk,
