@@ -1,5 +1,13 @@
+const fs = require('node:fs')
+const path = require('node:path')
 const google = require('@schneehertz/google-it')
-const { config: { proxyString, AI_NAME } } = require('../utils/loadConfig.js')
+const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
+let { config: { proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
+
+let STORE_PATH = path.join(process.cwd(), 'data')
+if (!fs.existsSync(STORE_PATH)) {
+  fs.mkdirSync(STORE_PATH)
+}
 
 const functionInfo = [
   {
@@ -30,6 +38,52 @@ const functionInfo = [
       "required": ["relatedText"],
     }
   },
+  {
+    "name": "writeFileToDisk",
+    "description": "Write file to disk.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "relativeFilePath": {
+          "type": "string",
+          "description": "Relative file path, relative to the storage folder",
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of file",
+        }
+      },
+      "required": ["relativeFilePath", "content"],
+    }
+  },
+  {
+    "name": "readFileFromDisk",
+    "description": "read file from disk.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "The path of file to read",
+        }
+      },
+      "required": ["filePath"],
+    }
+  },
+  {
+    "name": "javaScriptInterpreter",
+    "description": "Useful for running JavaScript code in sandbox. Input is a string of JavaScript code, output is the result of the code.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "The javascript code to run",
+        }
+      },
+      "required": ["code"],
+    }
+  },
 ]
 
 const functionAction = {
@@ -38,6 +92,15 @@ const functionAction = {
   },
   getHistoricalConversationContent({ relatedText }) {
     return `${AI_NAME}想起了关于${relatedText}的事情`
+  },
+  writeFileToDisk({ relativeFilePath, content }) {
+    return `${AI_NAME}保存\n${content}\n到 ${relativeFilePath}`
+  },
+  readFileFromDisk ({ filePath }) {
+    return `${AI_NAME}读取了 ${filePath}`
+  },
+  javaScriptInterpreter({ code }) {
+    return `${AI_NAME}运行了\n${code}`
   }
 }
 
@@ -60,12 +123,34 @@ const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
   return MemoryTexts.map(s => s.text).join('\n')
 }
 
+if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
+const writeFileToDisk = async ({ relativeFilePath, content }) => {
+  let writeFilepath = path.join(writeFolder, relativeFilePath)
+  await fs.promises.mkdir(path.dirname(writeFilepath), { recursive: true })
+  await fs.promises.writeFile(writeFilepath, content)
+  return writeFilepath
+}
+
+const readFileFromDisk = async ({ filePath }) => {
+  return await fs.promises.readFile(filePath, { encoding: 'utf-8' })
+}
+
+const javaScriptInterpreter = async ({ code }) => {
+  const quickjs = await getQuickJS()
+  return quickjs.evalCode(code, {
+    shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
+    memoryLimitBytes: 100 * 1024 * 1024,
+  })
+}
 
 module.exports = {
   functionInfo,
   functionAction,
   functionList: {
     getInformationFromGoogle,
-    getHistoricalConversationContent
+    getHistoricalConversationContent,
+    writeFileToDisk,
+    readFileFromDisk,
+    javaScriptInterpreter
   }
 }
