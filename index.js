@@ -168,6 +168,101 @@ const resolveSpeakTextList = async (preAudioPath) => {
 
 resolveSpeakTextList()
 
+const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, messages, triggerRecord, from}) => {
+
+  let clientMessageId = nanoid()
+  let speakIndex = STATUS.speakIndex
+  STATUS.speakIndex += 1
+
+  if (!resText && resFunction && resArgument) {
+    messageLogAndSend({
+      id: nanoid(),
+      from,
+      text: functionAction[resFunction](JSON.parse(resArgument))
+    })
+    let functionCallResult
+    try {
+      switch (resFunction) {
+        case 'getHistoricalConversationContent':
+          functionCallResult = await functionList[resFunction](_.assign({ dbTable: memoryTable }, JSON.parse(resArgument)))
+          break
+        default:
+          functionCallResult = await functionList[resFunction](JSON.parse(resArgument))
+          break
+      }
+    } catch (e) {
+      console.log(e)
+      functionCallResult = ''
+    }
+    let functionCalling = [
+      { role: "assistant", content: null, function_call: { name: resFunction, arguments: resArgument } },
+      { role: "function", name: resFunction, content: functionCallResult + '' }
+    ]
+    messages.push(...functionCalling)
+    let history = getStore('history')
+    history.push(...functionCalling)
+    history = _.takeRight(history, 50)
+    setStore('history', history)
+    if (functionCallResult) console.log(functionCalling)
+  }
+  resFunction = ''
+  resArgument = ''
+
+  for await (const { token, f_token } of openaiChatStream({
+    model: DEFAULT_MODEL,
+    messages,
+    functions: functionInfo,
+    function_call: 'auto'
+  })) {
+    if (token) {
+      resTextTemp += token
+      resText += token
+      messageSend({
+        id: clientMessageId,
+        from,
+        text: resText
+      })
+      if (triggerRecord) {
+        if (resTextTemp.includes('\n')) {
+          let splitResText = resTextTemp.split('\n')
+          splitResText = _.compact(splitResText)
+          if (splitResText.length > 1) {
+            resTextTemp = splitResText.pop()
+          } else {
+            resTextTemp = ''
+          }
+          let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+          speakTextList.push({
+            text: speakText,
+            speakIndex,
+          })
+        }
+      }
+    }
+    let { name, arguments: arg } = f_token
+    if (name) resFunction = name
+    if (arg) resArgument += arg
+  }
+
+  if (triggerRecord) {
+    if (resTextTemp) {
+      let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+      speakTextList.push({
+        text: speakText,
+        speakIndex,
+      })
+    }
+  }
+
+  return {
+    messages,
+    resFunction,
+    resArgument,
+    resTextTemp,
+    resText
+  }
+}
+
 /**
  * Asynchronously resolves an admin prompt by generating a response based on a given prompt and trigger record.
  *
@@ -198,124 +293,17 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
 
   let resTextTemp = ''
   let resText = ''
-  let clientMessageId = nanoid()
-  let speakIndex = STATUS.speakIndex
-  STATUS.speakIndex += 1
   let resFunction
   let resArgument = ''
 
   try {
-    for await (const { token, f_token } of openaiChatStream({
-      model: DEFAULT_MODEL,
-      messages,
-      functions: functionInfo,
-      function_call: 'auto'
-    })) {
-      if (token) {
-        resTextTemp += token
-        resText += token
-        messageSend({
-          id: clientMessageId,
-          from,
-          text: resText
-        })
-        if (triggerRecord) {
-          if (resTextTemp.includes('\n')) {
-            let splitResText = resTextTemp.split('\n')
-            splitResText = _.compact(splitResText)
-            if (splitResText.length > 1) {
-              resTextTemp = splitResText.pop()
-            } else {
-              resTextTemp = ''
-            }
-            let pickFirstParagraph = splitResText.join('\n')
-            let speakText = pickFirstParagraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-            speakTextList.push({
-              text: speakText,
-              speakIndex,
-            })
-          }
-        }
-      }
-      let { name, arguments: arg } = f_token
-      if (name) resFunction = name
-      if (arg) resArgument += arg
+    while (resText === '') {
+      ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
+        resArgument, resFunction, resText, resTextTemp, messages, triggerRecord, from
+      }))
     }
-
-    if (!resText && resFunction && resArgument) {
-      messageLogAndSend({
-        id: nanoid(),
-        from,
-        text: functionAction[resFunction](JSON.parse(resArgument))
-      })
-      let functionCallResult
-      try {
-        switch (resFunction) {
-          case 'getHistoricalConversationContent':
-            functionCallResult = await functionList[resFunction](_.assign({ dbTable: memoryTable }, JSON.parse(resArgument)))
-            break
-          default:
-            functionCallResult = await functionList[resFunction](JSON.parse(resArgument))
-            break
-        }
-      } catch (e) {
-        console.log(e)
-        functionCallResult = ''
-      }
-      let functionCalling = [
-        { role: "assistant", content: null, function_call: { name: resFunction, arguments: resArgument } },
-        { role: "function", name: resFunction, content: functionCallResult + '' }
-      ]
-      messages.push(...functionCalling)
-      history.push(...functionCalling)
-      history = _.takeRight(history, 50)
-      setStore('history', history)
-      if (functionCallResult) console.log(functionCalling)
-
-      for await (const { token } of openaiChatStream({
-        model: DEFAULT_MODEL,
-        messages,
-      })) {
-        resTextTemp += token
-        resText += token
-        messageSend({
-          id: clientMessageId,
-          from,
-          text: resText
-        })
-        if (triggerRecord) {
-          if (resTextTemp.includes('\n')) {
-            let splitResText = resTextTemp.split('\n')
-            splitResText = _.compact(splitResText)
-            if (splitResText.length > 1) {
-              resTextTemp = splitResText.pop()
-            } else {
-              resTextTemp = ''
-            }
-            let pickFirstParagraph = splitResText.join('\n')
-            let speakText = pickFirstParagraph.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-            speakTextList.push({
-              text: speakText,
-              speakIndex,
-            })
-          }
-        }
-      }
-    }
-
-
-    if (triggerRecord) {
-      if (resTextTemp) {
-        let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-        speakTextList.push({
-          text: speakText,
-          speakIndex,
-        })
-      }
-    }
-
     messageLog({
-      id: clientMessageId,
+      id: nanoid(),
       from,
       text: resText
     })
