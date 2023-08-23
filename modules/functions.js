@@ -104,13 +104,13 @@ const functionInfo = [
 
 const functionAction = {
   getInformationFromGoogle({ queryString }) {
-    return `${AI_NAME}正在搜索${queryString}`
+    return `${AI_NAME}正在搜索 ${queryString}`
   },
   getContentOfWebpage({ url }) {
     return `${AI_NAME}正在访问 ${url}`
   },
   getHistoricalConversationContent({ relatedText }) {
-    return `${AI_NAME}想起了关于${relatedText}的事情`
+    return `${AI_NAME}想起了关于 ${relatedText} 的事情`
   },
   writeFileToDisk({ relativeFilePath, content }) {
     return `${AI_NAME}保存\n${content}\n到 ${relativeFilePath}`
