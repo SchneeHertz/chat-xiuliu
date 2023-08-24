@@ -41,11 +41,13 @@ onMounted(() => {
 })
 const inputText = ref('')
 const inputArea = ref(null)
+const updateInputText = (value) => {
+  inputText.value = value
+}
 const sendText = (event) => {
-  // event.stopPropagation()
+  let textareaElement = inputArea.value.wrapperElRef.children[0].children[0].children[0]
   event.preventDefault()
   if (event.shiftKey) {
-    let textareaElement = inputArea.value.wrapperElRef.children[0].children[0].children[0]
     let pos = textareaElement.selectionStart
     inputText.value = inputText.value.slice(0, pos) + '\n' + inputText.value.slice(pos)
     textareaElement.value = inputText.value
@@ -60,6 +62,8 @@ const sendText = (event) => {
   })
   nextTick(() => scrollToBottom('message-list'))
   inputText.value = ''
+  textareaElement.value = ''
+  textareaElement.focus()
 }
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
@@ -104,7 +108,7 @@ const switchAudio = () => {
           <pre v-html="message.text" :class="{'message-right-text': [ADMIN_NAME, `(${ADMIN_NAME})`].includes(message.from)}"></pre>
         </n-card>
       </n-list>
-      <n-input class="input-text" v-model:value="inputText" @keydown.enter="sendText" ref="inputArea" type="textarea" :autosize="{ minRows: 1 }"></n-input>
+      <n-input class="input-text" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea" type="textarea" :autosize="{ minRows: 1 }"></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
       <n-button round :type="isSpeechTalk
