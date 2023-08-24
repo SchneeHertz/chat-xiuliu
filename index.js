@@ -1,4 +1,4 @@
-const { BrowserWindow, app, ipcMain, shell } = require('electron')
+const { BrowserWindow, app, ipcMain, shell, Menu } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { format } = require('node:util')
@@ -35,6 +35,7 @@ let memoryTable
 
 const STATUS = {
   isSpeechTalk: false,
+  isAudioPlay: false,
   recordStatus: 'Recording',
   speakIndex: 0,
 }
@@ -58,6 +59,44 @@ const createWindow = () => {
     win.loadURL('http://localhost:5173')
   }
   win.setMenuBarVisibility(false)
+  win.setAutoHideMenuBar(true)
+  const template = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          role: 'quit',
+          accelerator: 'CommandOrControl+Q'
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'toggleDevTools' },
+        {
+          role: 'toggleDevTools',
+          accelerator: 'F12',
+          visible: false
+        },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        {
+          role: 'zoomIn',
+          accelerator: 'CommandOrControl+=',
+          visible: false
+        },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'minimize' },
+        { role: 'togglefullscreen' }
+      ]
+    }
+  ]
+  let menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
   win.webContents.on('did-finish-load', () => {
     let name = require('./package.json').name
     let version = require('./package.json').version
@@ -168,20 +207,27 @@ const resolveSpeakTextList = async (preAudioPath) => {
 
 resolveSpeakTextList()
 
-const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, messages, triggerRecord, from}) => {
+const addHistory = (lines) => {
+  let history = getStore('history')
+  history.push(...lines)
+  history = _.takeRight(history, 50)
+  setStore('history', history)
+}
+
+const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, messages, from}) => {
 
   let clientMessageId = nanoid()
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
   if (!resText && resFunction && resArgument) {
-    messageLogAndSend({
-      id: nanoid(),
-      from,
-      text: functionAction[resFunction](JSON.parse(resArgument))
-    })
     let functionCallResult
     try {
+      messageLogAndSend({
+        id: nanoid(),
+        from,
+        text: functionAction[resFunction](JSON.parse(resArgument))
+      })
       switch (resFunction) {
         case 'getHistoricalConversationContent':
           functionCallResult = await functionList[resFunction](_.assign({ dbTable: memoryTable }, JSON.parse(resArgument)))
@@ -199,15 +245,13 @@ const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, 
       { role: "function", name: resFunction, content: functionCallResult + '' }
     ]
     messages.push(...functionCalling)
-    let history = getStore('history')
-    history.push(...functionCalling)
-    history = _.takeRight(history, 50)
-    setStore('history', history)
+    addHistory(functionCalling)
     if (functionCallResult) console.log(functionCalling)
   }
   resFunction = ''
   resArgument = ''
 
+  console.log(`use ${DEFAULT_MODEL}`)
   for await (const { token, f_token } of openaiChatStream({
     model: DEFAULT_MODEL,
     messages,
@@ -222,7 +266,7 @@ const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, 
         from,
         text: resText
       })
-      if (triggerRecord) {
+      if (STATUS.isAudioPlay) {
         if (resTextTemp.includes('\n')) {
           let splitResText = resTextTemp.split('\n')
           splitResText = _.compact(splitResText)
@@ -244,7 +288,7 @@ const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, 
     if (arg) resArgument += arg
   }
 
-  if (triggerRecord) {
+  if (STATUS.isAudioPlay) {
     if (resTextTemp) {
       let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
       speakTextList.push({
@@ -281,10 +325,8 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
     ..._.takeRight(history, 12),
     { role: 'user', content: prompt }
   ]
+  addHistory([{ role: 'user', content: prompt }])
 
-  history.push({ role: 'user', content: prompt })
-  history = _.takeRight(history, 50)
-  setStore('history', history)
   messageLog({
     id: nanoid(),
     from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
@@ -299,7 +341,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
   try {
     while (resText === '') {
       ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
-        resArgument, resFunction, resText, resTextTemp, messages, triggerRecord, from
+        resArgument, resFunction, resText, resTextTemp, messages, from
       }))
     }
     messageLog({
@@ -307,9 +349,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
       from,
       text: resText
     })
-    history.push({ role: 'assistant', content: resText })
-    history = _.takeRight(history, 50)
-    setStore('history', history)
+    addHistory([{ role: 'assistant', content: resText }])
     memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
@@ -359,10 +399,14 @@ ipcMain.handle('open-config', async (event) => {
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
+  STATUS.isAudioPlay = STATUS.isSpeechTalk
   mainWindow.setProgressBar(-1)
   if (STATUS.isSpeechTalk) {
     triggerSpeech()
   }
+})
+ipcMain.handle('switch-audio', async () => {
+  STATUS.isAudioPlay = !STATUS.isAudioPlay
 })
 ipcMain.handle('empty-history', async()=>{
   setStore('history', [])

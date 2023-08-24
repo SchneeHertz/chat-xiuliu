@@ -67,9 +67,11 @@ const scrollToBottom = (id) => {
 }
 const isSpeechTalk = ref(false)
 const recordStatus = ref(false)
+const isAudioPlay = ref(false)
 onMounted(() => {
   ipcRenderer.on('send-status', (event, arg) => {
     isSpeechTalk.value = arg.isSpeechTalk
+    isAudioPlay.value = arg.isAudioPlay
     recordStatus.value = arg.recordStatus
   })
 })
@@ -81,6 +83,9 @@ const openConfig = () => {
 }
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
+}
+const switchAudio = () => {
+  ipcRenderer.invoke('switch-audio')
 }
 </script>
 
@@ -102,15 +107,16 @@ const emptyHistory = () => {
       <n-input class="input-text" v-model:value="inputText" @keydown.enter="sendText" ref="inputArea" type="textarea" :autosize="{ minRows: 1 }"></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
-      <n-button :type="isSpeechTalk
+      <n-button round :type="isSpeechTalk
         ? recordStatus === 'Recording'
           ? 'error'
           : recordStatus === 'Recognizing'
             ? 'warning'
             : 'primary'
         : 'default'" @click="switchSpeechTalk">{{ isSpeechTalk ? recordStatus : 'Speech Off' }}</n-button>
-      <n-button type="default" @click="emptyHistory">Clear History</n-button>
-      <n-button type="default" @click="openConfig">Open Config</n-button>
+      <n-button round :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">{{ isAudioPlay ? 'Audio On' : 'Audio Off' }}</n-button>
+      <n-button type="primary" tertiary @click="emptyHistory">Clear History</n-button>
+      <n-button type="primary" tertiary @click="openConfig">Open Config</n-button>
     </n-gi>
   </n-grid>
 </template>
