@@ -6,6 +6,8 @@ const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
 let { config: { proxyObject, proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
 
+const { sliceStringbyTokenLength } = require('./tiktoken.js')
+
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
   fs.mkdirSync(STORE_PATH)
@@ -142,14 +144,17 @@ const getContentOfWebpage = async ({ url }) => {
   .then(async res=>{
     let html = await res.data
     let content = convert(html, {
+      baseElements: { selectors: ['p'] },
       wordwrap: false,
       selectors: [
         { selector: 'a', options: { ignoreHref: true } },
         { selector: 'img', format: 'skip' },
+        { selector: 'header', format: 'skip' },
+        { selector: 'nav', format: 'skip' },
         { selector: 'hr', options: { length: 0 }}
       ]
     })
-    return content.slice(0, 2000)
+    return sliceStringbyTokenLength(content, 1800)
   })
 }
 

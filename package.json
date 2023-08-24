@@ -54,6 +54,7 @@
     "axios": "^1.4.0",
     "html-to-text": "^9.0.5",
     "https-proxy-agent": "^7.0.1",
+    "js-tiktoken": "^1.0.7",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
     "openai": "^4.0.0",
