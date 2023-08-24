@@ -11,9 +11,15 @@ ChatGPT双向语音助手
 ## 功能
 - 从麦克风或界面接收问题
 - 使用语音回答问题并显示在界面
-- 对话内容回忆
-- 联网搜索关键词
-- 猫娘发言风格
+- 调用函数处理任务
+  - 连续调用函数处理
+  - 对话内容回忆
+  - 联网搜索关键词，获取网页内容
+  - 读写本地文件
+  - 在沙箱中执行JavaScript代码
+- 可定制的猫娘发言风格
+
+![task_chains.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/task_chains.jpg)
 
 ## 使用说明
 - 解压后打开chat-xiuliu.exe, 点击Open Config, 编辑配置文件
@@ -51,8 +57,9 @@ ChatGPT双向语音助手
   "ADMIN_NAME": "Chell",
   "AI_NAME": "休留",
   "systemPrompt": "你是虚拟猫娘休留",
+  "writeFolder": "D:\\",
   "proxyObject": {
-    "type": "http",
+    "protocol": "http",
     "host": "127.0.0.1",
     "port": 7890
   },
