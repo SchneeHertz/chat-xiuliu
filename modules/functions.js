@@ -135,7 +135,6 @@ const getInformationFromGoogle = async ({ queryString }) => {
     safe: 'high'
   }
   let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam })
-  // return googleRes.map(r=>r.snippet).join('\n').slice(0, 800)
   return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n##\n')
 }
 
@@ -149,9 +148,6 @@ const getContentOfWebpage = async ({ url }) => {
         selectors: [
           { selector: 'a', options: { ignoreHref: true } },
           { selector: 'img', format: 'skip' },
-          { selector: 'header', format: 'skip' },
-          { selector: 'nav', format: 'skip' },
-          { selector: 'hr', options: { length: 0 }}
         ]
       })
       return sliceStringbyTokenLength(content, 1800)
