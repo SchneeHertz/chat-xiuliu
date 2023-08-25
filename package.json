@@ -42,10 +42,10 @@
     "electron-builder": "^24.6.3",
     "highlight.js": "^11.8.0",
     "highlightjs-copy": "^1.0.4",
-    "naive-ui": "^2.34.3",
+    "naive-ui": "^2.34.4",
     "stylus": "^0.59.0",
-    "unplugin-auto-import": "^0.14.2",
-    "unplugin-vue-components": "^0.23.0",
+    "unplugin-auto-import": "^0.16.6",
+    "unplugin-vue-components": "^0.25.1",
     "vite": "^4.1.0",
     "vue": "^3.2.45"
   },

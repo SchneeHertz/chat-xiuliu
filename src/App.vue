@@ -108,7 +108,8 @@ const switchAudio = () => {
           <pre v-html="message.text" :class="{'message-right-text': [ADMIN_NAME, `(${ADMIN_NAME})`].includes(message.from)}"></pre>
         </n-card>
       </n-list>
-      <n-input class="input-text" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea" type="textarea" :autosize="{ minRows: 1 }"></n-input>
+      <n-input class="input-text" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea"
+        type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
       <n-button round :type="isSpeechTalk
