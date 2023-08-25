@@ -44,6 +44,7 @@ ChatGPT双向语音助手
 - 修改配置文件的其他部分（可选）
   - 配置文件中本地代理的端口
   - 使用的模型，参考openai给出的[模型选项](https://platform.openai.com/docs/models/model-endpoint-compatibility)
+  - 如果你使用Azure openai，将useAzureOpenai设为true，修改其他AZURE前缀的设置项，需要同时部署chat和embedding的模型
   - AI使用的名字和你的称呼
   - AI的语音模型，在cmd中执行`edge-tts --list-voices`查看可用值
   - AI的System Prompt(设定和发言风格)
