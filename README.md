@@ -19,15 +19,16 @@ ChatGPT双向语音助手
   - 在沙箱中执行JavaScript代码
 - 可定制的猫娘发言风格
 - 支持Azure openai
+- 支持设置代理
 
 ![task_chains.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/task_chains.jpg)
 
 ## 使用说明
 - 解压后打开chat-xiuliu.exe, 点击Open Config, 编辑配置文件
 - 获取一个openai的API key, 填入配置文件中
-- 安装Python，然后安装edge-tts `pip install edge-tts`
-- 下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢)
-  - 在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹
+- _安装Python，然后安装edge-tts `pip install edge-tts` (可选，语音功能)_
+- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢，可选，语音功能)_
+  - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹_
   ```
   resources/extraResources/whisper/_models/faster-whisper-large-v2/config.json
   resources/extraResources/whisper/_models/faster-whisper-large-v2/model.bin
@@ -47,7 +48,7 @@ ChatGPT双向语音助手
   - AI的语音模型，在cmd中执行`edge-tts --list-voices`查看可用值
   - AI的System Prompt(设定和发言风格)
 - 保存配置文件后重启chat-xiuliu.exe
-- 点击Speech Off切换录音开关，前提是你有可以正常工作的麦克风
+- 点击Speech Off切换录音开关，点击Audio Off切换语音开关
 
 ### 配置文件参考
 ```
