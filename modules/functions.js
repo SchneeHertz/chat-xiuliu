@@ -174,10 +174,11 @@ const readFileFromDisk = async ({ filePath }) => {
 
 const javaScriptInterpreter = async ({ code }) => {
   const quickjs = await getQuickJS()
-  return quickjs.evalCode(code, {
+  let result = quickjs.evalCode(code, {
     shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
     memoryLimitBytes: 100 * 1024 * 1024,
   })
+  return JSON.stringify(result)
 }
 
 module.exports = {
