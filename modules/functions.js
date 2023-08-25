@@ -141,21 +141,22 @@ const getInformationFromGoogle = async ({ queryString }) => {
 
 const getContentOfWebpage = async ({ url }) => {
   return await axios.get(url, { proxy: proxyObject })
-  .then(async res=>{
-    let html = await res.data
-    let content = convert(html, {
-      baseElements: { selectors: ['p'] },
-      wordwrap: false,
-      selectors: [
-        { selector: 'a', options: { ignoreHref: true } },
-        { selector: 'img', format: 'skip' },
-        { selector: 'header', format: 'skip' },
-        { selector: 'nav', format: 'skip' },
-        { selector: 'hr', options: { length: 0 }}
-      ]
+    .then(async res=>{
+      let html = await res.data
+      let content = convert(html, {
+        baseElements: { selectors: ['p'] },
+        wordwrap: false,
+        selectors: [
+          { selector: 'a', options: { ignoreHref: true } },
+          { selector: 'img', format: 'skip' },
+          { selector: 'header', format: 'skip' },
+          { selector: 'nav', format: 'skip' },
+          { selector: 'hr', options: { length: 0 }}
+        ]
+      })
+      return sliceStringbyTokenLength(content, 1800)
     })
-    return sliceStringbyTokenLength(content, 1800)
-  })
+    .catch(err=>console.log(err))
 }
 
 const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
