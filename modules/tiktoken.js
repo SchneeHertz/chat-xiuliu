@@ -22,6 +22,7 @@ const sliceStringbyTokenLength = (str, length) => {
       return result
     }
   }
+  return result
 }
 
 module.exports = {

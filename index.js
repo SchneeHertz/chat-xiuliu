@@ -7,14 +7,15 @@ const sound = require('sound-play')
 const _ = require('lodash')
 const lancedb = require('vectordb')
 
-const { STORE_PATH, LOG_PATH, AUDIO_PATH, SPEECH_AUDIO_PATH } = require('./utils/initFile.js')
+const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { ttsPromise } = require('./modules/edge-tts.js')
-const { openaiChatStream, openaiEmbedding } = require('./modules/common.js')
+const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const { config: {
-  DEFAULT_MODEL,
+  useAzureOpenai,
+  DEFAULT_MODEL, AZURE_CHAT_MODEL,
   ADMIN_NAME, AI_NAME,
   systemPrompt
 } } = require('./utils/loadConfig.js')
@@ -30,6 +31,18 @@ const messageLogAndSend = (message) => {
   messageLog(message)
   messageSend(message)
 }
+
+let errorlogFile = fs.createWriteStream(path.join(LOG_PATH, 'error_log.txt'), { flags: 'w' })
+process
+  .on('unhandledRejection', (reason, promise) => {
+    errorlogFile.write(format('Unhandled Rejection at:', promise, 'reason:', reason) + '\n')
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+  })
+  .on('uncaughtException', err => {
+    errorlogFile.write(format(err, 'Uncaught Exception thrown') + '\n')
+    console.error(err, 'Uncaught Exception thrown')
+    process.exit(1)
+  })
 
 let memoryTable
 
@@ -108,6 +121,7 @@ const createWindow = () => {
   return win
 }
 
+const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : openaiEmbedding
 app.whenReady()
   .then(async () => {
     const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
@@ -116,7 +130,7 @@ app.whenReady()
       embed: async (batch) => {
         let result = []
         for (let text of batch) {
-          result.push(await openaiEmbedding({ input: text }))
+          result.push(await useOpenaiEmbeddingFunction({ input: text }))
         }
         return result
       }
@@ -214,7 +228,10 @@ const addHistory = (lines) => {
   setStore('history', history)
 }
 
-const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, messages, from}) => {
+const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
+const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp, messages, from}) => {
+
+  console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
 
   let clientMessageId = nanoid()
   let speakIndex = STATUS.speakIndex
@@ -246,14 +263,12 @@ const resolveMessages = async ({resArgument, resFunction, resText, resTextTemp, 
     ]
     messages.push(...functionCalling)
     addHistory(functionCalling)
-    if (functionCallResult) console.log(functionCalling)
+    console.log(functionCalling)
   }
   resFunction = ''
   resArgument = ''
 
-  console.log(`use ${DEFAULT_MODEL}`)
-  for await (const { token, f_token } of openaiChatStream({
-    model: DEFAULT_MODEL,
+  for await (const { token, f_token } of useOpenaiChatStreamFunction({
     messages,
     functions: functionInfo,
     function_call: 'auto'

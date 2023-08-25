@@ -18,6 +18,7 @@ ChatGPT双向语音助手
   - 读写本地文件
   - 在沙箱中执行JavaScript代码
 - 可定制的猫娘发言风格
+- 支持Azure openai
 
 ![task_chains.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/task_chains.jpg)
 
@@ -51,13 +52,19 @@ ChatGPT双向语音助手
 ### 配置文件参考
 ```
 {
-  "OPENAI_API_KEY": "sk-",
+  "OPENAI_API_KEY": "sk-and-48-chars",
   "DEFAULT_MODEL": "gpt-3.5-turbo-16k",
+  "useAzureOpenai": false,
+  "AZURE_OPENAI_KEY": "32-chars",
+  "AZURE_OPENAI_ENDPOINT": "endpoint-name",
+  "AZURE_API_VERSION": "2023-07-01-preview",
+  "AZURE_CHAT_MODEL": "gpt-35-turbo-16k",
+  "AZURE_EMBEDDING_MODEL": "text-embedding-ada-002",
   "SpeechSynthesisVoiceName": "zh-CN-XiaoyiNeural",
   "ADMIN_NAME": "Chell",
   "AI_NAME": "休留",
   "systemPrompt": "你是虚拟猫娘休留",
-  "writeFolder": "D:\\",
+  "writeFolder": "D:\\folder_name",
   "proxyObject": {
     "protocol": "http",
     "host": "127.0.0.1",

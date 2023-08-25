@@ -11,8 +11,14 @@ try {
   config = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'config.json'), { encoding: 'utf-8' }))
 } catch {
   config = {
-    OPENAI_API_KEY: 'sk-',
+    OPENAI_API_KEY: 'sk-and-48-chars',
     DEFAULT_MODEL: 'gpt-3.5-turbo-16k',
+    useAzureOpenai: false,
+    AZURE_OPENAI_KEY: '32-chars',
+    AZURE_OPENAI_ENDPOINT: 'endpoint-name',
+    AZURE_API_VERSION: '2023-07-01-preview',
+    AZURE_CHAT_MODEL: 'gpt-35-turbo-16k',
+    AZURE_EMBEDDING_MODEL: 'text-embedding-ada-002',
     SpeechSynthesisVoiceName: 'zh-CN-XiaoyiNeural',
     ADMIN_NAME: 'Chell',
     AI_NAME: '休留',
