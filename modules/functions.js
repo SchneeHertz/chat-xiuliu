@@ -128,10 +128,10 @@ const functionAction = {
 const getInformationFromGoogle = async ({ queryString }) => {
   let options = { proxy: proxyString }
   let additionalQueryParam = {
-    lr: 'lang_zh-CN',
-    hl: 'zh-CN',
-    cr: 'countryCN',
-    gl: 'cn',
+    // lr: 'lang_zh-CN',
+    // hl: 'zh-CN',
+    // cr: 'countryCN',
+    // gl: 'cn',
     safe: 'high'
   }
   let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam })
