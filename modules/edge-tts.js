@@ -1,94 +1,131 @@
-// const { spawn } = require('node:child_process')
 const { randomBytes } = require('node:crypto')
 const fs = require('node:fs')
-const { config: { SpeechSynthesisVoiceName, proxyString} } = require('../utils/loadConfig.js')
 const { WebSocket } = require('ws')
 const { HttpsProxyAgent } = require('https-proxy-agent')
 
-// const ttsPromise = (text, audioPath) => {
-//   let vttPath = audioPath + '.vtt'
-//   return new Promise((resolve, reject) => {
-//     const spawned = spawn('edge-tts', [
-//       '-v', SpeechSynthesisVoiceName,
-//       '--text', text,
-//       '--write-media', audioPath,
-//       '--write-subtitles', vttPath,
-//       '--proxy', proxyString
-//     ])
-//     spawned.on('error', data => {
-//       reject(data)
-//     })
-//     spawned.on('exit', code => {
-//       if (code === 0) {
-//         return resolve(vttPath)
-//       }
-//       return reject('edge-tts close code is ' + code)
-//     })
-//   })
-// }
 
-let wsConnect = {}
-const connectWebSocket = async () => {
-  const wsConnect = new WebSocket(`wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4`, {
-    host: 'speech.platform.bing.com',
-    origin: 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44',
-    },
-    agent: new HttpsProxyAgent(proxyString)
-  })
-  await new Promise((resolve, reject) => {
-    wsConnect.on('open', () => {
-      wsConnect.send(`Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n
-        {
-          "context": {
-            "synthesis": {
-              "audio": {
-                  "metadataoptions": {
-                    "sentenceBoundaryEnabled": "false",
-                    "wordBoundaryEnabled": "false"
-                  },
-                  "outputFormat": "audio-24khz-96kbitrate-mono-mp3"
+class EdgeTTS {
+  voice
+  lang
+  outputFormat
+  proxy
+  _wsConnect = {}
+  _queue
+  constructor ({
+    voice = 'zh-CN-XiaoyiNeural',
+    lang = 'zh-CN',
+    outputFormat = 'audio-24khz-48kbitrate-mono-mp3',
+    proxy
+  }) {
+    this.voice = voice
+    this.lang = lang
+    this.outputFormat = outputFormat
+    this.proxy = proxy
+    this._queue = new Map()
+  }
+
+  async _connectWebSocket () {
+    const wsConnect = new WebSocket(`wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4`, {
+      host: 'speech.platform.bing.com',
+      origin: 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44',
+      },
+      agent: this.proxy ? new HttpsProxyAgent(this.proxy) : undefined
+    })
+    await new Promise((resolve, reject) => {
+      wsConnect.on('open', () => {
+        wsConnect.send(`Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n
+          {
+            "context": {
+              "synthesis": {
+                "audio": {
+                    "metadataoptions": {
+                      "sentenceBoundaryEnabled": "false",
+                      "wordBoundaryEnabled": "true"
+                    },
+                    "outputFormat": "${this.outputFormat}"
+                }
               }
             }
           }
-        }
-      `)
-      resolve()
+        `)
+        resolve()
+      })
     })
-  })
-  return wsConnect
-}
-
-const ttsPromise = async (text, audioPath) => {
-  if (wsConnect.readyState !== 1) {
-    wsConnect = await connectWebSocket()
+    return wsConnect
   }
-  return await new Promise((resolve, reject) => {
-    let requestId = randomBytes(16).toString('hex')
-    let queue = fs.createWriteStream(audioPath)
-    wsConnect.on('message', async (message, isBinary) => {
-      if (isBinary) {
-        const separator = 'Path:audio\r\n'
-        const index = message.indexOf(separator) + separator.length
-        const audioData = message.slice(index, message.length)
-        queue.write(audioData)
-      } else {
-        if (message.toString().includes('Path:turn.end')) {
-          queue.end()
-          resolve()
+
+  _saveSubFile (subFile, text, audioPath) {
+    let subPath = audioPath + '.json'
+    let subChars = text.split('')
+    let subCharIndex = 0
+    subFile.forEach((cue, index) => {
+      let fullPart = ''
+      let stepIndex = 0
+      for (let sci = subCharIndex; sci < subChars.length; sci++) {
+        if (subChars[sci] === cue.part[stepIndex]) {
+          fullPart = fullPart + subChars[sci]
+          stepIndex += 1
+        } else if (subChars[sci] === subFile?.[index + 1]?.part?.[0]) {
+          subCharIndex = sci
+          break
+        } else {
+          fullPart = fullPart + subChars[sci]
         }
       }
+      cue.part = fullPart
     })
-    wsConnect.send(`X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n
-    ` + `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="zh-CN">
-      <voice name="${SpeechSynthesisVoiceName}">
-          ${text}
-      </voice>
-    </speak>`)
-  })
+    fs.writeFileSync(subPath, JSON.stringify(subFile, null, '  '), { encoding: 'utf-8' })
+  }
+
+  async ttsPromise (text, audioPath) {
+    if (this._wsConnect.readyState !== 1) {
+      this._wsConnect = await this._connectWebSocket()
+      this._queue.clear()
+    }
+    return await new Promise((resolve, reject) => {
+      let pattern = /X-RequestId:(?<id>[a-z|0-9]*)/
+      let requestId = randomBytes(16).toString('hex')
+      this._queue.set(requestId, fs.createWriteStream(audioPath))
+      let subFile = []
+      this._wsConnect.on('message', async (data, isBinary) => {
+        if (isBinary) {
+          let separator = 'Path:audio\r\n'
+          let index = data.indexOf(separator) + separator.length
+          let matches = data.slice(2, index).toString().match(pattern)
+          let requestId = matches.groups.id
+          let audioData = data.slice(index)
+          this._queue.get(requestId).write(audioData)
+        } else {
+          let message = data.toString()
+          if (message.includes('Path:turn.end')) {
+            let matches = message.match(pattern)
+            let requestId = matches.groups.id
+            this._queue.get(requestId).end()
+            this._saveSubFile(subFile, text, audioPath)
+            resolve()
+          } else if (message.includes('Path:audio.metadata')) {
+            let splitTexts = message.split('\r\n')
+            try {
+              let metadata = JSON.parse(splitTexts[splitTexts.length - 1])
+              metadata['Metadata'].forEach(element => {
+                subFile.push({ part: element['Data']['text']['Text'], start: Math.floor(element['Data']['Offset'] / 10000) })
+              })
+            } catch {}
+          }
+        }
+      })
+      this._wsConnect.send(`X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n
+      ` + `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${this.lang}">
+        <voice name="${this.voice}">
+            ${text}
+        </voice>
+      </speak>`)
+    })
+  }
 }
 
 module.exports = {
-  ttsPromise
+  EdgeTTS
 }

@@ -10,14 +10,16 @@ const lancedb = require('vectordb')
 const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
-const { ttsPromise } = require('./modules/edge-tts.js')
+const { EdgeTTS } = require('./modules/edge-tts.js')
 const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const { config: {
   useAzureOpenai,
   DEFAULT_MODEL, AZURE_CHAT_MODEL,
+  SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
-  systemPrompt
+  systemPrompt,
+  proxyString,
 } } = require('./utils/loadConfig.js')
 
 const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), { flags: 'w' })
@@ -54,6 +56,12 @@ const STATUS = {
 }
 
 let speakTextList = []
+let tts = new EdgeTTS({
+  voice: SpeechSynthesisVoiceName,
+  lang: 'zh-CN',
+  outputFormat: 'audio-24khz-96kbitrate-mono-mp3',
+  proxy: proxyString
+})
 
 let mainWindow
 const createWindow = () => {
@@ -164,11 +172,11 @@ const speakPrompt = async ({ text, preAudioPath }) => {
     if (text) {
       if (preAudioPath) {
         await Promise.allSettled([
-          ttsPromise(text, nextAudioPath),
+          tts.ttsPromise(text, nextAudioPath),
           sound.play(preAudioPath)
         ])
       } else {
-        await ttsPromise(text, nextAudioPath)
+        await tts.ttsPromise(text, nextAudioPath)
       }
       resolveSpeakTextList(nextAudioPath)
     } else if (preAudioPath) {
