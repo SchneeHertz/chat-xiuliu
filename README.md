@@ -26,7 +26,6 @@ ChatGPT双向语音助手
 ## 使用说明
 - 解压后打开chat-xiuliu.exe, 点击Open Config, 编辑配置文件
 - 获取一个openai的API key, 填入配置文件中
-- _安装Python，然后安装edge-tts `pip install edge-tts` (可选，语音功能)_
 - _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢，可选，语音功能)_
   - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹_
   ```
@@ -46,7 +45,7 @@ ChatGPT双向语音助手
   - 使用的模型，参考openai给出的[模型选项](https://platform.openai.com/docs/models/model-endpoint-compatibility)
   - 如果你使用Azure openai，将useAzureOpenai设为true，修改其他AZURE前缀的设置项，需要同时部署chat和embedding的模型
   - AI使用的名字和你的称呼
-  - AI的语音模型，在cmd中执行`edge-tts --list-voices`查看可用值
+  - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
   - AI的System Prompt(设定和发言风格)
 - 保存配置文件后重启chat-xiuliu.exe
 - 点击Speech Off切换录音开关，点击Audio Off切换语音开关
