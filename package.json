@@ -1,12 +1,12 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.0.2",
+  "version": "2.0.3",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "chcp 65001 && electron .",
+    "start": "chcp 65001 && electron --trace-warnings .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -57,9 +57,10 @@
     "js-tiktoken": "^1.0.7",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
-    "openai": "^4.0.0",
+    "openai": "^4.3.0",
     "quickjs-emscripten": "^0.23.0",
     "sound-play": "^1.1.0",
-    "vectordb": "^0.2.2"
+    "vectordb": "^0.2.2",
+    "ws": "^8.13.0"
   }
 }
