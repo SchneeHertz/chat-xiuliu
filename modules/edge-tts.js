@@ -9,8 +9,6 @@ class EdgeTTS {
   lang
   outputFormat
   proxy
-  _wsConnect = {}
-  _queue
   constructor ({
     voice = 'zh-CN-XiaoyiNeural',
     lang = 'zh-CN',
@@ -21,7 +19,6 @@ class EdgeTTS {
     this.lang = lang
     this.outputFormat = outputFormat
     this.proxy = proxy
-    this._queue = new Map()
   }
 
   async _connectWebSocket () {
@@ -80,29 +77,20 @@ class EdgeTTS {
   }
 
   async ttsPromise (text, audioPath) {
-    if (this._wsConnect.readyState !== 1) {
-      this._wsConnect = await this._connectWebSocket()
-      this._queue.clear()
-    }
+    const _wsConnect = await this._connectWebSocket()
     return await new Promise((resolve, reject) => {
-      let pattern = /X-RequestId:(?<id>[a-z|0-9]*)/
-      let requestId = randomBytes(16).toString('hex')
-      this._queue.set(requestId, fs.createWriteStream(audioPath))
+      let audioStream = fs.createWriteStream(audioPath)
       let subFile = []
-      this._wsConnect.on('message', async (data, isBinary) => {
+      _wsConnect.on('message', async (data, isBinary) => {
         if (isBinary) {
           let separator = 'Path:audio\r\n'
           let index = data.indexOf(separator) + separator.length
-          let matches = data.slice(2, index).toString().match(pattern)
-          let requestId = matches.groups.id
           let audioData = data.slice(index)
-          this._queue.get(requestId).write(audioData)
+          audioStream.write(audioData)
         } else {
           let message = data.toString()
           if (message.includes('Path:turn.end')) {
-            let matches = message.match(pattern)
-            let requestId = matches.groups.id
-            this._queue.get(requestId).end()
+            audioStream.end()
             this._saveSubFile(subFile, text, audioPath)
             resolve()
           } else if (message.includes('Path:audio.metadata')) {
@@ -116,7 +104,8 @@ class EdgeTTS {
           }
         }
       })
-      this._wsConnect.send(`X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n
+      let requestId = randomBytes(16).toString('hex')
+      _wsConnect.send(`X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n
       ` + `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${this.lang}">
         <voice name="${this.voice}">
             ${text}
