@@ -1,23 +1,28 @@
 const { randomBytes } = require('node:crypto')
-const fs = require('node:fs')
+const { writeFileSync, createWriteStream } = require('node:fs')
 const { WebSocket } = require('ws')
 const { HttpsProxyAgent } = require('https-proxy-agent')
 
 
 class EdgeTTS {
+
   voice
   lang
   outputFormat
   proxy
+  saveSubtitles
+
   constructor ({
     voice = 'zh-CN-XiaoyiNeural',
     lang = 'zh-CN',
     outputFormat = 'audio-24khz-48kbitrate-mono-mp3',
+    saveSubtitles = false,
     proxy
   }) {
     this.voice = voice
     this.lang = lang
     this.outputFormat = outputFormat
+    this.saveSubtitles = saveSubtitles
     this.proxy = proxy
   }
 
@@ -37,11 +42,11 @@ class EdgeTTS {
             "context": {
               "synthesis": {
                 "audio": {
-                    "metadataoptions": {
-                      "sentenceBoundaryEnabled": "false",
-                      "wordBoundaryEnabled": "true"
-                    },
-                    "outputFormat": "${this.outputFormat}"
+                  "metadataoptions": {
+                    "sentenceBoundaryEnabled": "false",
+                    "wordBoundaryEnabled": "true"
+                  },
+                  "outputFormat": "${this.outputFormat}"
                 }
               }
             }
@@ -73,13 +78,13 @@ class EdgeTTS {
       }
       cue.part = fullPart
     })
-    fs.writeFileSync(subPath, JSON.stringify(subFile, null, '  '), { encoding: 'utf-8' })
+    writeFileSync(subPath, JSON.stringify(subFile, null, '  '), { encoding: 'utf-8' })
   }
 
   async ttsPromise (text, audioPath) {
     const _wsConnect = await this._connectWebSocket()
     return await new Promise((resolve, reject) => {
-      let audioStream = fs.createWriteStream(audioPath)
+      let audioStream = createWriteStream(audioPath)
       let subFile = []
       _wsConnect.on('message', async (data, isBinary) => {
         if (isBinary) {
@@ -91,7 +96,9 @@ class EdgeTTS {
           let message = data.toString()
           if (message.includes('Path:turn.end')) {
             audioStream.end()
-            this._saveSubFile(subFile, text, audioPath)
+            if (this.saveSubtitles) {
+              this._saveSubFile(subFile, text, audioPath)
+            }
             resolve()
           } else if (message.includes('Path:audio.metadata')) {
             let splitTexts = message.split('\r\n')
@@ -108,7 +115,7 @@ class EdgeTTS {
       _wsConnect.send(`X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n
       ` + `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${this.lang}">
         <voice name="${this.voice}">
-            ${text}
+          ${text}
         </voice>
       </speak>`)
     })

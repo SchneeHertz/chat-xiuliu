@@ -10,7 +10,7 @@ const lancedb = require('vectordb')
 const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
-const { EdgeTTS } = require('./modules/edge-tts.js')
+const { EdgeTTS } = require('node-edge-tts')
 const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const { config: {
@@ -60,7 +60,8 @@ let tts = new EdgeTTS({
   voice: SpeechSynthesisVoiceName,
   lang: 'zh-CN',
   outputFormat: 'audio-24khz-96kbitrate-mono-mp3',
-  proxy: proxyString
+  proxy: proxyString,
+  saveSubtitles: true
 })
 
 let mainWindow
