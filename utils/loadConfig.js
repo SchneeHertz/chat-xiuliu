@@ -12,6 +12,7 @@ try {
 } catch {
   config = {
     OPENAI_API_KEY: 'sk-and-48-chars',
+    OPENAI_API_ENDPOINT: 'https://api.openai.com/v1',
     DEFAULT_MODEL: 'gpt-3.5-turbo-16k',
     useAzureOpenai: false,
     AZURE_OPENAI_KEY: '32-chars',

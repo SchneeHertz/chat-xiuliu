@@ -3,13 +3,14 @@ const { HttpsProxyAgent } = require('https-proxy-agent')
 const _ = require('lodash')
 
 const { config: {
-  OPENAI_API_KEY, DEFAULT_MODEL,
+  OPENAI_API_KEY, OPENAI_API_ENDPOINT, DEFAULT_MODEL,
   AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION, AZURE_CHAT_MODEL, AZURE_EMBEDDING_MODEL,
   proxyString
 } } = require('../utils/loadConfig.js')
 
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,
+  baseURL: OPENAI_API_ENDPOINT ? OPENAI_API_ENDPOINT : 'https://api.openai.com/v1',
   httpAgent: new HttpsProxyAgent(proxyString),
   timeout: 40000
 })
