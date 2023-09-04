@@ -23,6 +23,9 @@ ChatGPT双向语音助手
 - 支持兼容openai api格式的其他api端点
 - 支持设置代理
 
+
+![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
+
 ![task_chains.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/task_chains.jpg)
 
 ## 使用说明
