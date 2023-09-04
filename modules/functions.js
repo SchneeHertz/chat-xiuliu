@@ -145,7 +145,7 @@ const functionAction = {
     return `${AI_NAME}读取了 ${filePath}`
   },
   javaScriptInterpreter({ code }) {
-    return `${AI_NAME}运行了\n${code}`
+    return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
   openLocalFileOrWebpage({ filePath, url, type }) {
     return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
