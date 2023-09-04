@@ -4,6 +4,7 @@ const google = require('@schneehertz/google-it')
 const axios = require('axios')
 const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
+const { shell } = require('electron')
 let { config: { proxyObject, proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
@@ -102,6 +103,29 @@ const functionInfo = [
       "required": ["code"],
     }
   },
+  {
+    "name": "openLocalFileOrWebpage",
+    "description": "Open local file or webpage, display it to the user",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "description": "The path of file to open",
+        },
+        "url": {
+          "type": "string",
+          "description": "The url of webpage to open",
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of file to open",
+          "enum": ["file", "webpage"],
+        }
+      },
+      "required": ["type"],
+    }
+  }
 ]
 
 const functionAction = {
@@ -122,6 +146,9 @@ const functionAction = {
   },
   javaScriptInterpreter({ code }) {
     return `${AI_NAME}运行了\n${code}`
+  },
+  openLocalFileOrWebpage({ filePath, url, type }) {
+    return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
   }
 }
 
@@ -181,6 +208,15 @@ const javaScriptInterpreter = async ({ code }) => {
   return JSON.stringify(result)
 }
 
+const openLocalFileOrWebpage = async ({ filePath, url, type }) => {
+  if (type === 'file') {
+    shell.openPath(filePath)
+  } else {
+    shell.openExternal(url)
+  }
+  return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
+}
+
 module.exports = {
   functionInfo,
   functionAction,
@@ -190,6 +226,7 @@ module.exports = {
     getHistoricalConversationContent,
     writeFileToDisk,
     readFileFromDisk,
-    javaScriptInterpreter
+    javaScriptInterpreter,
+    openLocalFileOrWebpage
   }
 }
