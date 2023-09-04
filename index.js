@@ -152,6 +152,7 @@ app.whenReady()
       } catch { }
     }
     mainWindow = createWindow()
+    setTimeout(sendHistory, 1000)
     setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
   })
 
@@ -389,6 +390,31 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
   }
 }
 
+const sendHistory = () => {
+  let history = getStore('history')
+  history.forEach((item) => {
+    switch (item.role) {
+      case 'user':
+        messageSend({
+          id: nanoid(),
+          from: ADMIN_NAME,
+          text: item.content
+        })
+        break
+      case 'assistant':
+        let text = ''
+        try {
+          text = item.content || functionAction[item.function_call.name](JSON.parse(item.function_call.arguments))
+        } catch {}
+        messageSend({
+          id: nanoid(),
+          from: AI_NAME,
+          text
+        })
+        break
+    }
+  })
+}
 
 /**
  * Trigger speech function that listens for admin prompts and handles them accordingly.
