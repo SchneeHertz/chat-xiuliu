@@ -20,6 +20,7 @@ ChatGPT双向语音助手
   - 打开本地文件或网页
 - 可定制的猫娘发言风格
 - 支持Azure openai
+- 支持兼容openai api格式的其他api端点
 - 支持设置代理
 
 ![task_chains.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/task_chains.jpg)
