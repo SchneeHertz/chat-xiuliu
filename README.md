@@ -26,8 +26,6 @@ ChatGPT双向语音助手
 
 ![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
 
-![task_chains.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/task_chains.jpg)
-
 ## 使用说明
 - 解压后打开chat-xiuliu.exe, 点击Open Config, 编辑配置文件
 - 获取一个openai的API key, 填入配置文件中
