@@ -5,6 +5,8 @@ const axios = require('axios')
 const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
 const { shell } = require('electron')
+const { js: beautify } = require('js-beautify/js')
+
 let { config: { proxyObject, proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
@@ -145,6 +147,7 @@ const functionAction = {
     return `${AI_NAME}读取了 ${filePath}`
   },
   javaScriptInterpreter({ code }) {
+    code = beautify(code, { indent_size: 2 })
     return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
   openLocalFileOrWebpage({ filePath, url, type }) {
