@@ -6,6 +6,7 @@ const { nanoid } = require('nanoid')
 const sound = require('sound-play')
 const _ = require('lodash')
 const lancedb = require('vectordb')
+const windowStateKeeper = require('electron-window-state')
 
 const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getStore, setStore } = require('./modules/store.js')
@@ -66,15 +67,22 @@ let tts = new EdgeTTS({
 
 let mainWindow
 const createWindow = () => {
+  let mainWindowState = windowStateKeeper({
+    defaultWidth: 1280,
+    defaultHeight: 720
+  })
   const win = new BrowserWindow({
-    width: 960,
-    height: 512,
+    x: mainWindowState.x,
+    y: mainWindowState.y,
+    width: mainWindowState.width,
+    height: mainWindowState.height,
     webPreferences: {
       webSecurity: app.isPackaged ? true : false,
       preload: path.join(__dirname, 'preload.js')
     },
     show: false
   })
+  mainWindowState.manage(win)
   if (app.isPackaged) {
     win.loadFile('dist/index.html')
   } else {
@@ -131,30 +139,29 @@ const createWindow = () => {
 }
 
 const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : openaiEmbedding
-app.whenReady()
-  .then(async () => {
-    const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
-    const embedding = {
-      sourceColumn: 'text',
-      embed: async (batch) => {
-        let result = []
-        for (let text of batch) {
-          result.push(await useOpenaiEmbeddingFunction({ input: text }))
-        }
-        return result
+app.whenReady().then(async () => {
+  const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
+  const embedding = {
+    sourceColumn: 'text',
+    embed: async (batch) => {
+      let result = []
+      for (let text of batch) {
+        result.push(await useOpenaiEmbeddingFunction({ input: text }))
       }
+      return result
     }
+  }
+  try {
+    memoryTable = await memorydb.openTable('memory', embedding)
+  } catch {
     try {
-      memoryTable = await memorydb.openTable('memory', embedding)
-    } catch {
-      try {
-        memoryTable = await memorydb.createTable('memory', [{ 'text': 'Hello world!' }], embedding)
-      } catch { }
-    }
-    mainWindow = createWindow()
-    setTimeout(sendHistory, 1000)
-    setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
-  })
+      memoryTable = await memorydb.createTable('memory', [{ 'text': 'Hello world!' }], embedding)
+    } catch { }
+  }
+  mainWindow = createWindow()
+  setTimeout(sendHistory, 1000)
+  setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
+})
 
 
 app.on('activate', () => {

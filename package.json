@@ -52,8 +52,10 @@
   "dependencies": {
     "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
+    "electron-window-state": "^5.0.3",
     "html-to-text": "^9.0.5",
     "https-proxy-agent": "^7.0.1",
+    "js-beautify": "^1.14.9",
     "js-tiktoken": "^1.0.7",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
