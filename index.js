@@ -134,6 +134,7 @@ const createWindow = () => {
   })
   win.once('ready-to-show', () => {
     win.show()
+    setTimeout(sendHistory, 1000)
   })
   return win
 }
@@ -159,7 +160,6 @@ app.whenReady().then(async () => {
     } catch { }
   }
   mainWindow = createWindow()
-  setTimeout(sendHistory, 1000)
   setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
 })
 

@@ -147,7 +147,11 @@ const functionAction = {
     return `${AI_NAME}读取了 ${filePath}`
   },
   javaScriptInterpreter({ code }) {
-    code = beautify(code, { indent_size: 2 })
+    code = beautify(code, {
+      indent_size: 2,
+      space_after_anon_function: true,
+      space_after_named_function: true,
+    })
     return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
   openLocalFileOrWebpage({ filePath, url, type }) {
