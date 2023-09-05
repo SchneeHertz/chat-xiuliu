@@ -156,8 +156,16 @@ app.whenReady()
     setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
   })
 
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    mainWindow = createWindow()
+  }
+})
 app.on('window-all-closed', () => {
-  app.quit()
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
 })
 
 /**
