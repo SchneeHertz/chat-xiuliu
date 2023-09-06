@@ -70,12 +70,12 @@ ChatGPT双向语音助手
   "AI_NAME": "休留",
   "systemPrompt": "你是虚拟猫娘休留",
   "writeFolder": "D:\\folder_name",
+  "allowPowerfulInterpreter": false,
   "proxyObject": {
     "protocol": "http",
     "host": "127.0.0.1",
     "port": 7890
-  },
-  "proxyString": "http://127.0.0.1:7890"
+  }
 }
 ```
 

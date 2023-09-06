@@ -10,6 +10,13 @@ import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
 
 import Setting from './components/Setting.vue'
+import Message from './components/Message.vue'
+
+const messageRef = ref(null)
+const printMessage = (type, msg, option) => {
+  messageRef.value.message.destroyAll()
+  messageRef.value.message[type](msg, option)
+}
 
 const messageHistory = ref([])
 
@@ -71,6 +78,18 @@ const scrollToBottom = (id) => {
   const element = document.getElementById(id)
   element.scrollTop = element.scrollHeight
 }
+// API Key Check
+const setting = ref(null)
+onMounted(async () => {
+  let config = await ipcRenderer.invoke('load-setting')
+  if (!config.OPENAI_API_KEY && !config.AZURE_OPENAI_KEY) {
+    setting.value.openConfig()
+    printMessage('error', '请先设置 OPENAI_API_KEY', { duration: 5000 })
+  }
+})
+
+
+// STATUS
 const isSpeechTalk = ref(false)
 const recordStatus = ref(false)
 const isAudioPlay = ref(false)
@@ -90,6 +109,7 @@ const switchAudio = () => {
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
 }
+
 </script>
 
 <template>
@@ -128,11 +148,14 @@ const emptyHistory = () => {
             <n-icon><Speaker216Filled v-if="isAudioPlay" /><SpeakerOff16Filled v-else /></n-icon>
           </template>
         </n-button>
-        <n-button type="primary" tertiary @click="emptyHistory">Clear History</n-button>
-        <Setting />
+        <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
+        <Setting ref="setting"/>
       </n-space>
     </n-gi>
   </n-grid>
+  <n-message-provider>
+    <Message ref="messageRef"/>
+  </n-message-provider>
 </template>
 
 <style lang="stylus">
@@ -156,6 +179,8 @@ const emptyHistory = () => {
 
 .code-block
   position: relative
+  code.hljs
+    border-radius: 4px
 .hljs-copy-button
   position: absolute
   right: 4px

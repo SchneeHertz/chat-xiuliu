@@ -1,4 +1,4 @@
-const { BrowserWindow, app, ipcMain, shell, Menu } = require('electron')
+const { BrowserWindow, app, ipcMain, shell, Menu, dialog } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { format } = require('node:util')
@@ -21,8 +21,9 @@ const {
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
-  proxyString,
+  proxyObject,
 } = config
+const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), { flags: 'w' })
 const messageLog = (message) => {
@@ -486,7 +487,7 @@ ipcMain.handle('restart-app', async()=>{
 })
 
 // setting
-ipcMain.handle('select-folder', async (event, type) => {
+ipcMain.handle('select-folder', async () => {
   let result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory']
   })
@@ -497,7 +498,7 @@ ipcMain.handle('select-folder', async (event, type) => {
   }
 })
 
-ipcMain.handle('select-file', async (event, type) => {
+ipcMain.handle('select-file', async () => {
   let result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile']
   })
@@ -513,6 +514,5 @@ ipcMain.handle('load-setting', async () => {
 })
 
 ipcMain.handle('save-setting', async (event, receiveSetting) => {
-  console.log(receiveSetting)
   return await fs.promises.writeFile(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
 })

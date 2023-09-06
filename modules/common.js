@@ -5,8 +5,9 @@ const _ = require('lodash')
 const { config: {
   OPENAI_API_KEY, OPENAI_API_ENDPOINT, DEFAULT_MODEL,
   AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION, AZURE_CHAT_MODEL, AZURE_EMBEDDING_MODEL,
-  proxyString
+  proxyObject
 } } = require('../utils/loadConfig.js')
+const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const openai = new OpenAI({
   apiKey: OPENAI_API_KEY,

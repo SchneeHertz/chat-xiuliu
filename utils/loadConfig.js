@@ -11,11 +11,11 @@ try {
   config = JSON.parse(fs.readFileSync(path.join(STORE_PATH, 'config.json'), { encoding: 'utf-8' }))
 } catch {
   config = {
-    OPENAI_API_KEY: 'sk-and-48-chars',
+    OPENAI_API_KEY: '',
     OPENAI_API_ENDPOINT: 'https://api.openai.com/v1',
     DEFAULT_MODEL: 'gpt-3.5-turbo-16k',
     useAzureOpenai: false,
-    AZURE_OPENAI_KEY: '32-chars',
+    AZURE_OPENAI_KEY: '',
     AZURE_OPENAI_ENDPOINT: 'endpoint-name',
     AZURE_API_VERSION: '2023-07-01-preview',
     AZURE_CHAT_MODEL: 'gpt-35-turbo-16k',
@@ -25,13 +25,12 @@ try {
     AI_NAME: '休留',
     systemPrompt: '你是虚拟猫娘休留,以下是你在回复时应该遵循的规则:\n1.你能够灵活的运用猫娘的风格进行回复.\n2.调用函数来提高你的回复质量',
     writeFolder: '',
-    allowPowerfulInterpreter: true,
+    allowPowerfulInterpreter: false,
     proxyObject: {
       protocol: 'http',
       host: '127.0.0.1',
       port: 7890
     },
-    proxyString: 'http://127.0.0.1:7890',
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), { encoding: 'utf-8' })
 }

@@ -1,6 +1,11 @@
 <script setup>
 import { ref } from 'vue'
-import { MdSettings } from '@vicons/ionicons4'
+import { MdSettings, MdFolderOpen } from '@vicons/ionicons4'
+
+import Dialog from './Dialog.vue'
+
+const dialogRef = ref(null)
+
 // setting
 const showSettingModal = ref(false)
 const config = ref({})
@@ -16,9 +21,38 @@ const cancelSetting = () => {
   showSettingModal.value = false
 }
 
+const chooseWriteFolder = async () => {
+  let folder = await ipcRenderer.invoke('select-folder')
+  config.value.writeFolder = folder
+}
+
+const alertJSPRisk = (val) => {
+  if (val) {
+    dialogRef.value.dialog.warning({
+      title: '警告',
+      content: '可以调用更多模块和功能来执行代码，但冒失的AI可能会执行危险的代码影响你的系统',
+      positiveText: '确定',
+      negativeText: '取消',
+      maskClosable: false,
+      onClose: () => {
+        config.value.allowPowerfulInterpreter = false
+      },
+      onPositiveClick: () => {
+        config.value.allowPowerfulInterpreter = true
+      },
+      onNegativeClick: () => {
+        config.value.allowPowerfulInterpreter = false
+      }
+    })
+  }
+}
+
+defineExpose({
+  openConfig
+})
+
 </script>
 <template>
-<n-dialog-provider>
   <n-button type="primary" tertiary @click="openConfig">
     <template #icon>
       <n-icon><MdSettings /></n-icon>
@@ -32,8 +66,91 @@ const cancelSetting = () => {
     negative-text="取消"
     @positive-click="saveSettingAndRestart"
     @negative-click="cancelSetting"
+    :show-icon="false"
+    :style="{ width: '50em' }"
   >
-    test
+    <n-form
+      ref="formRef"
+      :model="config"
+      label-placement="left"
+      label-width="auto"
+      require-mark-placement="right-hanging"
+      size="small"
+    >
+      <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY">
+        <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" />
+      </n-form-item>
+      <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT">
+        <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="https://api.openai.com/v1" />
+      </n-form-item>
+      <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL">
+        <n-input v-model:value="config.DEFAULT_MODEL" placeholder="gpt-3.5-turbo-16k" />
+      </n-form-item>
+      <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
+        <n-switch v-model:value="config.useAzureOpenai" />
+      </n-form-item>
+      <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-if="config.useAzureOpenai">
+        <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" />
+      </n-form-item>
+      <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-if="config.useAzureOpenai">
+        <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="endpoint-name" />
+      </n-form-item>
+      <n-form-item label="AZURE_API_VERSION" path="AZURE_API_VERSION" v-if="config.useAzureOpenai">
+        <n-input v-model:value="config.AZURE_API_VERSION" placeholder="2023-07-01-preview" />
+      </n-form-item>
+      <n-form-item label="AZURE_CHAT_MODEL" path="AZURE_CHAT_MODEL" v-if="config.useAzureOpenai">
+        <n-input v-model:value="config.AZURE_CHAT_MODEL" placeholder="gpt-35-turbo-16k" />
+      </n-form-item>
+      <n-form-item label="AZURE_EMBEDDING_MODEL" path="AZURE_EMBEDDING_MODEL" v-if="config.useAzureOpenai">
+        <n-input v-model:value="config.AZURE_EMBEDDING_MODEL" placeholder="text-embedding-ada-002" />
+      </n-form-item>
+      <n-form-item label="SpeechSynthesisVoiceName" path="SpeechSynthesisVoiceName">
+        <n-input v-model:value="config.SpeechSynthesisVoiceName" placeholder="zh-CN-XiaoyiNeural" />
+      </n-form-item>
+      <n-form-item label="你的称呼" path="ADMIN_NAME">
+        <n-input v-model:value="config.ADMIN_NAME" placeholder="Chell" />
+      </n-form-item>
+      <n-form-item label="AI的名字" path="AI_NAME">
+        <n-input v-model:value="config.AI_NAME" placeholder="休留" />
+      </n-form-item>
+      <n-form-item label="设定" path="systemPrompt">
+        <n-input
+          v-model:value="config.systemPrompt"
+          placeholder="你是虚拟猫娘休留"
+          type="textarea"
+          :autosize="{
+            minRows: 2,
+            maxRows: 4
+          }"
+        />
+      </n-form-item>
+      <n-form-item label="可写文件夹" path="writeFolder">
+        <n-input-group>
+          <n-input v-model:value="config.writeFolder" placeholder="允许AI写入文件的文件夹" />
+          <n-button type="default" @click="chooseWriteFolder">
+            <n-icon><MdFolderOpen /></n-icon>
+          </n-button>
+        </n-input-group>
+      </n-form-item>
+      <n-form-item label="使用高级解释器" path="allowPowerfulInterpreter">
+        <n-switch v-model:value="config.allowPowerfulInterpreter" @update:value="alertJSPRisk"/>
+      </n-form-item>
+      <n-form-item label="代理服务器" :show-feedback="false">
+        <n-grid :cols="3" :x-gap="24">
+          <n-form-item-gi path="proxyObject.protocol">
+            <n-input v-model:value="config.proxyObject.protocol" placeholder="http"/>
+          </n-form-item-gi>
+          <n-form-item-gi path="proxyObject.host">
+            <n-input v-model:value="config.proxyObject.host" placeholder="127.0.0.1"/>
+          </n-form-item-gi>
+          <n-form-item-gi path="proxyObject.port">
+            <n-input-number v-model:value="config.proxyObject.port" placeholder="7890" :show-button="false"/>
+          </n-form-item-gi>
+        </n-grid>
+      </n-form-item>
+    </n-form>
   </n-modal>
-</n-dialog-provider>
+  <n-dialog-provider>
+    <Dialog ref="dialogRef" />
+  </n-dialog-provider>
 </template>

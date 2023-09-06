@@ -7,7 +7,8 @@ const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripte
 const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 
-let { config: { proxyObject, proxyString, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
+let { config: { proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
+const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
 const { javaScriptInterpreterPowerful } = require('./vm.js')
