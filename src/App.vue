@@ -3,6 +3,10 @@ import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
+import { MdSettings } from '@vicons/ionicons4'
+import { RestartAltOutlined } from '@vicons/material'
+import { Microphone, MicrophoneSlash } from '@vicons/fa'
+import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
 
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
@@ -89,6 +93,9 @@ const emptyHistory = () => {
 const switchAudio = () => {
   ipcRenderer.invoke('switch-audio')
 }
+const restartApp = () => {
+  ipcRenderer.invoke('restart-app')
+}
 </script>
 
 <template>
@@ -110,16 +117,35 @@ const switchAudio = () => {
         type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"></n-input>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
-      <n-button round :type="isSpeechTalk
-        ? recordStatus === 'Recording'
-          ? 'error'
-          : recordStatus === 'Recognizing'
-            ? 'warning'
-            : 'primary'
-        : 'default'" @click="switchSpeechTalk">{{ isSpeechTalk ? recordStatus : 'Speech Off' }}</n-button>
-      <n-button round :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">{{ isAudioPlay ? 'Audio On' : 'Audio Off' }}</n-button>
-      <n-button type="primary" tertiary @click="emptyHistory">Clear History</n-button>
-      <n-button type="primary" tertiary @click="openConfig">Open Config</n-button>
+      <n-space>
+        <n-button round :type="isSpeechTalk
+          ? recordStatus === 'Recording'
+            ? 'error'
+            : recordStatus === 'Recognizing'
+              ? 'warning'
+              : 'primary'
+          : 'default'" @click="switchSpeechTalk">
+          <template #icon>
+            <n-icon><Microphone v-if="isSpeechTalk" /><MicrophoneSlash v-else /></n-icon>
+          </template>
+        </n-button>
+        <n-button round :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">
+          <template #icon>
+            <n-icon><Speaker216Filled v-if="isAudioPlay" /><SpeakerOff16Filled v-else /></n-icon>
+          </template>
+        </n-button>
+        <n-button type="primary" tertiary @click="emptyHistory">Clear History</n-button>
+        <n-button type="primary" tertiary @click="openConfig">
+          <template #icon>
+            <n-icon><MdSettings /></n-icon>
+          </template>
+        </n-button>
+        <n-button type="primary" tertiary @click="restartApp">
+          <template #icon>
+            <n-icon><RestartAltOutlined /></n-icon>
+          </template>
+        </n-button>
+      </n-space>
     </n-gi>
   </n-grid>
 </template>
@@ -156,6 +182,4 @@ const switchAudio = () => {
   margin-top: 4px
 #function-button
   margin-top: 6px
-  .n-button
-    margin-right: 8px!important
 </style>

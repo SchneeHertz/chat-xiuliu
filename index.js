@@ -14,14 +14,15 @@ const { getSpeechText } = require('./modules/whisper.js')
 const { EdgeTTS } = require('node-edge-tts')
 const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
-const { config: {
+const { config } = require('./utils/loadConfig.js')
+const {
   useAzureOpenai,
   DEFAULT_MODEL, AZURE_CHAT_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
   proxyString,
-} } = require('./utils/loadConfig.js')
+} = config
 
 const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), { flags: 'w' })
 const messageLog = (message) => {
@@ -442,6 +443,9 @@ const triggerSpeech = async () => {
     mainWindow.setProgressBar(100, { mode: 'indeterminate' })
     let adminTalk = await getSpeechText(STATUS)
     console.log(adminTalk)
+    if (!STATUS.isSpeechTalk) {
+      throw new Error('Speech is not enabled now.')
+    }
     STATUS.recordStatus = 'Answering'
     mainWindow.setProgressBar(-1)
     messageLogAndSend({
@@ -456,10 +460,10 @@ const triggerSpeech = async () => {
 ipcMain.handle('send-prompt', async (event, text) => {
   resloveAdminPrompt({ prompt: text })
 })
-ipcMain.handle('get-admin-name', async (event) => {
+ipcMain.handle('get-admin-name', async () => {
   return ADMIN_NAME
 })
-ipcMain.handle('open-config', async (event) => {
+ipcMain.handle('open-config', async () => {
   shell.openExternal(path.join(STORE_PATH, 'config.json'))
 })
 ipcMain.handle('switch-speech-talk', async () => {
@@ -475,4 +479,39 @@ ipcMain.handle('switch-audio', async () => {
 })
 ipcMain.handle('empty-history', async()=>{
   setStore('history', [])
+})
+ipcMain.handle('restart-app', async()=>{
+  app.relaunch()
+  app.exit(0)
+})
+
+// setting
+ipcMain.handle('select-folder', async (event, type) => {
+  let result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  })
+  if (!result.canceled) {
+    return result.filePaths[0]
+  } else {
+    return undefined
+  }
+})
+
+ipcMain.handle('select-file', async (event, type) => {
+  let result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile']
+  })
+  if (!result.canceled) {
+    return result.filePaths[0]
+  } else {
+    return undefined
+  }
+})
+
+ipcMain.handle('load-setting', async () => {
+  return config
+})
+
+ipcMain.handle('save-setting', async (event, receiveSetting) => {
+  return fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
 })
