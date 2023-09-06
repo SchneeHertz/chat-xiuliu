@@ -25,6 +25,7 @@ try {
     AI_NAME: '休留',
     systemPrompt: '你是虚拟猫娘休留,以下是你在回复时应该遵循的规则:\n1.你能够灵活的运用猫娘的风格进行回复.\n2.调用函数来提高你的回复质量',
     writeFolder: '',
+    allowPowerfulInterpreter: true,
     proxyObject: {
       protocol: 'http',
       host: '127.0.0.1',

@@ -7,9 +7,10 @@ const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripte
 const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 
-let { config: { proxyObject, proxyString, AI_NAME, writeFolder } } = require('../utils/loadConfig.js')
+let { config: { proxyObject, proxyString, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
+const { javaScriptInterpreterPowerful } = require('./vm.js')
 
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
@@ -130,23 +131,46 @@ const functionInfo = [
   }
 ]
 
+if (allowPowerfulInterpreter) {
+  let findExistInterpreter = functionInfo.findIndex(f => f.name === 'javaScriptInterpreter')
+  if (findExistInterpreter !== -1) {
+    functionInfo.splice(findExistInterpreter, 1, {
+      "name": "javaScriptInterpreterPowerful",
+      "description": `Useful for running JavaScript code in node.js VM.
+Input is a string of JavaScript code, output is the result of the code.
+You can require node modules except fs, and use lodash, axios directly.
+The context of the VM will be preserved.`,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The javascript code to run",
+          }
+        },
+        "required": ["code"],
+      }
+    })
+  }
+}
+
 const functionAction = {
-  getInformationFromGoogle({ queryString }) {
+  getInformationFromGoogle ({ queryString }) {
     return `${AI_NAME}正在搜索 ${queryString}`
   },
-  getContentOfWebpage({ url }) {
+  getContentOfWebpage ({ url }) {
     return `${AI_NAME}正在访问 ${url}`
   },
-  getHistoricalConversationContent({ relatedText }) {
+  getHistoricalConversationContent ({ relatedText }) {
     return `${AI_NAME}想起了关于 ${relatedText} 的事情`
   },
-  writeFileToDisk({ relativeFilePath, content }) {
+  writeFileToDisk ({ relativeFilePath, content }) {
     return `${AI_NAME}保存\n${content}\n到 ${relativeFilePath}`
   },
   readFileFromDisk ({ filePath }) {
     return `${AI_NAME}读取了 ${filePath}`
   },
-  javaScriptInterpreter({ code }) {
+  javaScriptInterpreter ({ code }) {
     code = beautify(code, {
       indent_size: 2,
       space_after_anon_function: true,
@@ -154,7 +178,15 @@ const functionAction = {
     })
     return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
-  openLocalFileOrWebpage({ filePath, url, type }) {
+  javaScriptInterpreterPowerful ({ code }) {
+    code = beautify(code, {
+      indent_size: 2,
+      space_after_anon_function: true,
+      space_after_named_function: true,
+    })
+    return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
+  },
+  openLocalFileOrWebpage ({ filePath, url, type }) {
     return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
   }
 }
@@ -234,6 +266,7 @@ module.exports = {
     writeFileToDisk,
     readFileFromDisk,
     javaScriptInterpreter,
+    javaScriptInterpreterPowerful,
     openLocalFileOrWebpage
   }
 }
