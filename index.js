@@ -513,5 +513,6 @@ ipcMain.handle('load-setting', async () => {
 })
 
 ipcMain.handle('save-setting', async (event, receiveSetting) => {
-  return fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
+  console.log(receiveSetting)
+  return await fs.promises.writeFile(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
 })

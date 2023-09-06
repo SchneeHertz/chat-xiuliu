@@ -3,13 +3,13 @@ import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import { MdSettings } from '@vicons/ionicons4'
-import { RestartAltOutlined } from '@vicons/material'
 import { Microphone, MicrophoneSlash } from '@vicons/fa'
 import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
 
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
+
+import Setting from './components/Setting.vue'
 
 const messageHistory = ref([])
 
@@ -84,17 +84,11 @@ onMounted(() => {
 const switchSpeechTalk = () => {
   ipcRenderer.invoke('switch-speech-talk')
 }
-const openConfig = () => {
-  ipcRenderer.invoke('open-config')
-}
-const emptyHistory = () => {
-  ipcRenderer.invoke('empty-history')
-}
 const switchAudio = () => {
   ipcRenderer.invoke('switch-audio')
 }
-const restartApp = () => {
-  ipcRenderer.invoke('restart-app')
+const emptyHistory = () => {
+  ipcRenderer.invoke('empty-history')
 }
 </script>
 
@@ -135,16 +129,7 @@ const restartApp = () => {
           </template>
         </n-button>
         <n-button type="primary" tertiary @click="emptyHistory">Clear History</n-button>
-        <n-button type="primary" tertiary @click="openConfig">
-          <template #icon>
-            <n-icon><MdSettings /></n-icon>
-          </template>
-        </n-button>
-        <n-button type="primary" tertiary @click="restartApp">
-          <template #icon>
-            <n-icon><RestartAltOutlined /></n-icon>
-          </template>
-        </n-button>
+        <Setting />
       </n-space>
     </n-gi>
   </n-grid>
