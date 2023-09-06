@@ -26,9 +26,11 @@ ChatGPT双向语音助手
 ## 截图
 ![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
 
+![setting.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg)
+
 ## 使用说明
-- 解压后打开chat-xiuliu.exe, 点击Open Config, 编辑配置文件
-- 获取一个openai的API key, 填入配置文件中
+- 解压后打开chat-xiuliu.exe, 进入设置
+- 填写openai的API key
 - _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢，可选，语音功能)_
   - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹_
   ```
@@ -43,15 +45,15 @@ ChatGPT双向语音助手
   resources/extraResources/whisper/whisper-faster.exe
   resources/extraResources/whisper/zlibwapi.dll
   ```
-- 修改配置文件的其他部分（可选）
-  - 配置文件中本地代理的端口
+- 修改设置的其他部分（可选）
+  - 设置中本地代理的端口
   - 使用的模型，参考openai给出的[模型选项](https://platform.openai.com/docs/models/model-endpoint-compatibility)
-  - 如果你使用Azure openai，将useAzureOpenai设为true，修改其他AZURE前缀的设置项，需要同时部署chat和embedding的模型
+  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型
   - AI使用的名字和你的称呼
   - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
-  - AI的System Prompt(设定和发言风格)
-- 保存配置文件后重启chat-xiuliu.exe
-- 点击Speech Off切换录音开关，点击Audio Off切换语音开关
+  - AI的设定
+  - 函数调用中用到的输出文件夹，以及危险的高级代码解释器
+- 保存设置后重启应用
 
 ### 配置文件参考
 ```
