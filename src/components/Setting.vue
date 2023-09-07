@@ -67,7 +67,7 @@ defineExpose({
     @positive-click="saveSettingAndRestart"
     @negative-click="cancelSetting"
     :show-icon="false"
-    :style="{ width: '50em' }"
+    :style="{ width: '51em' }"
   >
     <n-form
       ref="formRef"
@@ -78,45 +78,45 @@ defineExpose({
       size="small"
     >
       <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY">
-        <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" />
+        <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" type="password" show-password-on="click"/>
       </n-form-item>
       <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT">
-        <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="https://api.openai.com/v1" />
+        <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
       </n-form-item>
       <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL">
-        <n-input v-model:value="config.DEFAULT_MODEL" placeholder="gpt-3.5-turbo-16k" />
+        <n-input v-model:value="config.DEFAULT_MODEL" placeholder="like gpt-3.5-turbo-16k" />
       </n-form-item>
       <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
         <n-switch v-model:value="config.useAzureOpenai" />
       </n-form-item>
       <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-if="config.useAzureOpenai">
-        <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" />
+        <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click"/>
       </n-form-item>
       <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-if="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="endpoint-name" />
       </n-form-item>
       <n-form-item label="AZURE_API_VERSION" path="AZURE_API_VERSION" v-if="config.useAzureOpenai">
-        <n-input v-model:value="config.AZURE_API_VERSION" placeholder="2023-07-01-preview" />
+        <n-input v-model:value="config.AZURE_API_VERSION" placeholder="like 2023-07-01-preview" />
       </n-form-item>
       <n-form-item label="AZURE_CHAT_MODEL" path="AZURE_CHAT_MODEL" v-if="config.useAzureOpenai">
-        <n-input v-model:value="config.AZURE_CHAT_MODEL" placeholder="gpt-35-turbo-16k" />
+        <n-input v-model:value="config.AZURE_CHAT_MODEL" placeholder="like gpt-35-turbo-16k" />
       </n-form-item>
       <n-form-item label="AZURE_EMBEDDING_MODEL" path="AZURE_EMBEDDING_MODEL" v-if="config.useAzureOpenai">
-        <n-input v-model:value="config.AZURE_EMBEDDING_MODEL" placeholder="text-embedding-ada-002" />
+        <n-input v-model:value="config.AZURE_EMBEDDING_MODEL" placeholder="like text-embedding-ada-002" />
       </n-form-item>
       <n-form-item label="SpeechSynthesisVoiceName" path="SpeechSynthesisVoiceName">
-        <n-input v-model:value="config.SpeechSynthesisVoiceName" placeholder="zh-CN-XiaoyiNeural" />
+        <n-input v-model:value="config.SpeechSynthesisVoiceName" placeholder="like zh-CN-XiaoyiNeural" />
       </n-form-item>
       <n-form-item label="你的称呼" path="ADMIN_NAME">
-        <n-input v-model:value="config.ADMIN_NAME" placeholder="Chell" />
+        <n-input v-model:value="config.ADMIN_NAME" />
       </n-form-item>
       <n-form-item label="AI的名字" path="AI_NAME">
-        <n-input v-model:value="config.AI_NAME" placeholder="休留" />
+        <n-input v-model:value="config.AI_NAME" />
       </n-form-item>
       <n-form-item label="设定" path="systemPrompt">
         <n-input
           v-model:value="config.systemPrompt"
-          placeholder="你是虚拟猫娘休留"
+          placeholder="AI的设定，chatgpt的默认值是'You are a helpful assistant.'"
           type="textarea"
           :autosize="{
             minRows: 2,
@@ -141,13 +141,13 @@ defineExpose({
       <n-form-item label="代理服务器" :show-feedback="false" v-if="config.useProxy">
         <n-grid :cols="3" :x-gap="24">
           <n-form-item-gi path="proxyObject.protocol">
-            <n-input v-model:value="config.proxyObject.protocol" placeholder="http"/>
+            <n-input v-model:value="config.proxyObject.protocol" placeholder="protocol, like http"/>
           </n-form-item-gi>
           <n-form-item-gi path="proxyObject.host">
-            <n-input v-model:value="config.proxyObject.host" placeholder="127.0.0.1"/>
+            <n-input v-model:value="config.proxyObject.host" placeholder="host, like 127.0.0.1"/>
           </n-form-item-gi>
           <n-form-item-gi path="proxyObject.port">
-            <n-input-number v-model:value="config.proxyObject.port" placeholder="7890" :show-button="false"/>
+            <n-input-number v-model:value="config.proxyObject.port" placeholder="port, like 7890" :show-button="false"/>
           </n-form-item-gi>
         </n-grid>
       </n-form-item>

@@ -144,6 +144,8 @@ const createWindow = () => {
 
 const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : openaiEmbedding
 app.whenReady().then(async () => {
+  mainWindow = createWindow()
+  setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
   const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
   const embedding = {
     sourceColumn: 'text',
@@ -162,8 +164,6 @@ app.whenReady().then(async () => {
       memoryTable = await memorydb.createTable('memory', [{ 'text': 'Hello world!' }], embedding)
     } catch { }
   }
-  mainWindow = createWindow()
-  setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
 })
 
 
