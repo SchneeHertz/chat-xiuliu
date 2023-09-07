@@ -135,7 +135,10 @@ defineExpose({
       <n-form-item label="使用高级解释器" path="allowPowerfulInterpreter">
         <n-switch v-model:value="config.allowPowerfulInterpreter" @update:value="alertJSPRisk"/>
       </n-form-item>
-      <n-form-item label="代理服务器" :show-feedback="false">
+      <n-form-item label="使用代理服务器" path="useProxy">
+        <n-switch v-model:value="config.useProxy"/>
+      </n-form-item>
+      <n-form-item label="代理服务器" :show-feedback="false" v-if="config.useProxy">
         <n-grid :cols="3" :x-gap="24">
           <n-form-item-gi path="proxyObject.protocol">
             <n-input v-model:value="config.proxyObject.protocol" placeholder="http"/>

@@ -7,7 +7,7 @@ const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripte
 const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 
-let { config: { proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
+let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
@@ -193,7 +193,7 @@ const functionAction = {
 }
 
 const getInformationFromGoogle = async ({ queryString }) => {
-  let options = { proxy: proxyString }
+  let options = { proxy: useProxy ? proxyString : undefined }
   let additionalQueryParam = {
     // lr: 'lang_zh-CN',
     // hl: 'zh-CN',
@@ -206,7 +206,7 @@ const getInformationFromGoogle = async ({ queryString }) => {
 }
 
 const getContentOfWebpage = async ({ url }) => {
-  return await axios.get(url, { proxy: proxyObject })
+  return await axios.get(url, { proxy: useProxy ? proxyObject : undefined })
     .then(async res=>{
       let html = await res.data
       let content = convert(html, {

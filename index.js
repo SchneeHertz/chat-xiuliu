@@ -21,6 +21,7 @@ const {
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
+  useProxy,
   proxyObject,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
@@ -63,7 +64,7 @@ let tts = new EdgeTTS({
   voice: SpeechSynthesisVoiceName,
   lang: 'zh-CN',
   outputFormat: 'audio-24khz-96kbitrate-mono-mp3',
-  proxy: proxyString,
+  proxy: useProxy ? proxyString : undefined,
   saveSubtitles: true
 })
 
