@@ -13,7 +13,8 @@ const context = new vm.createContext(env)
 
 const javaScriptInterpreterPowerful = ({ code }) => {
   const script = new vm.Script(code)
-  return script.runInContext(context)
+  let result = script.runInContext(context)
+  return JSON.stringify(result)
 }
 
 module.exports = {
