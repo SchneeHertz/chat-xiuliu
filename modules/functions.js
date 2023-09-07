@@ -140,7 +140,7 @@ if (allowPowerfulInterpreter) {
       "description": `Useful for running JavaScript code in node.js VM.
 Input is a string of JavaScript code, output is the result of the code.
 You can require node modules except fs, and use lodash, axios directly.
-The context of the VM will be preserved.`,
+The context of the VM will be preserved, you can store global variables for future use.`,
       "parameters": {
         "type": "object",
         "properties": {
@@ -201,7 +201,7 @@ const getInformationFromGoogle = async ({ queryString }) => {
     // gl: 'cn',
     safe: 'high'
   }
-  let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 6, additionalQueryParam })
+  let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 5, additionalQueryParam })
   return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n##\n')
 }
 

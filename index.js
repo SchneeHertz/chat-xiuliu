@@ -252,7 +252,7 @@ resolveSpeakTextList()
 const addHistory = (lines) => {
   let history = getStore('history')
   history.push(...lines)
-  history = _.takeRight(history, 50)
+  history = _.takeRight(history, 1000)
   setStore('history', history)
 }
 
