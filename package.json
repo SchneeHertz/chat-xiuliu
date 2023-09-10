@@ -1,7 +1,7 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.1.4",
+  "version": "2.1.5",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
