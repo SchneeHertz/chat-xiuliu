@@ -11,7 +11,7 @@ let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterp
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
-const { javaScriptInterpreterPowerful } = require('./vm.js')
+const { nodejsInterpreter } = require('./vm.js')
 
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
@@ -136,11 +136,11 @@ if (allowPowerfulInterpreter) {
   let findExistInterpreter = functionInfo.findIndex(f => f.name === 'javaScriptInterpreter')
   if (findExistInterpreter !== -1) {
     functionInfo.splice(findExistInterpreter, 1, {
-      "name": "javaScriptInterpreterPowerful",
+      "name": "nodejsInterpreter",
       "description": `Useful for running JavaScript code in node.js VM.
 Input is a string of JavaScript code, output is the result of the code.
 You can require node modules except fs, and use lodash, axios directly.
-The context of the VM will be preserved, you can store global variables for future use.`,
+The context of the VM will be preserved, you can only store variables in the "global" object for future use.`,
       "parameters": {
         "type": "object",
         "properties": {
@@ -179,7 +179,7 @@ const functionAction = {
     })
     return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
-  javaScriptInterpreterPowerful ({ code }) {
+  nodejsInterpreter ({ code }) {
     code = beautify(code, {
       indent_size: 2,
       space_after_anon_function: true,
@@ -267,7 +267,7 @@ module.exports = {
     writeFileToDisk,
     readFileFromDisk,
     javaScriptInterpreter,
-    javaScriptInterpreterPowerful,
+    nodejsInterpreter,
     openLocalFileOrWebpage
   }
 }
