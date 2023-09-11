@@ -21,6 +21,13 @@ const cancelSetting = () => {
   showSettingModal.value = false
 }
 
+const model_options = [
+  { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
+  { label: 'gpt-3.5-turbo-16k', value: 'gpt-3.5-turbo-16k' },
+  { label: 'gpt-4', value: 'gpt-4' },
+  { label: 'gpt-4-32k', value: 'gpt-4-32k' },
+]
+
 const chooseWriteFolder = async () => {
   let folder = await ipcRenderer.invoke('select-folder')
   config.value.writeFolder = folder
@@ -55,42 +62,30 @@ defineExpose({
 <template>
   <n-button type="primary" tertiary @click="openConfig">
     <template #icon>
-      <n-icon><MdSettings /></n-icon>
+      <n-icon>
+        <MdSettings />
+      </n-icon>
     </template>
   </n-button>
-  <n-modal
-    v-model:show="showSettingModal"
-    preset="dialog"
-    title="设置"
-    positive-text="保存后重启应用"
-    negative-text="取消"
-    @positive-click="saveSettingAndRestart"
-    @negative-click="cancelSetting"
-    :show-icon="false"
-    :style="{ width: '51em' }"
-  >
-    <n-form
-      ref="formRef"
-      :model="config"
-      label-placement="left"
-      label-width="auto"
-      require-mark-placement="right-hanging"
-      size="small"
-    >
-      <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY">
-        <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" type="password" show-password-on="click"/>
-      </n-form-item>
-      <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT">
-        <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
-      </n-form-item>
-      <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL">
-        <n-input v-model:value="config.DEFAULT_MODEL" placeholder="like gpt-3.5-turbo-16k" />
-      </n-form-item>
+  <n-modal v-model:show="showSettingModal" preset="dialog" title="设置" positive-text="保存后重启应用" negative-text="取消"
+    @positive-click="saveSettingAndRestart" @negative-click="cancelSetting" :show-icon="false" :style="{ width: '51em' }">
+    <n-form ref="formRef" :model="config" label-placement="left" label-width="auto" require-mark-placement="right-hanging"
+      size="small">
       <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
         <n-switch v-model:value="config.useAzureOpenai" />
       </n-form-item>
+      <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY" v-if="!config.useAzureOpenai">
+        <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" type="password"
+          show-password-on="click" />
+      </n-form-item>
+      <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT" v-if="!config.useAzureOpenai">
+        <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
+      </n-form-item>
+      <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-if="!config.useAzureOpenai">
+        <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" />
+      </n-form-item>
       <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-if="config.useAzureOpenai">
-        <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click"/>
+        <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
       </n-form-item>
       <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-if="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="endpoint-name" />
@@ -114,40 +109,38 @@ defineExpose({
         <n-input v-model:value="config.AI_NAME" />
       </n-form-item>
       <n-form-item label="设定" path="systemPrompt">
-        <n-input
-          v-model:value="config.systemPrompt"
-          placeholder="AI的设定，chatgpt的默认值是'You are a helpful assistant.'"
-          type="textarea"
-          :autosize="{
+        <n-input v-model:value="config.systemPrompt" placeholder="AI的设定，chatgpt的默认值是'You are a helpful assistant.'"
+          type="textarea" :autosize="{
             minRows: 2,
             maxRows: 4
-          }"
-        />
+          }" />
       </n-form-item>
       <n-form-item label="可写文件夹" path="writeFolder">
         <n-input-group>
           <n-input v-model:value="config.writeFolder" placeholder="允许AI写入文件的文件夹" />
           <n-button type="default" @click="chooseWriteFolder">
-            <n-icon><MdFolderOpen /></n-icon>
+            <n-icon>
+              <MdFolderOpen />
+            </n-icon>
           </n-button>
         </n-input-group>
       </n-form-item>
       <n-form-item label="使用高级解释器" path="allowPowerfulInterpreter">
-        <n-switch v-model:value="config.allowPowerfulInterpreter" @update:value="alertJSPRisk"/>
+        <n-switch v-model:value="config.allowPowerfulInterpreter" @update:value="alertJSPRisk" />
       </n-form-item>
       <n-form-item label="使用代理服务器" path="useProxy">
-        <n-switch v-model:value="config.useProxy"/>
+        <n-switch v-model:value="config.useProxy" />
       </n-form-item>
       <n-form-item label="代理服务器" :show-feedback="false" v-if="config.useProxy">
         <n-grid :cols="3" :x-gap="24">
           <n-form-item-gi path="proxyObject.protocol">
-            <n-input v-model:value="config.proxyObject.protocol" placeholder="protocol, like http"/>
+            <n-input v-model:value="config.proxyObject.protocol" placeholder="protocol, like http" />
           </n-form-item-gi>
           <n-form-item-gi path="proxyObject.host">
-            <n-input v-model:value="config.proxyObject.host" placeholder="host, like 127.0.0.1"/>
+            <n-input v-model:value="config.proxyObject.host" placeholder="host, like 127.0.0.1" />
           </n-form-item-gi>
           <n-form-item-gi path="proxyObject.port">
-            <n-input-number v-model:value="config.proxyObject.port" placeholder="port, like 7890" :show-button="false"/>
+            <n-input-number v-model:value="config.proxyObject.port" placeholder="port, like 7890" :show-button="false" />
           </n-form-item-gi>
         </n-grid>
       </n-form-item>

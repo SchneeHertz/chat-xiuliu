@@ -24,6 +24,7 @@ declare module 'vue' {
     NList: typeof import('naive-ui')['NList']
     NMessageProvider: typeof import('naive-ui')['NMessageProvider']
     NModal: typeof import('naive-ui')['NModal']
+    NSelect: typeof import('naive-ui')['NSelect']
     NSpace: typeof import('naive-ui')['NSpace']
     NSwitch: typeof import('naive-ui')['NSwitch']
     Setting: typeof import('./src/components/Setting.vue')['default']
