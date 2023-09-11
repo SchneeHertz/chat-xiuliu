@@ -139,8 +139,8 @@ if (allowPowerfulInterpreter) {
       "name": "nodejsInterpreter",
       "description": `Useful for running JavaScript code in node.js VM.
 Input is a string of JavaScript code, output is the result of the code.
-You can require node modules except fs, and use lodash, axios directly.
-The context of the VM will be preserved, you can only store variables in the "global" object for future use.`,
+You can require node modules except fs, and use lodash directly.
+You can only store variables in the "global" object for future use, like "global.hello = 'world'"`,
       "parameters": {
         "type": "object",
         "properties": {
@@ -240,12 +240,16 @@ const readFileFromDisk = async ({ filePath }) => {
 }
 
 const javaScriptInterpreter = async ({ code }) => {
-  const quickjs = await getQuickJS()
-  let result = quickjs.evalCode(code, {
-    shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
-    memoryLimitBytes: 100 * 1024 * 1024,
-  })
-  return JSON.stringify(result)
+  try {
+    const quickjs = await getQuickJS()
+    let result = quickjs.evalCode(code, {
+      shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
+      memoryLimitBytes: 100 * 1024 * 1024,
+    })
+    return JSON.stringify(result)
+  } catch (error) {
+    return JSON.stringify(error)
+  }
 }
 
 const openLocalFileOrWebpage = async ({ filePath, url, type }) => {

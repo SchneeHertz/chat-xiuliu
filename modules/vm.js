@@ -1,13 +1,12 @@
 const vm = require('node:vm')
-const axios = require('axios')
 const _ = require('lodash')
 
 
 const env = {
-  axios,
   _,
   lodash: _,
   require,
+  console,
   Buffer,
   global: {}
 }
