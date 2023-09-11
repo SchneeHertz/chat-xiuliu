@@ -131,9 +131,7 @@ const createWindow = () => {
   let menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
   win.webContents.on('did-finish-load', () => {
-    let name = require('./package.json').name
-    let version = require('./package.json').version
-    win.setTitle(name + ' ' + version)
+    win.setTitle(app.getName() + ' ' + app.getVersion())
   })
   win.once('ready-to-show', () => {
     win.show()
