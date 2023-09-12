@@ -281,7 +281,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
       }
     } catch (e) {
       console.log(e)
-      functionCallResult = ''
+      functionCallResult = e.message
     }
     let functionCalling = [
       { role: "assistant", content: null, function_call: { name: resFunction, arguments: resArgument } },

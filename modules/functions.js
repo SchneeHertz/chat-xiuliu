@@ -219,7 +219,6 @@ const getContentOfWebpage = async ({ url }) => {
       })
       return sliceStringbyTokenLength(content, 1800)
     })
-    .catch(err=>console.log(err))
 }
 
 const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
@@ -239,17 +238,12 @@ const readFileFromDisk = async ({ filePath }) => {
   return await fs.promises.readFile(filePath, { encoding: 'utf-8' })
 }
 
-const javaScriptInterpreter = async ({ code }) => {
-  try {
-    const quickjs = await getQuickJS()
-    let result = quickjs.evalCode(code, {
-      shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
-      memoryLimitBytes: 100 * 1024 * 1024,
-    })
-    return JSON.stringify(result)
-  } catch (error) {
-    return JSON.stringify(error)
-  }
+const javaScriptInterpreter = async ({ code }) => {uickjs = await getQuickJS()
+  let result = quickjs.evalCode(code, {
+    shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
+    memoryLimitBytes: 100 * 1024 * 1024,
+  })
+  return JSON.stringify(result)
 }
 
 const openLocalFileOrWebpage = async ({ filePath, url, type }) => {
