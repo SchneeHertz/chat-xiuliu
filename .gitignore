@@ -18,6 +18,7 @@ log/*.txt
 data
 resources/extraResources/whisper
 utils/test.js
+out
 
 # Editor directories and files
 .vscode/*
