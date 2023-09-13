@@ -132,15 +132,15 @@ defineExpose({
         <n-switch v-model:value="config.useProxy" />
       </n-form-item>
       <n-form-item label="代理服务器" :show-feedback="false" v-if="config.useProxy">
-        <n-grid :cols="3" :x-gap="24">
-          <n-form-item-gi path="proxyObject.protocol">
-            <n-input v-model:value="config.proxyObject.protocol" placeholder="protocol, like http" />
+        <n-grid :cols="24" :x-gap="8">
+          <n-form-item-gi path="proxyObject.protocol" :span="4">
+            <n-input v-model:value="config.proxyObject.protocol" title="protocol, like http"/>
           </n-form-item-gi>
-          <n-form-item-gi path="proxyObject.host">
-            <n-input v-model:value="config.proxyObject.host" placeholder="host, like 127.0.0.1" />
+          <n-form-item-gi path="proxyObject.host" :span="8">
+            <n-input v-model:value="config.proxyObject.host" title="host, like 127.0.0.1" />
           </n-form-item-gi>
-          <n-form-item-gi path="proxyObject.port">
-            <n-input-number v-model:value="config.proxyObject.port" placeholder="port, like 7890" :show-button="false" />
+          <n-form-item-gi path="proxyObject.port" :span="4">
+            <n-input-number v-model:value="config.proxyObject.port" title="port, like 7890" :show-button="false" />
           </n-form-item-gi>
         </n-grid>
       </n-form-item>
