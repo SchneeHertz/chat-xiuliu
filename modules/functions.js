@@ -140,7 +140,7 @@ if (allowPowerfulInterpreter) {
       "description": `Useful for running JavaScript code in node.js VM.
 Input is a string of JavaScript code, output is the result of the code.
 You can require node modules except fs, and use lodash directly.
-You can only store variables in the "global" object for future use, like "global.hello = 'world'"`,
+You can only store variables in the "global" object for future use, like "global.hello = function () {return 'hello'}"`,
       "parameters": {
         "type": "object",
         "properties": {
