@@ -401,7 +401,9 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
   let resArgument = ''
 
   try {
-    while (resText === '') {
+    let round = 0
+    while (resText === '' && round <= 5) {
+      round += 1
       ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
         resArgument, resFunction, resText, resTextTemp, messages, from
       }))
@@ -586,7 +588,7 @@ if (process.env.USE_MIRAI) {
             })
             prepareMessage.messageChain.push({
               type:'Plain',
-              text: await resloveAdminPrompt({ prompt, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,群友会以###昵称: 内容###的形式发言,简短的说出你的回答,不要重复历史消息` })
+              text: await resloveAdminPrompt({ prompt, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,你需要遵守以下规则:\n1.群友会以###昵称: 内容###的形式发言\n2.记住你是在聊天,用高度口语化的表述,简短的说出你的发言,不要重复历史消息\n3.发言的字数不超过50` })
             })
             tempMessage = []
             wss.send(JSON.stringify({
