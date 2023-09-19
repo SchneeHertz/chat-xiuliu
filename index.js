@@ -543,10 +543,10 @@ const { connectWs } = require('./modules/mirai.js')
 if (process.env.USE_MIRAI) {
   connectWs(process.env.VERIFY_KEY)
   .then(wss=>{
-    let tempMessage = ''
-    wss.on('message', async (data) => {
-      console.log(data)
-      let messageObject = JSON.parse(data)
+    let tempMessage = []
+    wss.addEventListener('message', async (event) => {
+      console.log(event)
+      let messageObject = JSON.parse(event.data).data || {}
       if (messageObject.type === 'GroupMessage') {
         let message = `###${messageObject.sender.memberName}: `
         let forceReply
@@ -566,7 +566,7 @@ if (process.env.USE_MIRAI) {
           }
         })
         if (hasPlain) {
-          tempMessage += message + '###\n'
+          tempMessage.push(message + '###')
           let prepareMessage = {
             target: +process.env.QQ_GROUP_NUMBER,
             messageChain:[]
@@ -578,17 +578,23 @@ if (process.env.USE_MIRAI) {
             })
           }
           if (forceReply || message.includes('休留') || Math.random() > 0.9) {
+            let prompt = `历史消息:\n ${_.initial(tempMessage).join('\n')}\n当前消息:\n ${_.last(tempMessage)}`
             messageLogAndSend({
               id: nanoid(),
               from: '群聊',
-              text: tempMessage
+              text: prompt
             })
             prepareMessage.messageChain.push({
               type:'Plain',
-              text: await resloveAdminPrompt({ prompt: tempMessage, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,群友会以###昵称: 内容###的形式发言` })
+              text: await resloveAdminPrompt({ prompt, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,群友会以###昵称: 内容###的形式发言,简短的说出你的回答,不要重复历史消息` })
             })
-            tempMessage = ''
-            wss.send(JSON.stringify(prepareMessage))
+            tempMessage = []
+            wss.send(JSON.stringify({
+              "syncId": -1,
+              "command": "sendGroupMessage",
+              "subCommand": null,
+              "content": prepareMessage
+            }))
           }
         }
       }
