@@ -550,36 +550,46 @@ if (process.env.USE_MIRAI) {
       if (messageObject.type === 'GroupMessage') {
         let message = `###${messageObject.sender.memberName}: `
         let forceReply
+        let hasPlain = false
         messageObject.messageChain.forEach(part => {
           switch (part.type) {
             case 'At':
               if (part.target === +process.env.QQ) {
                 forceReply = messageObject.sender.id
               }
-              message += part.display
+              message += part.display + ' '
               break
             case 'Plain':
+              hasPlain = true
               message += part.text
               break
           }
         })
-        tempMessage += message + '###\n'
-        let prepareMessage = {
-          target: +process.env.QQ_GROUP_NUMBER,
-          messageChain:[]
-        }
-        if (forceReply) {
-          prepareMessage.messageChain.push({
-            type: 'At',
-            target: forceReply
-          })
-        }
-        if (forceReply || message.includes('休留') || Math.random() > 0.9) {
-          prepareMessage.messageChain.push({
-            type:'Plain',
-            text: await resloveAdminPrompt({ prompt: tempMessage, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,群友会以###昵称: 内容###的形式发言` })
-          })
-          wss.send(JSON.stringify(prepareMessage))
+        if (hasPlain) {
+          tempMessage += message + '###\n'
+          let prepareMessage = {
+            target: +process.env.QQ_GROUP_NUMBER,
+            messageChain:[]
+          }
+          if (forceReply) {
+            prepareMessage.messageChain.push({
+              type: 'At',
+              target: forceReply
+            })
+          }
+          if (forceReply || message.includes('休留') || Math.random() > 0.9) {
+            messageLogAndSend({
+              id: nanoid(),
+              from: '群聊',
+              text: tempMessage
+            })
+            prepareMessage.messageChain.push({
+              type:'Plain',
+              text: await resloveAdminPrompt({ prompt: tempMessage, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,群友会以###昵称: 内容###的形式发言` })
+            })
+            tempMessage = ''
+            wss.send(JSON.stringify(prepareMessage))
+          }
         }
       }
     })

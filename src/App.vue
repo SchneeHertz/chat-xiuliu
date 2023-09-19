@@ -122,7 +122,7 @@ const emptyHistory = () => {
           v-for="message in messageHistory"
           :key="message.id"
           :title="message.from"
-          :class="{'message-right': [ADMIN_NAME, `(${ADMIN_NAME})`].includes(message.from)}"
+          :class="{'message-right': [ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)}"
           class="message-card"
           embedded
         >
