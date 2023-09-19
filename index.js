@@ -7,11 +7,13 @@ const sound = require('sound-play')
 const _ = require('lodash')
 const lancedb = require('vectordb')
 const windowStateKeeper = require('electron-window-state')
+const { EdgeTTS } = require('node-edge-tts')
+require('dotenv').config()
 
 const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
-const { EdgeTTS } = require('node-edge-tts')
+const { getTokenLength } = require('./modules/tiktoken.js')
 const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const { config } = require('./utils/loadConfig.js')
@@ -31,7 +33,15 @@ const messageLog = (message) => {
   logFile.write(format(new Date().toLocaleString('zh-CN'), JSON.stringify(message)) + '\n')
 }
 const messageSend = (message) => {
-  mainWindow.webContents.send('send-message', message)
+  if (message.countToken) {
+    let tokenCount = 0
+    message.messages.forEach((item) => {
+      tokenCount += getTokenLength(item.content || JSON.stringify(item.function_call))
+    })
+    tokenCount += getTokenLength(message.text)
+    message.tokenCount = tokenCount
+  }
+  mainWindow.webContents.send('send-message', _.omit(message, 'messages'))
 }
 const messageLogAndSend = (message) => {
   messageLog(message)
@@ -269,6 +279,8 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
       messageLogAndSend({
         id: nanoid(),
         from,
+        messages,
+        countToken: true,
         text: functionAction[resFunction](JSON.parse(resArgument))
       })
       switch (resFunction) {
@@ -338,6 +350,15 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
       })
     }
   }
+  if (resText) {
+    messageSend({
+      id: clientMessageId,
+      from,
+      messages,
+      countToken: true,
+      text: resText
+    })
+  }
 
   return {
     messages,
@@ -356,11 +377,11 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
+const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
   let messages = [
-    { role: 'system', content: systemPrompt },
+    { role: 'system', content: miraiSystemPrompt ? miraiSystemPrompt : systemPrompt },
     { role: 'user', content: `我的名字是${ADMIN_NAME}` },
     { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
     ..._.takeRight(history, 12),
@@ -404,6 +425,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord }) => {
     console.log(e)
     if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
   }
+  return resText
 }
 
 const sendHistory = () => {
@@ -515,3 +537,19 @@ ipcMain.handle('load-setting', async () => {
 ipcMain.handle('save-setting', async (event, receiveSetting) => {
   return await fs.promises.writeFile(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
 })
+
+// mirai connect
+// console.log(process.env.useMirai)
+// if (process.env.useMirai) {
+//   const { registerMessageHandle, sendMessage } = require('./modules/mirai.js')
+//   let tempMessage = ''
+//   registerMessageHandle(async (data) => {
+//     let messageObject = JSON.parse(data)
+//     if (messageObject.type === 'GroupMessage') {
+//       let member = messageObject.sender.memberName
+//       messageObject.messageChain.forEach(part => {
+
+//       })
+//     }
+//   })
+// }

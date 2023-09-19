@@ -60,6 +60,7 @@
   "dependencies": {
     "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
+    "dotenv": "^16.3.1",
     "electron-window-state": "^5.0.3",
     "html-to-text": "^9.0.5",
     "https-proxy-agent": "^7.0.1",
@@ -72,6 +73,6 @@
     "quickjs-emscripten": "^0.23.0",
     "sound-play": "^1.1.0",
     "vectordb": "^0.2.2",
-    "ws": "^8.13.0"
+    "ws": "^8.14.1"
   }
 }

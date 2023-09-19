@@ -38,6 +38,8 @@ onMounted(() => {
     let findExist = _.find(messageHistory.value, { id: arg.id })
     if (findExist) {
       findExist.text = arg.text
+      findExist.tokenCount = arg.tokenCount
+      findExist.countToken = arg.countToken
     } else {
       messageHistory.value.push(arg)
       messageHistory.value = _.takeRight(messageHistory.value, 1000)
@@ -125,6 +127,7 @@ const emptyHistory = () => {
           embedded
         >
           <pre v-html="message.text" :class="{'message-right-text': [ADMIN_NAME, `(${ADMIN_NAME})`].includes(message.from)}"></pre>
+          <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
         </n-card>
       </n-list>
       <n-input class="input-text" :value="inputText" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea"
@@ -176,6 +179,9 @@ const emptyHistory = () => {
 .message-right-text
   text-align: left
   float: right
+.token-count
+  font-size: 12px
+  color: #999
 
 .code-block
   position: relative
