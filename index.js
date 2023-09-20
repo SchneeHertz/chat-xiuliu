@@ -548,7 +548,6 @@ if (process.env.USE_MIRAI) {
   .then(wss=>{
     let tempMessage = []
     wss.addEventListener('message', async (event) => {
-      console.log(event.data)
       let messageObject = JSON.parse(event.data).data || {}
       if (messageObject.type === 'GroupMessage') {
         let message = `###${messageObject.sender.memberName}: `
@@ -580,8 +579,8 @@ if (process.env.USE_MIRAI) {
               target: forceReply
             })
           }
-          if (forceReply || message.includes('休留') || Math.random() > 0.9) {
-            let prompt = `历史消息:\n ${_.initial(tempMessage).join('\n')}\n当前消息:\n ${_.last(tempMessage)}`
+          if (forceReply || message.includes('休留') || Math.random() > 0.95) {
+            let prompt = `历史消息:\n ${_.initial(_.takeRight(tempMessage, 10)).join('\n')}\n当前消息:\n ${_.last(tempMessage)}`
             messageLogAndSend({
               id: nanoid(),
               from: '群聊',
