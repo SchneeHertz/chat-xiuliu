@@ -384,7 +384,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
     { role: 'system', content: miraiSystemPrompt ? miraiSystemPrompt : systemPrompt },
     { role: 'user', content: `我的名字是${ADMIN_NAME}` },
     { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-    ..._.takeRight(history, 12),
+    ..._.takeRight(history, 8),
     { role: 'user', content: prompt }
   ]
   addHistory([{ role: 'user', content: prompt }])
@@ -402,7 +402,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
 
   try {
     let round = 0
-    while (resText === '' && round <= 5) {
+    while (resText === '' && round <= 4) {
       round += 1
       ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
         resArgument, resFunction, resText, resTextTemp, messages, from
@@ -432,6 +432,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
 
 const sendHistory = () => {
   let history = getStore('history')
+  history = _.takeRight(history, 32)
   history.forEach((item) => {
     switch (item.role) {
       case 'user':
@@ -547,7 +548,7 @@ if (process.env.USE_MIRAI) {
   .then(wss=>{
     let tempMessage = []
     wss.addEventListener('message', async (event) => {
-      console.log(event)
+      console.log(event.data)
       let messageObject = JSON.parse(event.data).data || {}
       if (messageObject.type === 'GroupMessage') {
         let message = `###${messageObject.sender.memberName}: `
@@ -588,7 +589,7 @@ if (process.env.USE_MIRAI) {
             })
             prepareMessage.messageChain.push({
               type:'Plain',
-              text: await resloveAdminPrompt({ prompt, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,你需要遵守以下规则:\n1.群友会以###昵称: 内容###的形式发言\n2.记住你是在聊天,用高度口语化的表述,简短的说出你的发言,不要重复历史消息\n3.发言的字数不超过50` })
+              text: await resloveAdminPrompt({ prompt, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,你需要遵守以下规则:\n1.群友会以###昵称: 内容###的形式发言\n2.记住你是在聊天,用高度口语化的表述发言,不要重复历史消息` })
             })
             tempMessage = []
             wss.send(JSON.stringify({
