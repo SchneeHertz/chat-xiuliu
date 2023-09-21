@@ -32,6 +32,12 @@ try {
       host: '127.0.0.1',
       port: 7890
     },
+    miraiSetting: {
+      USE_MIRAI: false,
+      VERIFY_KEY: '',
+      QQ: 0,
+      QQ_GROUP_NUMBER: 0
+    }
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), { encoding: 'utf-8' })
 }

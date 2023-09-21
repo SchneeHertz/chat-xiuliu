@@ -8,7 +8,6 @@ const _ = require('lodash')
 const lancedb = require('vectordb')
 const windowStateKeeper = require('electron-window-state')
 const { EdgeTTS } = require('node-edge-tts')
-require('dotenv').config()
 
 const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
 const { getStore, setStore } = require('./modules/store.js')
@@ -25,6 +24,7 @@ const {
   systemPrompt,
   useProxy,
   proxyObject,
+  miraiSetting
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -265,7 +265,7 @@ const addHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
-const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp, messages, from}) => {
+const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp, messages, from, round }) => {
 
   console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
 
@@ -306,11 +306,14 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
   resFunction = ''
   resArgument = ''
 
-  for await (const { token, f_token } of useOpenaiChatStreamFunction({
-    messages,
-    functions: functionInfo,
-    function_call: 'auto'
-  })) {
+  let prepareChatOption = { messages }
+
+  if (round < 3) {
+    prepareChatOption.functions = functionInfo
+    prepareChatOption.function_call = 'auto'
+  }
+
+  for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
     if (token) {
       resTextTemp += token
       resText += token
@@ -402,11 +405,11 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
 
   try {
     let round = 0
-    while (resText === '' && round <= 4) {
-      round += 1
-      ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
+    while (resText === '') {
+      ;({ messages, resArgument, resFunction, resText, resTextTemp, round } = await resolveMessages({
         resArgument, resFunction, resText, resTextTemp, messages, from
       }))
+      round += 1
     }
     messageLog({
       id: nanoid(),
@@ -543,8 +546,8 @@ ipcMain.handle('save-setting', async (event, receiveSetting) => {
 
 // mirai connect
 const { connectWs } = require('./modules/mirai.js')
-if (process.env.USE_MIRAI) {
-  connectWs(process.env.VERIFY_KEY)
+if (miraiSetting.USE_MIRAI) {
+  connectWs(miraiSetting.VERIFY_KEY)
   .then(wss=>{
     let tempMessage = []
     wss.addEventListener('message', async (event) => {
@@ -556,7 +559,7 @@ if (process.env.USE_MIRAI) {
         messageObject.messageChain.forEach(part => {
           switch (part.type) {
             case 'At':
-              if (part.target === +process.env.QQ) {
+              if (part.target === miraiSetting.QQ) {
                 forceReply = messageObject.sender.id
               }
               message += part.display + ' '
@@ -570,7 +573,7 @@ if (process.env.USE_MIRAI) {
         if (hasPlain) {
           tempMessage.push(message + '###')
           let prepareMessage = {
-            target: +process.env.QQ_GROUP_NUMBER,
+            target: miraiSetting.QQ_GROUP_NUMBER,
             messageChain:[]
           }
           if (forceReply) {

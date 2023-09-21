@@ -60,7 +60,6 @@
   "dependencies": {
     "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
-    "dotenv": "^16.3.1",
     "electron-window-state": "^5.0.3",
     "html-to-text": "^9.0.5",
     "https-proxy-agent": "^7.0.1",
