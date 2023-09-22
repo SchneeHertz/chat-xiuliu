@@ -24,7 +24,8 @@ const {
   systemPrompt,
   useProxy,
   proxyObject,
-  miraiSetting
+  miraiSetting = {},
+  functionCallingRoundLimit = 3
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -169,7 +170,7 @@ app.whenReady().then(async () => {
     memoryTable = await memorydb.openTable('memory', embedding)
   } catch {
     try {
-      memoryTable = await memorydb.createTable('memory', [{ 'text': 'Hello world!' }], embedding)
+      memoryTable = await memorydb.createTable('memory', [{ text: 'Hello world!' }], embedding)
     } catch { }
   }
 })
@@ -296,8 +297,8 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
       functionCallResult = e.message
     }
     let functionCalling = [
-      { role: "assistant", content: null, function_call: { name: resFunction, arguments: resArgument } },
-      { role: "function", name: resFunction, content: functionCallResult + '' }
+      { role: 'assistant', content: null, function_call: { name: resFunction, arguments: resArgument } },
+      { role: 'function', name: resFunction, content: functionCallResult + '' }
     ]
     messages.push(...functionCalling)
     addHistory(functionCalling)
@@ -307,8 +308,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
   resArgument = ''
 
   let prepareChatOption = { messages }
-
-  if (round < 3) {
+  if (round < functionCallingRoundLimit) {
     prepareChatOption.functions = functionInfo
     prepareChatOption.function_call = 'auto'
   }
@@ -595,10 +595,10 @@ if (miraiSetting.USE_MIRAI) {
             })
             tempMessage = []
             wss.send(JSON.stringify({
-              "syncId": -1,
-              "command": "sendGroupMessage",
-              "subCommand": null,
-              "content": prepareMessage
+              syncId: -1,
+              command: 'sendGroupMessage',
+              subCommand: null,
+              content: prepareMessage
             }))
           }
         }

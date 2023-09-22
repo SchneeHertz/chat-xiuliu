@@ -28,6 +28,12 @@ const model_options = [
   { label: 'gpt-4-32k', value: 'gpt-4-32k' },
 ]
 
+const parseNumber = (str) => {
+  let parsed = +str
+  if (Number.isInteger(parsed)) return parsed
+  return 0
+}
+
 const chooseWriteFolder = async () => {
   let folder = await ipcRenderer.invoke('select-folder')
   config.value.writeFolder = folder
@@ -127,6 +133,9 @@ defineExpose({
       </n-form-item>
       <n-form-item label="使用高级解释器" path="allowPowerfulInterpreter">
         <n-switch v-model:value="config.allowPowerfulInterpreter" @update:value="alertJSPRisk" />
+      </n-form-item>
+      <n-form-item label="函数调用轮次限制" path="functionCallingRoundLimit">
+        <n-input-number v-model:value="config.functionCallingRoundLimit" :precision="0" :min="0" :parse="parseNumber"/>
       </n-form-item>
       <n-form-item label="使用代理服务器" path="useProxy">
         <n-switch v-model:value="config.useProxy" />
