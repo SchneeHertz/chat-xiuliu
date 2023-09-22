@@ -116,8 +116,10 @@ const emptyHistory = () => {
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
   const canvas = await html2canvas(screenshotTarget, {
-    height: screenshotTarget.scrollHeight,
-    windowHeight: screenshotTarget.scrollHeight
+    width: screenshotTarget.clientWidth - 70,
+    windowWidth: screenshotTarget.clientWidth,
+    height: screenshotTarget.scrollHeight + 24,
+    windowHeight: screenshotTarget.scrollHeight + 120
   })
   const base64image = canvas.toDataURL('image/jpeg', 0.85)
   let exportFileDefaultName = 'export.jpg'
@@ -166,7 +168,7 @@ const saveCapture = async () => {
             <n-icon><Speaker216Filled v-if="isAudioPlay" /><SpeakerOff16Filled v-else /></n-icon>
           </template>
         </n-button>
-        <n-button type="primary" tertiary @click="saveCapture">保存对话</n-button>
+        <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
         <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
         <Setting ref="setting"/>
       </n-space>
