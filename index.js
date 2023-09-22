@@ -146,7 +146,6 @@ const createWindow = () => {
   })
   win.once('ready-to-show', () => {
     win.show()
-    setTimeout(sendHistory, 1000)
   })
   return win
 }
@@ -511,8 +510,11 @@ ipcMain.handle('switch-speech-talk', async () => {
 ipcMain.handle('switch-audio', async () => {
   STATUS.isAudioPlay = !STATUS.isAudioPlay
 })
-ipcMain.handle('empty-history', async()=>{
+ipcMain.handle('empty-history', async () => {
   setStore('history', [])
+})
+ipcMain.handle('load-history', async() => {
+  sendHistory()
 })
 ipcMain.handle('restart-app', async()=>{
   app.relaunch()

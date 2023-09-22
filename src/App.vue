@@ -5,6 +5,7 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { Microphone, MicrophoneSlash } from '@vicons/fa'
 import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
+import html2canvas from 'html2canvas'
 
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
@@ -51,6 +52,7 @@ onMounted(() => {
       })
     })
   })
+  ipcRenderer.invoke('load-history')
 })
 const inputText = ref('')
 const inputArea = ref(null)
@@ -111,6 +113,19 @@ const switchAudio = () => {
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
 }
+const saveCapture = async () => {
+  const screenshotTarget = document.querySelector('#message-list')
+  const canvas = await html2canvas(screenshotTarget, {
+    height: screenshotTarget.scrollHeight,
+    windowHeight: screenshotTarget.scrollHeight
+  })
+  const base64image = canvas.toDataURL('image/jpeg', 0.85)
+  let exportFileDefaultName = 'export.jpg'
+  let linkElement = document.createElement('a')
+  linkElement.setAttribute('href', base64image)
+  linkElement.setAttribute('download', exportFileDefaultName)
+  linkElement.click()
+}
 
 </script>
 
@@ -151,6 +166,7 @@ const emptyHistory = () => {
             <n-icon><Speaker216Filled v-if="isAudioPlay" /><SpeakerOff16Filled v-else /></n-icon>
           </template>
         </n-button>
+        <n-button type="primary" tertiary @click="saveCapture">保存对话</n-button>
         <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
         <Setting ref="setting"/>
       </n-space>
@@ -165,6 +181,7 @@ const emptyHistory = () => {
 #message-list
   max-height: calc(100vh - 85px)
   overflow-y: auto
+  padding-left: 16px
 .message-card
   margin: 4px 0 6px
   .n-card-header
