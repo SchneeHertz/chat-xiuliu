@@ -438,9 +438,9 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
   return resText
 }
 
-const sendHistory = () => {
+const sendHistory = (limit) => {
   let history = getStore('history')
-  history = _.takeRight(history, 32)
+  history = _.takeRight(history, limit)
   history.forEach((item) => {
     switch (item.role) {
       case 'user':
@@ -514,7 +514,7 @@ ipcMain.handle('empty-history', async () => {
   setStore('history', [])
 })
 ipcMain.handle('load-history', async() => {
-  sendHistory()
+  sendHistory(20)
 })
 ipcMain.handle('restart-app', async()=>{
   app.relaunch()
