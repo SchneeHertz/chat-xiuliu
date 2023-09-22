@@ -303,11 +303,17 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
     messages.push(...functionCalling)
     addHistory(functionCalling)
     console.log(functionCalling)
+    messageLogAndSend({
+      id: nanoid(),
+      from: 'Function Calling',
+      text: functionCallResult + ''
+    })
   }
   resFunction = ''
   resArgument = ''
 
   let prepareChatOption = { messages }
+
   if (round < functionCallingRoundLimit) {
     prepareChatOption.functions = functionInfo
     prepareChatOption.function_call = 'auto'
@@ -406,8 +412,8 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
   try {
     let round = 0
     while (resText === '') {
-      ;({ messages, resArgument, resFunction, resText, resTextTemp, round } = await resolveMessages({
-        resArgument, resFunction, resText, resTextTemp, messages, from
+      ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
+        resArgument, resFunction, resText, resTextTemp, messages, from, round
       }))
       round += 1
     }
