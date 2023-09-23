@@ -12,6 +12,7 @@ hljs.addPlugin(new CopyButtonPlugin())
 
 import Setting from './components/Setting.vue'
 import Message from './components/Message.vue'
+import XiuliuAvatar from './assets/xiuliu_avatar.jpg'
 
 const messageRef = ref(null)
 const printMessage = (type, msg, option) => {
@@ -145,7 +146,7 @@ const saveCapture = async () => {
               <n-avatar v-if="[ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
                 <n-icon><UserCircle /></n-icon>
               </n-avatar>
-              <n-avatar v-else size="small" src="/xiuliu_avatar.jpg"></n-avatar>
+              <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>
             </template>
             <template #header>
               {{message.from}}
