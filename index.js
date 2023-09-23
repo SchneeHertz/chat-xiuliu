@@ -461,6 +461,13 @@ const sendHistory = (limit) => {
           text
         })
         break
+      case 'function':
+        messageSend({
+          id: nanoid(),
+          from: 'Function Calling',
+          text: item.content
+        })
+        break
     }
   })
 }
