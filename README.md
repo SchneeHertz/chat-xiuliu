@@ -22,6 +22,8 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
 - 支持设置代理
 
 ## 截图
+![screenshot_1.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg)
+
 ![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
 
 ![setting.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg)
