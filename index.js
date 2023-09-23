@@ -392,7 +392,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
     { role: 'system', content: miraiSystemPrompt ? miraiSystemPrompt : systemPrompt },
     { role: 'user', content: `我的名字是${ADMIN_NAME}` },
     { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-    ..._.takeRight(history, 8),
+    ..._.takeRight(history, 12),
     { role: 'user', content: prompt }
   ]
   addHistory([{ role: 'user', content: prompt }])
