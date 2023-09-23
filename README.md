@@ -17,6 +17,7 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
   - 在沙箱中执行JavaScript代码
   - 打开本地文件或网页
 - 可定制的猫娘发言风格
+- 保存对话截图
 - 支持Azure openai
 - 支持兼容openai api格式的其他api端点
 - 支持设置代理
