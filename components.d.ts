@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     Dialog: typeof import('./src/components/Dialog.vue')['default']
     Message: typeof import('./src/components/Message.vue')['default']
+    NAvatar: typeof import('naive-ui')['NAvatar']
     NButton: typeof import('naive-ui')['NButton']
     NCard: typeof import('naive-ui')['NCard']
     NDialogProvider: typeof import('naive-ui')['NDialogProvider']
@@ -27,6 +28,7 @@ declare module 'vue' {
     NSelect: typeof import('naive-ui')['NSelect']
     NSpace: typeof import('naive-ui')['NSpace']
     NSwitch: typeof import('naive-ui')['NSwitch']
+    NThing: typeof import('naive-ui')['NThing']
     Setting: typeof import('./src/components/Setting.vue')['default']
   }
 }

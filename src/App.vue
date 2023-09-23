@@ -3,7 +3,7 @@ import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import { Microphone, MicrophoneSlash } from '@vicons/fa'
+import { Microphone, MicrophoneSlash, UserCircle } from '@vicons/fa'
 import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
@@ -138,13 +138,21 @@ const saveCapture = async () => {
         <n-card
           v-for="message in messageHistory"
           :key="message.id"
-          :title="message.from"
-          :class="{'message-right': [ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)}"
           class="message-card"
-          embedded
         >
-          <pre v-html="message.text" :class="{'message-right-text': [ADMIN_NAME, `(${ADMIN_NAME})`].includes(message.from)}"></pre>
-          <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
+          <n-thing>
+            <template #avatar>
+              <n-avatar v-if="[ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
+                <n-icon><UserCircle /></n-icon>
+              </n-avatar>
+              <n-avatar v-else size="small" src="/xiuliu_avatar.jpg"></n-avatar>
+            </template>
+            <template #header>
+              {{message.from}}
+            </template>
+            <pre v-html="message.text"></pre>
+            <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
+        </n-thing>
         </n-card>
       </n-list>
       <n-input class="input-text" :value="inputText" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea"
@@ -193,11 +201,6 @@ const saveCapture = async () => {
   pre
     font-family: Avenir, Helvetica, Arial, sans-serif
     white-space: break-spaces
-.message-right
-  text-align: right
-.message-right-text
-  text-align: left
-  float: right
 .token-count
   font-size: 12px
   color: #999
