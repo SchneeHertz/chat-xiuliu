@@ -136,11 +136,7 @@ const saveCapture = async () => {
   <n-grid x-gap="12" :cols="24">
     <n-gi :offset="1" :span="22">
       <n-list id="message-list">
-        <n-card
-          v-for="message in messageHistory"
-          :key="message.id"
-          class="message-card"
-        >
+        <n-card v-for="message in messageHistory" :key="message.id" class="message-card">
           <n-thing>
             <template #avatar>
               <n-avatar v-if="[ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
