@@ -25,8 +25,6 @@ const openai = new OpenAI({
 const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call }) => {
   return openai.chat.completions.create({
     model, messages, functions, function_call,
-    presence_penalty: 0.2,
-    frequency_penalty: 0.2
   })
 }
 
@@ -43,15 +41,11 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, fun
   if (functions) {
     response = await openai.chat.completions.create({
       model, messages, functions, function_call,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.2,
       stream: true,
     })
   } else {
     response = await openai.chat.completions.create({
       model, messages,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.2,
       stream: true,
     })
   }
@@ -84,8 +78,6 @@ const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, functions, functi
 
   return azureOpenai.chat.completions.create({
     model, messages, functions, function_call,
-    presence_penalty: 0.2,
-    frequency_penalty: 0.2
   })
 }
 
@@ -103,15 +95,11 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
   if (functions) {
     response = await azureOpenai.chat.completions.create({
       model, messages, functions, function_call,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.2,
       stream: true,
     })
   } else {
     response = await azureOpenai.chat.completions.create({
       model, messages,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.2,
       stream: true,
     })
   }
