@@ -86,9 +86,10 @@ const scrollToBottom = (id) => {
 }
 // API Key Check
 const setting = ref(null)
+const config = ref({})
 onMounted(async () => {
-  let config = await ipcRenderer.invoke('load-setting')
-  if (!config.OPENAI_API_KEY && !config.AZURE_OPENAI_KEY) {
+  config.value = await ipcRenderer.invoke('load-setting')
+  if (!config.value.OPENAI_API_KEY && !config.value.AZURE_OPENAI_KEY) {
     setting.value.openConfig()
     printMessage('error', '请先设置 OPENAI_API_KEY', { duration: 5000 })
   }
@@ -117,12 +118,14 @@ const emptyHistory = () => {
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
+  screenshotTarget.style['padding-left'] = '32px'
   const canvas = await html2canvas(screenshotTarget, {
     width: screenshotTarget.clientWidth - 70,
     windowWidth: screenshotTarget.clientWidth,
     height: screenshotTarget.scrollHeight + 24,
     windowHeight: screenshotTarget.scrollHeight + 120
   })
+  screenshotTarget.style['padding-left'] = '0'
   const base64image = canvas.toDataURL('image/png', 0.85)
   let exportFileDefaultName = 'export.png'
   let linkElement = document.createElement('a')
@@ -163,6 +166,7 @@ const resloveImage = async ({ file }) => {
           :show-file-list="false"
           :custom-request="resloveImage"
           style="width: auto"
+          v-if="config.DEFAULT_MODEL !== 'gpt-4v' && !config.useAzureOpenai"
         >
           <n-button style="height: 36px">
             <template #icon>
@@ -177,7 +181,7 @@ const resloveImage = async ({ file }) => {
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
       <n-space>
-        <n-button round :type="isSpeechTalk
+        <n-button  tertiary :type="isSpeechTalk
           ? recordStatus === 'Recording'
             ? 'error'
             : recordStatus === 'Recognizing'
@@ -188,7 +192,7 @@ const resloveImage = async ({ file }) => {
             <n-icon><Microphone v-if="isSpeechTalk" /><MicrophoneSlash v-else /></n-icon>
           </template>
         </n-button>
-        <n-button round :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">
+        <n-button  tertiary :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">
           <template #icon>
             <n-icon><Speaker216Filled v-if="isAudioPlay" /><SpeakerOff16Filled v-else /></n-icon>
           </template>
@@ -206,9 +210,8 @@ const resloveImage = async ({ file }) => {
 
 <style lang="stylus">
 #message-list
-  max-height: calc(100vh - 85px)
+  max-height: calc(100vh - 100px)
   overflow-y: auto
-  padding-left: 16px
 .message-card
   margin: 4px 0 6px
   .n-card-header
@@ -235,5 +238,6 @@ const resloveImage = async ({ file }) => {
 
 
 #function-button
-  margin-top: 6px
+  margin-top: 8px
+  margin-bottom: 16px
 </style>

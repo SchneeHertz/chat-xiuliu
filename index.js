@@ -425,7 +425,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
     memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
-      STATUS.isSpeechTalk += 1
+      STATUS.speakIndex += 1
       speakTextList.push({
         triggerRecord: true,
         speakIndex
