@@ -73,7 +73,7 @@
     "quickjs-emscripten": "^0.23.0",
     "reconnecting-websocket": "^4.4.0",
     "sound-play": "^1.1.0",
-    "vectordb": "^0.3.0",
+    "vectordb": "^0.2.2",
     "ws": "^8.14.1"
   }
 }

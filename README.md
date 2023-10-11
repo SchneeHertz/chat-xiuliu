@@ -47,7 +47,6 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
   ```
 
 ### 设置参考
-  - DEFAULT_MODEL，参考openai给出的[模型选项](https://platform.openai.com/docs/models/model-endpoint-compatibility)
   - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型
   - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
 

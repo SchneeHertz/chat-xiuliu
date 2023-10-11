@@ -158,7 +158,7 @@ const resloveImage = async ({ file }) => {
             </template>
             <pre v-html="message.text"></pre>
             <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
-        </n-thing>
+          </n-thing>
         </n-card>
       </n-list>
       <n-input-group style="margin-top: 4px">
@@ -175,26 +175,34 @@ const resloveImage = async ({ file }) => {
             {{imageFilename}}
           </n-button>
         </n-upload>
-        <n-input class="input-text" :value="inputText" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea"
-          type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"></n-input>
+        <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
+          ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
+        ></n-input>
       </n-input-group>
     </n-gi>
-    <n-gi :offset="1" :span="22" id="function-button">
-      <n-space>
-        <n-button  tertiary :type="isSpeechTalk
+    <n-gi :offset="1" :span="22">
+      <n-space id="function-button">
+        <n-button tertiary :type="isSpeechTalk
           ? recordStatus === 'Recording'
             ? 'error'
             : recordStatus === 'Recognizing'
               ? 'warning'
               : 'primary'
-          : 'default'" @click="switchSpeechTalk">
+          : 'default'" @click="switchSpeechTalk"
+        >
           <template #icon>
-            <n-icon><Microphone v-if="isSpeechTalk" /><MicrophoneSlash v-else /></n-icon>
+            <n-icon>
+              <Microphone v-if="isSpeechTalk" />
+              <MicrophoneSlash v-else />
+            </n-icon>
           </template>
         </n-button>
-        <n-button  tertiary :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">
+        <n-button tertiary :type="isAudioPlay ? 'primary' : 'default'" @click="switchAudio">
           <template #icon>
-            <n-icon><Speaker216Filled v-if="isAudioPlay" /><SpeakerOff16Filled v-else /></n-icon>
+            <n-icon>
+              <Speaker216Filled v-if="isAudioPlay" />
+              <SpeakerOff16Filled v-else />
+            </n-icon>
           </template>
         </n-button>
         <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
@@ -203,14 +211,13 @@ const resloveImage = async ({ file }) => {
       </n-space>
     </n-gi>
   </n-grid>
-  <n-message-provider>
-    <Message ref="messageRef"/>
-  </n-message-provider>
+  <n-message-provider><Message ref="messageRef"/></n-message-provider>
 </template>
 
 <style lang="stylus">
 #message-list
-  max-height: calc(100vh - 100px)
+  margin-top: 8px
+  max-height: calc(100vh - 104px)
   overflow-y: auto
 .message-card
   margin: 4px 0 6px
@@ -239,5 +246,5 @@ const resloveImage = async ({ file }) => {
 
 #function-button
   margin-top: 8px
-  margin-bottom: 16px
+  margin-bottom: 12px
 </style>
