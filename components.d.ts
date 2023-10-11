@@ -29,6 +29,7 @@ declare module 'vue' {
     NSpace: typeof import('naive-ui')['NSpace']
     NSwitch: typeof import('naive-ui')['NSwitch']
     NThing: typeof import('naive-ui')['NThing']
+    NUpload: typeof import('naive-ui')['NUpload']
     Setting: typeof import('./src/components/Setting.vue')['default']
   }
 }

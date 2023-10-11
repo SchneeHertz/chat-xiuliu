@@ -3,7 +3,7 @@ import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import { Microphone, MicrophoneSlash, UserCircle } from '@vicons/fa'
+import { Microphone, MicrophoneSlash, UserCircle, ImageRegular } from '@vicons/fa'
 import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
@@ -13,6 +13,7 @@ hljs.addPlugin(new CopyButtonPlugin())
 import Setting from './components/Setting.vue'
 import Message from './components/Message.vue'
 import XiuliuAvatar from './assets/xiuliu_avatar.jpg'
+import ChatAvatar from './assets/chatgpt.svg'
 
 const messageRef = ref(null)
 const printMessage = (type, msg, option) => {
@@ -122,12 +123,17 @@ const saveCapture = async () => {
     height: screenshotTarget.scrollHeight + 24,
     windowHeight: screenshotTarget.scrollHeight + 120
   })
-  const base64image = canvas.toDataURL('image/jpeg', 0.85)
-  let exportFileDefaultName = 'export.jpg'
+  const base64image = canvas.toDataURL('image/png', 0.85)
+  let exportFileDefaultName = 'export.png'
   let linkElement = document.createElement('a')
   linkElement.setAttribute('href', base64image)
   linkElement.setAttribute('download', exportFileDefaultName)
   linkElement.click()
+}
+
+const imageFilename = ref('')
+const resloveImage = async ({ file }) => {
+  imageFilename.value = file.file.name
 }
 
 </script>
@@ -152,8 +158,22 @@ const saveCapture = async () => {
         </n-thing>
         </n-card>
       </n-list>
-      <n-input class="input-text" :value="inputText" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea"
-        type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"></n-input>
+      <n-input-group style="margin-top: 4px">
+        <n-upload
+          :show-file-list="false"
+          :custom-request="resloveImage"
+          style="width: auto"
+        >
+          <n-button style="height: 36px">
+            <template #icon>
+              <n-icon><ImageRegular /></n-icon>
+            </template>
+            {{imageFilename}}
+          </n-button>
+        </n-upload>
+        <n-input class="input-text" :value="inputText" @update:value="updateInputText" @keydown.enter="sendText" ref="inputArea"
+          type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"></n-input>
+      </n-input-group>
     </n-gi>
     <n-gi :offset="1" :span="22" id="function-button">
       <n-space>
@@ -213,8 +233,7 @@ const saveCapture = async () => {
 .hljs-copy-alert
   display: none
 
-.input-text
-  margin-top: 4px
+
 #function-button
   margin-top: 6px
 </style>
