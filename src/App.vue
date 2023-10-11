@@ -172,7 +172,7 @@ const resloveImage = async ({ file }) => {
             <template #icon>
               <n-icon><ImageRegular /></n-icon>
             </template>
-            {{imageFilename}}
+            <span v-if="!!imageFilename">{{imageFilename}}</span>
           </n-button>
         </n-upload>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
