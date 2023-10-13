@@ -80,29 +80,29 @@ defineExpose({
       <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
         <n-switch v-model:value="config.useAzureOpenai" />
       </n-form-item>
-      <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY" v-if="!config.useAzureOpenai">
+      <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY" v-show="!config.useAzureOpenai">
         <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" type="password"
           show-password-on="click" />
       </n-form-item>
-      <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT" v-if="!config.useAzureOpenai">
+      <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT" v-show="!config.useAzureOpenai">
         <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
       </n-form-item>
-      <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-if="!config.useAzureOpenai">
+      <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
         <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" />
       </n-form-item>
-      <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-if="config.useAzureOpenai">
+      <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-show="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
       </n-form-item>
-      <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-if="config.useAzureOpenai">
+      <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-show="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="endpoint-name" />
       </n-form-item>
-      <n-form-item label="AZURE_API_VERSION" path="AZURE_API_VERSION" v-if="config.useAzureOpenai">
+      <n-form-item label="AZURE_API_VERSION" path="AZURE_API_VERSION" v-show="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_API_VERSION" placeholder="like 2023-07-01-preview" />
       </n-form-item>
-      <n-form-item label="AZURE_CHAT_MODEL" path="AZURE_CHAT_MODEL" v-if="config.useAzureOpenai">
+      <n-form-item label="AZURE_CHAT_MODEL" path="AZURE_CHAT_MODEL" v-show="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_CHAT_MODEL" placeholder="like gpt-35-turbo-16k" />
       </n-form-item>
-      <n-form-item label="AZURE_EMBEDDING_MODEL" path="AZURE_EMBEDDING_MODEL" v-if="config.useAzureOpenai">
+      <n-form-item label="AZURE_EMBEDDING_MODEL" path="AZURE_EMBEDDING_MODEL" v-show="config.useAzureOpenai">
         <n-input v-model:value="config.AZURE_EMBEDDING_MODEL" placeholder="like text-embedding-ada-002" />
       </n-form-item>
       <n-form-item label="SpeechSynthesisVoiceName" path="SpeechSynthesisVoiceName">
@@ -140,7 +140,7 @@ defineExpose({
       <n-form-item label="使用代理服务器" path="useProxy">
         <n-switch v-model:value="config.useProxy" />
       </n-form-item>
-      <n-form-item label="代理服务器" :show-feedback="false" v-if="config.useProxy">
+      <n-form-item label="代理服务器" :show-feedback="false" v-show="config.useProxy">
         <n-grid :cols="24" :x-gap="8">
           <n-form-item-gi path="proxyObject.protocol" :span="4">
             <n-input v-model:value="config.proxyObject.protocol" title="protocol, like http"/>
