@@ -25,7 +25,8 @@ const {
   useProxy,
   proxyObject,
   miraiSetting = {},
-  functionCallingRoundLimit = 3
+  functionCallingRoundLimit = 3,
+  liveMode
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -68,7 +69,12 @@ const STATUS = {
   isAudioPlay: false,
   recordStatus: 'Recording',
   speakIndex: 0,
+  isLiving: false
 }
+
+const { prepareMint } = require('./modules/sensitive-word.js')
+let mint
+if (liveMode) mint = prepareMint()
 
 let speakTextList = []
 let tts = new EdgeTTS({
@@ -258,14 +264,21 @@ const resolveSpeakTextList = async (preAudioPath) => {
 resolveSpeakTextList()
 
 const addHistory = (lines) => {
-  let history = getStore('history')
+  let history = getStore('history') || []
   history.push(...lines)
   history = _.takeRight(history, 1000)
   setStore('history', history)
 }
 
+const addLiveHistory = (lines) => {
+  let history = getStore('liveHistory') || []
+  history.push(...lines)
+  history = _.takeRight(history, 1000)
+  setStore('liveHistory', history)
+}
+
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
-const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp, messages, from, round }) => {
+const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp, messages, from, round, forLive = false }) => {
 
   console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
 
@@ -300,7 +313,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
       { role: 'function', name: resFunction, content: functionCallResult + '' }
     ]
     messages.push(...functionCalling)
-    addHistory(functionCalling)
+    if (!forLive) addHistory(functionCalling)
     console.log(functionCalling)
     messageLogAndSend({
       id: nanoid(),
@@ -337,6 +350,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
             resTextTemp = ''
           }
           let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+          if (STATUS.isLiving) speakText = mint.filter(speakText).text
           speakTextList.push({
             text: speakText,
             speakIndex,
@@ -352,6 +366,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
   if (STATUS.isAudioPlay) {
     if (resTextTemp) {
       let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+      if (STATUS.isLiving) speakText = mint.filter(speakText).text
       speakTextList.push({
         text: speakText,
         speakIndex,
@@ -385,23 +400,32 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) => {
+const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt, messages, lines = {}, forLive = false }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
-  let messages = [
-    { role: 'system', content: miraiSystemPrompt ? miraiSystemPrompt : systemPrompt },
-    { role: 'user', content: `我的名字是${ADMIN_NAME}` },
-    { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-    ..._.takeRight(history, 12),
-    { role: 'user', content: prompt }
-  ]
-  addHistory([{ role: 'user', content: prompt }])
+  if (!forLive) {
+    messages = [
+      { role: 'system', content: givenSystemPrompt ? givenSystemPrompt : systemPrompt },
+      { role: 'user', content: `我的名字是${ADMIN_NAME}` },
+      { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
+      ..._.takeRight(history, 12),
+      { role: 'user', content: prompt }
+    ]
+    addHistory([{ role: 'user', content: prompt }])
 
-  messageLog({
-    id: nanoid(),
-    from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
-    text: prompt
-  })
+    messageLog({
+      id: nanoid(),
+      from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
+      text: prompt
+    })
+  } else {
+    addLiveHistory([{ role: lines.from, content: lines.content }])
+    messageLogAndSend({
+      id: nanoid(),
+      from: 'Live',
+      text: messages?.[1]?.content
+    })
+  }
 
   let resTextTemp = ''
   let resText = ''
@@ -412,7 +436,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
     let round = 0
     while (resText === '') {
       ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
-        resArgument, resFunction, resText, resTextTemp, messages, from, round
+        resArgument, resFunction, resText, resTextTemp, messages, from, round, forLive
       }))
       round += 1
     }
@@ -421,7 +445,11 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, miraiSystemPrompt }) 
       from,
       text: resText
     })
-    addHistory([{ role: 'assistant', content: resText }])
+    if (forLive) {
+      addLiveHistory([{ role: AI_NAME, content: resText }])
+    } else {
+      addHistory([{ role: 'assistant', content: resText }])
+    }
     memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
@@ -517,6 +545,9 @@ ipcMain.handle('switch-speech-talk', async () => {
 ipcMain.handle('switch-audio', async () => {
   STATUS.isAudioPlay = !STATUS.isAudioPlay
 })
+ipcMain.handle('switch-live', async () => {
+  STATUS.isLiving = !STATUS.isLiving
+})
 ipcMain.handle('empty-history', async () => {
   setStore('history', [])
 })
@@ -606,7 +637,7 @@ ipcMain.handle('save-setting', async (event, receiveSetting) => {
 //             })
 //             prepareMessage.messageChain.push({
 //               type:'Plain',
-//               text: await resloveAdminPrompt({ prompt, miraiSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,你需要遵守以下规则:\n1.群友会以###昵称: 内容###的形式发言\n2.记住你是在聊天,用高度口语化的表述发言,不要重复历史消息` })
+//               text: await resloveAdminPrompt({ prompt, givenSystemPrompt: `你是虚拟猫娘休留,你现在在聊天群里聊天,你需要遵守以下规则:\n1.群友会以###昵称: 内容###的形式发言\n2.记住你是在聊天,用高度口语化的表述发言,不要重复历史消息` })
 //             })
 //             tempMessage = []
 //             wss.send(JSON.stringify({
@@ -621,3 +652,8 @@ ipcMain.handle('save-setting', async (event, receiveSetting) => {
 //     })
 //   })
 // }
+
+// live mode
+if (liveMode) {
+  const geneMessages = require('./live/think-script.js')
+}

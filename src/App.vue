@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { Microphone, MicrophoneSlash, UserCircle, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
+import { Speaker216Filled, SpeakerOff16Filled, Live24Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
 import CopyButtonPlugin from 'highlightjs-copy'
@@ -100,11 +100,13 @@ onMounted(async () => {
 const isSpeechTalk = ref(false)
 const recordStatus = ref(false)
 const isAudioPlay = ref(false)
+const isLiving = ref(false)
 onMounted(() => {
   ipcRenderer.on('send-status', (event, arg) => {
     isSpeechTalk.value = arg.isSpeechTalk
     isAudioPlay.value = arg.isAudioPlay
     recordStatus.value = arg.recordStatus
+    isLiving.value = arg.isLiving
   })
 })
 const switchSpeechTalk = () => {
@@ -132,6 +134,9 @@ const saveCapture = async () => {
   linkElement.setAttribute('href', base64image)
   linkElement.setAttribute('download', exportFileDefaultName)
   linkElement.click()
+}
+const switchLive = () => {
+  ipcRenderer.invoke('switch-live')
 }
 
 const imageFilename = ref('')
@@ -207,6 +212,13 @@ const resloveImage = async ({ file }) => {
         </n-button>
         <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
         <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
+        <n-button tertiary :type="isLiving ? 'primary' : 'default'" @click="switchLive" v-show="config.liveMode">
+          <template #icon>
+            <n-icon>
+              <Live24Regular />
+            </n-icon>
+          </template>
+        </n-button>
         <Setting ref="setting"/>
       </n-space>
     </n-gi>

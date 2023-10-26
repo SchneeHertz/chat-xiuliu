@@ -38,7 +38,8 @@ try {
       QQ: 0,
       QQ_GROUP_NUMBER: 0
     },
-    functionCallingRoundLimit: 3
+    functionCallingRoundLimit: 3,
+    liveMode: false
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), { encoding: 'utf-8' })
 }
