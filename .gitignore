@@ -20,6 +20,7 @@ resources/extraResources/whisper
 utils/test.js
 out
 .env
+live/*
 
 # Editor directories and files
 .vscode/*
