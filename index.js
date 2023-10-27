@@ -400,7 +400,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt, messages, lines = {}, forLive = false }) => {
+const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt, messages, line = {}, forLive = false }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
   if (!forLive) {
@@ -419,7 +419,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt, me
       text: prompt
     })
   } else {
-    addLiveHistory([{ role: lines.from, content: lines.content }])
+    if (!_.isEmpty(line)) addLiveHistory([{ from: line.from, content: line.content }])
     messageLogAndSend({
       id: nanoid(),
       from: 'Live',
@@ -446,7 +446,7 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt, me
       text: resText
     })
     if (forLive) {
-      addLiveHistory([{ role: AI_NAME, content: resText }])
+      addLiveHistory([{ from: AI_NAME, content: resText }])
     } else {
       addHistory([{ role: 'assistant', content: resText }])
     }
@@ -549,7 +549,11 @@ ipcMain.handle('switch-live', async () => {
   STATUS.isLiving = !STATUS.isLiving
 })
 ipcMain.handle('empty-history', async () => {
-  setStore('history', [])
+  if (STATUS.isLiving) {
+    setStore('liveHistory', [])
+  } else {
+    setStore('history', [])
+  }
 })
 ipcMain.handle('load-history', async() => {
   sendHistory(20)
@@ -655,5 +659,24 @@ ipcMain.handle('save-setting', async (event, receiveSetting) => {
 
 // live mode
 if (liveMode) {
-  const geneMessages = require('./live/think-script.js')
+  const { geneMessages } = require('./live/think-script.js')
+  const liveMainStep = async () => {
+    if (STATUS.isLiving) {
+      if (Object.keys(_.groupBy(speakTextList, 'id')).length <= 1) {
+        try {
+          let { messages, line } = await geneMessages({ dbTable: memoryTable })
+          await resloveAdminPrompt({ messages, line, forLive: true })
+          liveMainStep()
+        } catch (error) {
+          console.log(error)
+          setTimeout(liveMainStep, 10000)
+        }
+      } else {
+        setTimeout(liveMainStep, 1000)
+      }
+    } else {
+      setTimeout(liveMainStep, 1000)
+    }
+  }
+  setTimeout(liveMainStep, 4000)
 }

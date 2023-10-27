@@ -1,3 +1,5 @@
+const fs = require('node:fs')
+const path = require('node:path')
 const { Mint } = require('mint-filter')
 
 const prepareMint = () => {
