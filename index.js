@@ -69,7 +69,8 @@ const STATUS = {
   isAudioPlay: false,
   recordStatus: 'Recording',
   speakIndex: 0,
-  isLiving: false
+  isLiving: false,
+  selfTalk: 3,
 }
 
 const { prepareMint } = require('./modules/sensitive-word.js')
@@ -664,9 +665,17 @@ if (liveMode) {
     if (STATUS.isLiving) {
       if (Object.keys(_.groupBy(speakTextList, 'id')).length <= 1) {
         try {
-          let { messages, line } = await geneMessages({ dbTable: memoryTable })
+          let useSpark
+          if (STATUS.selfTalk >= 3) {
+            useSpark = true
+            STATUS.selfTalk = 0
+          } else {
+            useSpark = false
+          }
+          let { messages, line } = await geneMessages({ dbTable: memoryTable, useSpark })
+          if (_.isEmpty(line)) STATUS.selfTalk += 1
           await resloveAdminPrompt({ messages, line, forLive: true })
-          liveMainStep()
+          setTimeout(liveMainStep, 4000)
         } catch (error) {
           console.log(error)
           setTimeout(liveMainStep, 10000)
