@@ -23,9 +23,11 @@ const cancelSetting = () => {
 
 const model_options = [
   { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
-  { label: 'gpt-3.5-turbo-16k', value: 'gpt-3.5-turbo-16k' },
+  { label: 'gpt-3.5-turbo-1106', value: 'gpt-3.5-turbo-1106' },
   { label: 'gpt-4', value: 'gpt-4' },
   { label: 'gpt-4-32k', value: 'gpt-4-32k' },
+  { label: 'gpt-4-1106-preview', value: 'gpt-4-1106-preview' },
+  { label: 'gpt-4-vision-preview', value: 'gpt-4-vision-preview' }
 ]
 
 const parseNumber = (str) => {

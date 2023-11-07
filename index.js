@@ -33,10 +33,35 @@ const messageLog = (message) => {
   logFile.write(format(new Date().toLocaleString('zh-CN'), JSON.stringify(message)) + '\n')
 }
 const messageSend = (message) => {
+  // The part of Vision is not accurately calculated in the token calculation.
   if (message.countToken) {
     let tokenCount = 0
     message.messages.forEach((item) => {
-      tokenCount += getTokenLength(item.content || JSON.stringify(item.function_call))
+      switch (item.role) {
+        case 'system':
+        case 'tool':
+          tokenCount += getTokenLength(item.content)
+          break
+        case 'assistant':
+          tokenCount += getTokenLength(item.content || JSON.stringify(item.tool_calls))
+          break
+        case 'user':
+          if (typeof item.content === 'string') {
+            tokenCount += getTokenLength(item.content)
+          } else {
+            item.content.forEach((content) => {
+              switch (content.type) {
+                case 'text':
+                  tokenCount += getTokenLength(content.text)
+                  break
+                case 'image_url':
+                  tokenCount += 85
+                  break
+              }
+            })
+          }
+          break
+      }
     })
     tokenCount += getTokenLength(message.text)
     message.tokenCount = tokenCount
@@ -264,7 +289,7 @@ const addHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
-const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp, messages, from, round }) => {
+const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false }) => {
 
   console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
 
@@ -272,49 +297,53 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
-  if (!resText && resFunction && resArgument) {
-    let functionCallResult
-    try {
-      messageLogAndSend({
-        id: nanoid(),
-        from,
-        messages,
-        countToken: true,
-        text: functionAction[resFunction](JSON.parse(resArgument))
-      })
-      switch (resFunction) {
-        case 'getHistoricalConversationContent':
-          functionCallResult = await functionList[resFunction](_.assign({ dbTable: memoryTable }, JSON.parse(resArgument)))
-          break
-        default:
-          functionCallResult = await functionList[resFunction](JSON.parse(resArgument))
-          break
-      }
-    } catch (e) {
-      console.log(e)
-      functionCallResult = e.message
-    }
-    let functionCalling = [
-      { role: 'assistant', content: null, function_call: { name: resFunction, arguments: resArgument } },
-      { role: 'function', name: resFunction, content: functionCallResult + '' }
-    ]
-    messages.push(...functionCalling)
-    addHistory(functionCalling)
-    console.log(functionCalling)
+  if (!resText && !_.isEmpty(resToolCalls)) {
     messageLogAndSend({
       id: nanoid(),
-      from: 'Function Calling',
-      text: functionCallResult + ''
+      from,
+      messages,
+      countToken: true,
+      text: 'use Function Calling'
     })
+    messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
+    addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
+    for (let toolCall of resToolCalls) {
+      let functionCallResult
+      try {
+        messageLogAndSend({
+          id: nanoid(),
+          from,
+          text: functionAction[toolCall.function.name](JSON.parse(toolCall.function.arguments))
+        })
+        switch (toolCall.function.name) {
+          case 'getHistoricalConversationContent':
+            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)))
+            break
+          default:
+            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments))
+            break
+        }
+      } catch (e) {
+        console.log(e)
+        functionCallResult = e.message
+      }
+      messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
+      addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
+      console.log({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
+      messageLogAndSend({
+        id: nanoid(),
+        from: 'Function Calling',
+        text: functionCallResult + ''
+      })
+    }
   }
-  resFunction = ''
-  resArgument = ''
+  resToolCalls = []
 
   let prepareChatOption = { messages }
 
-  if (round < functionCallingRoundLimit) {
-    prepareChatOption.functions = functionInfo
-    prepareChatOption.function_call = 'auto'
+  if (useFunctionCalling) {
+    prepareChatOption.tools = functionInfo
+    prepareChatOption.tool_choice = 'auto'
   }
 
   for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
@@ -343,9 +372,20 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
         }
       }
     }
-    let { name, arguments: arg } = f_token
-    if (name) resFunction = name
-    if (arg) resArgument += arg
+    if (!_.isEmpty(f_token)) console.log(f_token)
+    let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
+    if (index !== undefined ) {
+      if (resToolCalls[index]) {
+        if (id) resToolCalls[index].id = id
+        if (type) resToolCalls[index].type = type
+        if (name) resToolCalls[index].function.name = name
+        if (arg) resToolCalls[index].function.arguments += arg
+      } else {
+        resToolCalls[index] = {
+          id, type, function: { name, arguments: arg }
+        }
+      }
+    }
   }
 
   if (STATUS.isAudioPlay) {
@@ -369,8 +409,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
 
   return {
     messages,
-    resFunction,
-    resArgument,
+    resToolCalls,
     resTextTemp,
     resText
   }
@@ -384,7 +423,7 @@ const resolveMessages = async ({ resArgument, resFunction, resText, resTextTemp,
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt }) => {
+const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
   let messages = [
@@ -404,16 +443,20 @@ const resloveAdminPrompt = async ({ prompt, triggerRecord, givenSystemPrompt }) 
 
   let resTextTemp = ''
   let resText = ''
-  let resFunction
-  let resArgument = ''
+  let resToolCalls = []
 
   try {
-    let round = 0
-    while (resText === '') {
-      ;({ messages, resArgument, resFunction, resText, resTextTemp } = await resolveMessages({
-        resArgument, resFunction, resText, resTextTemp, messages, from, round
-      }))
-      round += 1
+    if (promptType === 'string') {
+      let round = 0
+      while (resText === '') {
+        let useFunctionCalling = round > functionCallingRoundLimit ? false : true
+        ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
+          resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
+        }))
+        round += 1
+      }
+    } else {
+      resText = (await resolveMessages({ resText, messages, from })).resText
     }
     messageLog({
       id: nanoid(),
@@ -452,15 +495,21 @@ const sendHistory = (limit) => {
       case 'assistant':
         let text = ''
         try {
-          text = item.content || functionAction[item.function_call.name](JSON.parse(item.function_call.arguments))
-        } catch {}
+          if (item.content) {
+            text = item.content
+          } else {
+            text = item.tool_calls.map( item => {
+              return functionAction[item.function_call.name](JSON.parse(item.function_call.arguments))
+            }).join('\n')
+          }
+          } catch {}
         messageSend({
           id: nanoid(),
           from: AI_NAME,
           text
         })
         break
-      case 'function':
+      case 'tool':
         messageSend({
           id: nanoid(),
           from: 'Function Calling',
@@ -496,8 +545,12 @@ const triggerSpeech = async () => {
   }
 }
 
-ipcMain.handle('send-prompt', async (event, text) => {
-  resloveAdminPrompt({ prompt: text })
+ipcMain.handle('send-prompt', async (event, prompt) => {
+  console.log('prompt', prompt)
+  resloveAdminPrompt({
+    prompt: prompt.content,
+    promptType: prompt.type
+  })
 })
 ipcMain.handle('get-admin-name', async () => {
   return ADMIN_NAME

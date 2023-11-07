@@ -130,7 +130,12 @@ const functionInfo = [
       "required": ["type"],
     }
   }
-]
+].map(f => {
+  return {
+    type: 'function',
+    function: f
+  }
+})
 
 if (allowPowerfulInterpreter) {
   let findExistInterpreter = functionInfo.findIndex(f => f.name === 'javaScriptInterpreter')

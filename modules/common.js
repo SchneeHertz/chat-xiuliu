@@ -22,9 +22,10 @@ const openai = new OpenAI({
 })
 
 
-const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call }) => {
+const openaiChat = ({ model = DEFAULT_MODEL, messages, tools, tool_choice }) => {
   return openai.chat.completions.create({
-    model, messages, functions, function_call,
+    model, messages, tools, tool_choice,
+    max_tokens: 4096,
   })
 }
 
@@ -36,23 +37,25 @@ const openaiChat = ({ model = DEFAULT_MODEL, messages, functions, function_call 
  *   - messages {array}: An array of message objects representing the conversation.
  * @return {generator} A generator that yields tokens from the chat stream.
  */
-const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, functions, function_call }) {
+const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, tools, tool_choice }) {
   let response
-  if (functions) {
+  if (tools) {
     response = await openai.chat.completions.create({
-      model, messages, functions, function_call,
+      model, messages, tools, tool_choice,
       stream: true,
+      max_tokens: 4096,
     })
   } else {
     response = await openai.chat.completions.create({
       model, messages,
       stream: true,
+      max_tokens: 4096,
     })
   }
   for await (const part of response) {
-    if (['stop', 'function_call'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
+    if (['stop', 'tool_calls'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
     const token = _.get(part, 'choices[0].delta.content')
-    const f_token = _.get(part, 'choices[0].delta.function_call', {})
+    const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
     if (token || !_.isEmpty(f_token)) yield { token, f_token }
   }
 }

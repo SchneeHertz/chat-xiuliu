@@ -71,12 +71,38 @@ const sendText = (event) => {
     textareaElement.selectionStart = textareaElement.selectionEnd = pos + 1
     return
   }
-  ipcRenderer.invoke('send-prompt', inputText.value)
-  messageHistory.value.push({
-    id: nanoid(),
-    from: ADMIN_NAME,
-    text: inputText.value
-  })
+  if (imageBlobUrl.value) {
+    ipcRenderer.invoke('send-prompt', {
+      type: 'array',
+      content: [
+        {
+          type: 'text',
+          text: inputText.value
+        },
+        {
+          type: 'image_url',
+          image_url: imageBlobUrl.value
+        }
+      ]
+    })
+    messageHistory.value.push({
+      id: nanoid(),
+      from: ADMIN_NAME,
+      text: `<img style="max-width:512px;" src="${imageBlobUrl.value}" />\n${inputText.value}`
+    })
+    imageBlobUrl.value = ''
+    showImagePopover.value = false
+  } else {
+    ipcRenderer.invoke('send-prompt', {
+      type: 'string',
+      content: inputText.value
+    })
+    messageHistory.value.push({
+      id: nanoid(),
+      from: ADMIN_NAME,
+      text: inputText.value
+    })
+  }
   nextTick(() => scrollToBottom('message-list'))
   inputText.value = ''
 }
@@ -134,9 +160,15 @@ const saveCapture = async () => {
   linkElement.click()
 }
 
-const imageFilename = ref('')
-const resloveImage = async ({ file }) => {
-  imageFilename.value = file.file.name
+const imageBlobUrl = ref('')
+const showImagePopover = ref(false)
+const resolveImage = async ({ file }) => {
+  const reader = new FileReader()
+  reader.onload = (evt) => {
+    imageBlobUrl.value = evt.target.result
+    showImagePopover.value = true
+  }
+  reader.readAsDataURL(file.file)
 }
 
 </script>
@@ -164,16 +196,22 @@ const resloveImage = async ({ file }) => {
       <n-input-group style="margin-top: 4px">
         <n-upload
           :show-file-list="false"
-          :custom-request="resloveImage"
+          :custom-request="resolveImage"
           style="width: auto"
-          v-if="config.DEFAULT_MODEL !== 'gpt-4v' && !config.useAzureOpenai"
         >
-          <n-button style="height: 36px">
-            <template #icon>
-              <n-icon><ImageRegular /></n-icon>
+          <n-popover trigger="manual" :show="showImagePopover">
+            <template #trigger>
+              <n-button style="height: 36px">
+                <template #icon>
+                  <n-icon><ImageRegular /></n-icon>
+                </template>
+              </n-button>
             </template>
-            <span v-if="!!imageFilename">{{imageFilename}}</span>
-          </n-button>
+            <n-image
+              width="200"
+              :src="imageBlobUrl"
+            />
+          </n-popover>
         </n-upload>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
