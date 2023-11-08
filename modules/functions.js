@@ -196,7 +196,7 @@ const functionAction = {
     return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
   openLocalFileOrWebpage ({ filePath, url, type }) {
-    return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
+    return `${AI_NAME}请求打开 ${type === 'file' ? filePath : url}`
   }
 }
 
