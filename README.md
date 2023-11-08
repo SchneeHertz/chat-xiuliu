@@ -31,6 +31,8 @@ v2.1支持0613系列的GPT-4, GPT-3.5
 ## 截图
 ![screenshot_1.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg)
 
+![screenshot_2.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_2.jpg)
+
 ![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
 
 ![setting.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg)
