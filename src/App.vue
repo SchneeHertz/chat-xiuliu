@@ -37,7 +37,18 @@ const escapeHtml = (unsafe) => {
 
 onMounted(() => {
   ipcRenderer.on('send-message', (event, arg) => {
-    arg.text = renderCodeBlocks(escapeHtml(arg.text))
+    if (typeof arg.content === 'string') {
+      arg.text = renderCodeBlocks(escapeHtml(arg.content))
+    } else {
+      arg.text = arg.content.map((item) => {
+        switch (item.type) {
+          case 'text':
+            return renderCodeBlocks(escapeHtml(item.text))
+          case 'image_url':
+            return `<img style="max-width:512px;" src="${item.image_url.url}" />`
+        }
+      }).join('\n')
+    }
     let findExist = _.find(messageHistory.value, { id: arg.id })
     if (findExist) {
       findExist.text = arg.text
@@ -81,14 +92,17 @@ const sendText = (event) => {
         },
         {
           type: 'image_url',
-          image_url: imageBlobUrl.value
+          image_url: {
+            detail: 'auto',
+            url: imageBlobUrl.value
+          }
         }
       ]
     })
     messageHistory.value.push({
       id: nanoid(),
       from: ADMIN_NAME,
-      text: `<img style="max-width:512px;" src="${imageBlobUrl.value}" />\n${inputText.value}`
+      text: `${inputText.value}\n<img style="max-width:512px;" src="${imageBlobUrl.value}" />`
     })
     imageBlobUrl.value = ''
     showImagePopover.value = false

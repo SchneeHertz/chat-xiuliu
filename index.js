@@ -63,7 +63,7 @@ const messageSend = (message) => {
           break
       }
     })
-    tokenCount += getTokenLength(message.text)
+    tokenCount += getTokenLength(message.content)
     message.tokenCount = tokenCount
   }
   mainWindow.webContents.send('send-message', _.omit(message, 'messages'))
@@ -303,7 +303,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       from,
       messages,
       countToken: true,
-      text: 'use Function Calling'
+      content: 'use Function Calling'
     })
     messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
     addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
@@ -313,7 +313,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         messageLogAndSend({
           id: nanoid(),
           from,
-          text: functionAction[toolCall.function.name](JSON.parse(toolCall.function.arguments))
+          content: functionAction[toolCall.function.name](JSON.parse(toolCall.function.arguments))
         })
         switch (toolCall.function.name) {
           case 'getHistoricalConversationContent':
@@ -333,7 +333,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       messageLogAndSend({
         id: nanoid(),
         from: 'Function Calling',
-        text: functionCallResult + ''
+        content: functionCallResult + ''
       })
     }
   }
@@ -353,7 +353,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       messageSend({
         id: clientMessageId,
         from,
-        text: resText
+        content: resText
       })
       if (STATUS.isAudioPlay) {
         if (resTextTemp.includes('\n')) {
@@ -403,7 +403,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       from,
       messages,
       countToken: true,
-      text: resText
+      content: resText
     })
   }
 
@@ -438,7 +438,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   messageLog({
     id: nanoid(),
     from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
-    text: prompt
+    content: prompt
   })
 
   let resTextTemp = ''
@@ -450,6 +450,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       let round = 0
       while (resText === '') {
         let useFunctionCalling = round > functionCallingRoundLimit ? false : true
+        if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
         ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
           resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
         }))
@@ -461,7 +462,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     messageLog({
       id: nanoid(),
       from,
-      text: resText
+      content: resText
     })
     addHistory([{ role: 'assistant', content: resText }])
     memoryTable.add([{ text: resText }])
@@ -489,31 +490,31 @@ const sendHistory = (limit) => {
         messageSend({
           id: nanoid(),
           from: ADMIN_NAME,
-          text: item.content
+          content: item.content
         })
         break
       case 'assistant':
         let text = ''
         try {
-          if (item.content) {
+          if (item.content !== null) {
             text = item.content
           } else {
             text = item.tool_calls.map( item => {
-              return functionAction[item.function_call.name](JSON.parse(item.function_call.arguments))
+              return functionAction[item.function.name](JSON.parse(item.function.arguments))
             }).join('\n')
           }
-          } catch {}
+        } catch {}
         messageSend({
           id: nanoid(),
           from: AI_NAME,
-          text
+          content: text
         })
         break
       case 'tool':
         messageSend({
           id: nanoid(),
           from: 'Function Calling',
-          text: item.content
+          content: item.content
         })
         break
     }
@@ -539,7 +540,7 @@ const triggerSpeech = async () => {
     messageLogAndSend({
       id: nanoid(),
       from: `(${ADMIN_NAME})`,
-      text: adminTalk
+      content: adminTalk
     })
     resloveAdminPrompt({ prompt: adminTalk, triggerRecord: true })
   }
