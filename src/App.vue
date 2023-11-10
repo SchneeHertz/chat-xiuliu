@@ -37,6 +37,10 @@ const escapeHtml = (unsafe) => {
 
 onMounted(() => {
   ipcRenderer.on('send-message', (event, arg) => {
+    if (arg.action === 'revoke') {
+      messageHistory.value = _.filter(messageHistory.value, m => m.id !== arg.id)
+      return
+    }
     if (typeof arg.content === 'string') {
       arg.text = renderCodeBlocks(escapeHtml(arg.content))
     } else {
@@ -155,6 +159,7 @@ const switchAudio = () => {
 }
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
+  messageHistory.value = []
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
@@ -203,6 +208,7 @@ const resolveImage = async ({ file }) => {
               {{message.from}}
             </template>
             <pre v-html="message.text"></pre>
+            <n-spin size="small" v-if="!message.text" />
             <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
           </n-thing>
         </n-card>

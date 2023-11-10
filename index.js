@@ -297,7 +297,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
-  if (!resText && !_.isEmpty(resToolCalls)) {
+  if (!_.isEmpty(resToolCalls)) {
     messageLogAndSend({
       id: nanoid(),
       from,
@@ -346,6 +346,13 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     prepareChatOption.tool_choice = 'auto'
   }
 
+  // alert chat
+  messageSend({
+    id: clientMessageId,
+    from,
+    content: ''
+  })
+
   for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
     if (token) {
       resTextTemp += token
@@ -372,7 +379,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         }
       }
     }
-    if (!_.isEmpty(f_token)) console.log(f_token)
     let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
     if (index !== undefined ) {
       if (resToolCalls[index]) {
@@ -397,7 +403,13 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       })
     }
   }
-  if (resText) {
+  if (_.isEmpty(resText)) {
+    messageSend({
+      id: clientMessageId,
+      from,
+      action: 'revoke'
+    })
+  } else {
     messageSend({
       id: clientMessageId,
       from,
