@@ -194,6 +194,20 @@ const resolveImage = async ({ file }) => {
   }
   reader.readAsDataURL(file.file)
 }
+const handleImagePaste = (event) => {
+  const items = event.clipboardData.items
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image')) {
+      const blob = items[i].getAsFile()
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        imageBlobUrl.value = evt.target.result
+        showImagePopover.value = true
+      }
+      reader.readAsDataURL(blob)
+    }
+  }
+}
 
 </script>
 
@@ -239,6 +253,7 @@ const resolveImage = async ({ file }) => {
           </n-popover>
         </n-upload>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
+          @paste="handleImagePaste"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
         ></n-input>
       </n-input-group>
