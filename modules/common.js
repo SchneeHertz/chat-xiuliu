@@ -23,10 +23,17 @@ const openai = new OpenAI({
 
 
 const openaiChat = ({ model = DEFAULT_MODEL, messages, tools, tool_choice }) => {
-  return openai.chat.completions.create({
-    model, messages, tools, tool_choice,
-    max_tokens: 4096,
-  })
+  if (tools) {
+    return openai.chat.completions.create({
+      model, messages, tools, tool_choice,
+      max_tokens: 4096,
+    })
+  } else {
+    return openai.chat.completions.create({
+      model, messages,
+      max_tokens: 4096,
+    })
+  }
 }
 
 /**
@@ -69,7 +76,7 @@ const openaiEmbedding = ({ input, model = 'text-embedding-ada-002' }) => {
     })
 }
 
-const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, functions, function_call }) => {
+const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) => {
   const azureOpenai = new OpenAI({
     apiKey: AZURE_OPENAI_KEY,
     baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
@@ -79,12 +86,20 @@ const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, functions, functi
     timeout: 40000
   })
 
-  return azureOpenai.chat.completions.create({
-    model, messages, functions, function_call,
-  })
+  if (tools) {
+    return azureOpenai.chat.completions.create({
+      model, messages, tools, tool_choice,
+      max_tokens: 4096,
+    })
+  } else {
+    return azureOpenai.chat.completions.create({
+      model, messages,
+      max_tokens: 4096,
+    })
+  }
 }
 
-const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, functions, function_call }) {
+const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) {
   const azureOpenai = new OpenAI({
     apiKey: AZURE_OPENAI_KEY,
     baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
@@ -95,21 +110,23 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
   })
 
   let response
-  if (functions) {
+  if (tools) {
     response = await azureOpenai.chat.completions.create({
-      model, messages, functions, function_call,
+      model, messages, tools, tool_choice,
       stream: true,
+      max_tokens: 4096,
     })
   } else {
     response = await azureOpenai.chat.completions.create({
       model, messages,
       stream: true,
+      max_tokens: 4096,
     })
   }
   for await (const part of response) {
-    if (['stop', 'function_call'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
+    if (['stop', 'tool_calls'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
     const token = _.get(part, 'choices[0].delta.content')
-    const f_token = _.get(part, 'choices[0].delta.function_call', {})
+    const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
     if (token || !_.isEmpty(f_token)) yield { token, f_token }
   }
 }
