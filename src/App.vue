@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { Microphone, MicrophoneSlash, UserCircle, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled } from '@vicons/fluent'
+import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
 import CopyButtonPlugin from 'highlightjs-copy'
@@ -44,14 +44,18 @@ onMounted(() => {
     if (typeof arg.content === 'string') {
       arg.text = renderCodeBlocks(escapeHtml(arg.content))
     } else {
-      arg.text = arg.content.map((item) => {
+      arg.text = ''
+      arg.images = []
+      arg.content.forEach((item) => {
         switch (item.type) {
           case 'text':
-            return renderCodeBlocks(escapeHtml(item.text))
+            arg.text += renderCodeBlocks(escapeHtml(item.text)) + '\n'
+            break
           case 'image_url':
-            return `<img style="max-width:512px;" src="${item.image_url.url}" />`
+            arg.images.push(item.image_url.url)
+            break
         }
-      }).join('\n')
+      })
     }
     let findExist = _.find(messageHistory.value, { id: arg.id })
     if (findExist) {
@@ -86,7 +90,7 @@ const sendText = (event) => {
     textareaElement.selectionStart = textareaElement.selectionEnd = pos + 1
     return
   }
-  if (imageBlobUrl.value) {
+  if (imageBlobUrlList.value.length > 0) {
     ipcRenderer.invoke('send-prompt', {
       type: 'array',
       content: [
@@ -94,21 +98,24 @@ const sendText = (event) => {
           type: 'text',
           text: inputText.value
         },
-        {
-          type: 'image_url',
-          image_url: {
-            detail: 'auto',
-            url: imageBlobUrl.value
+        ...imageBlobUrlList.value.map((url) => {
+          return {
+            type: 'image_url',
+            image_url: {
+              detail: 'auto',
+              url
+            }
           }
-        }
+        })
       ]
     })
     messageHistory.value.push({
       id: nanoid(),
       from: ADMIN_NAME,
-      text: `${inputText.value}\n<img style="max-width:512px;" src="${imageBlobUrl.value}" />`
+      text: inputText.value,
+      images: imageBlobUrlList.value
     })
-    imageBlobUrl.value = ''
+    imageBlobUrlList.value = []
     showImagePopover.value = false
   } else {
     ipcRenderer.invoke('send-prompt', {
@@ -179,15 +186,36 @@ const saveCapture = async () => {
   linkElement.click()
 }
 
-const imageBlobUrl = ref('')
+const imageBlobUrlList = ref([])
 const showImagePopover = ref(false)
-const resolveImage = async ({ file }) => {
+const resolveImage = async ({ file, onFinish }) => {
   const reader = new FileReader()
   reader.onload = (evt) => {
-    imageBlobUrl.value = evt.target.result
+    imageBlobUrlList.value.push(evt.target.result)
     showImagePopover.value = true
+    onFinish()
   }
   reader.readAsDataURL(file.file)
+}
+const handleImagePaste = (event) => {
+  const items = event.clipboardData.items
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image')) {
+      const blob = items[i].getAsFile()
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        imageBlobUrlList.value.push(evt.target.result)
+        showImagePopover.value = true
+      }
+      reader.readAsDataURL(blob)
+    }
+  }
+}
+const removeImage = (index) => {
+  imageBlobUrlList.value.splice(index, 1)
+  if (imageBlobUrlList.value.length === 0) {
+    showImagePopover.value = false
+  }
 }
 
 </script>
@@ -208,6 +236,9 @@ const resolveImage = async ({ file }) => {
               {{message.from}}
             </template>
             <pre v-html="message.text"></pre>
+            <div v-if="message.images" class="image-container">
+              <n-image :img-props="{style: 'max-width: 512px; margin-top: 4px;'}" v-for="image in message.images" :src="image"/>
+            </div>
             <n-spin size="small" v-if="!message.text" />
             <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
           </n-thing>
@@ -227,13 +258,23 @@ const resolveImage = async ({ file }) => {
                 </template>
               </n-button>
             </template>
-            <n-image
-              width="200"
-              :src="imageBlobUrl"
-            />
+            <div class="image-container">
+              <div v-for="(imageBlobUrl, index) in imageBlobUrlList">
+                <n-image
+                  :img-props="{style: 'max-width: 200px'}"
+                  :src="imageBlobUrl"
+                />
+                <n-button text type="error" class="upload-image-close" @click="removeImage(index)">
+                  <template #icon>
+                    <n-icon><DismissCircle16Regular /></n-icon>
+                  </template>
+                </n-button>
+              </div>
+            </div>
           </n-popover>
         </n-upload>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
+          @paste="handleImagePaste"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
         ></n-input>
       </n-input-group>
@@ -286,6 +327,9 @@ const resolveImage = async ({ file }) => {
   pre
     font-family: Avenir, Helvetica, Arial, sans-serif
     white-space: break-spaces
+  .image-container
+    display: grid
+
 .token-count
   font-size: 12px
   color: #999
@@ -301,6 +345,11 @@ const resolveImage = async ({ file }) => {
 .hljs-copy-alert
   display: none
 
+
+.upload-image-close
+  position: relative
+  left: -20px
+  bottom: 1px
 
 #function-button
   margin-top: 8px
