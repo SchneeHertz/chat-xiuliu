@@ -37,7 +37,22 @@ const escapeHtml = (unsafe) => {
 
 onMounted(() => {
   ipcRenderer.on('send-message', (event, arg) => {
-    arg.text = renderCodeBlocks(escapeHtml(arg.text))
+    if (arg.action === 'revoke') {
+      messageHistory.value = _.filter(messageHistory.value, m => m.id !== arg.id)
+      return
+    }
+    if (typeof arg.content === 'string') {
+      arg.text = renderCodeBlocks(escapeHtml(arg.content))
+    } else {
+      arg.text = arg.content.map((item) => {
+        switch (item.type) {
+          case 'text':
+            return renderCodeBlocks(escapeHtml(item.text))
+          case 'image_url':
+            return `<img style="max-width:512px;" src="${item.image_url.url}" />`
+        }
+      }).join('\n')
+    }
     let findExist = _.find(messageHistory.value, { id: arg.id })
     if (findExist) {
       findExist.text = arg.text
@@ -71,12 +86,41 @@ const sendText = (event) => {
     textareaElement.selectionStart = textareaElement.selectionEnd = pos + 1
     return
   }
-  ipcRenderer.invoke('send-prompt', inputText.value)
-  messageHistory.value.push({
-    id: nanoid(),
-    from: ADMIN_NAME,
-    text: inputText.value
-  })
+  if (imageBlobUrl.value) {
+    ipcRenderer.invoke('send-prompt', {
+      type: 'array',
+      content: [
+        {
+          type: 'text',
+          text: inputText.value
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            detail: 'auto',
+            url: imageBlobUrl.value
+          }
+        }
+      ]
+    })
+    messageHistory.value.push({
+      id: nanoid(),
+      from: ADMIN_NAME,
+      text: `${inputText.value}\n<img style="max-width:512px;" src="${imageBlobUrl.value}" />`
+    })
+    imageBlobUrl.value = ''
+    showImagePopover.value = false
+  } else {
+    ipcRenderer.invoke('send-prompt', {
+      type: 'string',
+      content: inputText.value
+    })
+    messageHistory.value.push({
+      id: nanoid(),
+      from: ADMIN_NAME,
+      text: inputText.value
+    })
+  }
   nextTick(() => scrollToBottom('message-list'))
   inputText.value = ''
 }
@@ -117,6 +161,7 @@ const switchAudio = () => {
 }
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
+  messageHistory.value = []
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
@@ -139,9 +184,15 @@ const switchLive = () => {
   ipcRenderer.invoke('switch-live')
 }
 
-const imageFilename = ref('')
-const resloveImage = async ({ file }) => {
-  imageFilename.value = file.file.name
+const imageBlobUrl = ref('')
+const showImagePopover = ref(false)
+const resolveImage = async ({ file }) => {
+  const reader = new FileReader()
+  reader.onload = (evt) => {
+    imageBlobUrl.value = evt.target.result
+    showImagePopover.value = true
+  }
+  reader.readAsDataURL(file.file)
 }
 
 </script>
@@ -162,6 +213,7 @@ const resloveImage = async ({ file }) => {
               {{message.from}}
             </template>
             <pre v-html="message.text"></pre>
+            <n-spin size="small" v-if="!message.text" />
             <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
           </n-thing>
         </n-card>
@@ -169,16 +221,22 @@ const resloveImage = async ({ file }) => {
       <n-input-group style="margin-top: 4px">
         <n-upload
           :show-file-list="false"
-          :custom-request="resloveImage"
+          :custom-request="resolveImage"
           style="width: auto"
-          v-if="config.DEFAULT_MODEL !== 'gpt-4v' && !config.useAzureOpenai"
         >
-          <n-button style="height: 36px">
-            <template #icon>
-              <n-icon><ImageRegular /></n-icon>
+          <n-popover trigger="manual" :show="showImagePopover">
+            <template #trigger>
+              <n-button style="height: 36px">
+                <template #icon>
+                  <n-icon><ImageRegular /></n-icon>
+                </template>
+              </n-button>
             </template>
-            <span v-if="!!imageFilename">{{imageFilename}}</span>
-          </n-button>
+            <n-image
+              width="200"
+              :src="imageBlobUrl"
+            />
+          </n-popover>
         </n-upload>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"

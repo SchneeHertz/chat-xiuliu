@@ -130,26 +130,34 @@ const functionInfo = [
       "required": ["type"],
     }
   }
-]
+].map(f => {
+  return {
+    type: 'function',
+    function: f
+  }
+})
 
 if (allowPowerfulInterpreter) {
-  let findExistInterpreter = functionInfo.findIndex(f => f.name === 'javaScriptInterpreter')
+  let findExistInterpreter = functionInfo.findIndex(f => f.function.name === 'javaScriptInterpreter')
   if (findExistInterpreter !== -1) {
     functionInfo.splice(findExistInterpreter, 1, {
-      "name": "nodejsInterpreter",
-      "description": `Useful for running JavaScript code in node.js VM.
-Input is a string of JavaScript code, output is the result of the code.
-You can require node modules except fs, and use lodash directly.
-You can only store variables in the "global" object for future use, like "global.hello = function () {return 'hello'}"`,
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "The javascript code to run",
-          }
-        },
-        "required": ["code"],
+      type: 'function',
+      function: {
+        "name": "nodejsInterpreter",
+        "description": `Useful for running JavaScript code in node.js VM.
+  Input is a string of JavaScript code, output is the result of the code.
+  You can require node modules except fs, and use lodash directly.
+  You can only store variables in the "global" object for future use, like "global.hello = function () {return 'hello'}"`,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "The javascript code to run",
+            }
+          },
+          "required": ["code"],
+        }
       }
     })
   }
@@ -188,7 +196,7 @@ const functionAction = {
     return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
   },
   openLocalFileOrWebpage ({ filePath, url, type }) {
-    return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
+    return `${AI_NAME}请求打开 ${type === 'file' ? filePath : url}`
   }
 }
 

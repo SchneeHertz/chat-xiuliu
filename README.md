@@ -1,6 +1,6 @@
 # chat-xiuliu
 
-ChatGPT双向语音助手, 通过function calling实现访问网络，执行代码，读写文件等功能。
+ChatGPT双向语音助手, 通过function calling实现访问网络，执行代码，读写文件等功能，支持GPT-4V的图像识别功能。
 
 >这个项目是由虚拟猫娘休留(直播搞不下去了)的后台fork来的，去掉了弹幕互动的部分，增加了语音输入<br>
 截止到2023年8月15日，使用LLM模拟人格的尝试，在我这里没有看到效果及成本可以接受的希望。<br>
@@ -9,6 +9,7 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
 ## 功能
 - 从麦克风或界面接收问题
 - 使用语音回答问题并显示在界面
+- 上传图片
 - 调用函数处理任务
   - 连续调用函数处理
   - 对话内容回忆
@@ -22,8 +23,15 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
 - 支持兼容openai api格式的其他api端点
 - 支持设置代理
 
+## 支持的模型
+v2.2支持1106系列的GPT-4, GPT-4-Vision, GPT-3.5
+
+v2.1支持0613系列的GPT-4, GPT-3.5
+
 ## 截图
 ![screenshot_1.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg)
+
+![screenshot_2.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_2.jpg)
 
 ![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
 
