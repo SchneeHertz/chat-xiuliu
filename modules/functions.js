@@ -225,7 +225,7 @@ const getContentOfWebpage = async ({ url }) => {
           { selector: 'img', format: 'skip' },
         ]
       })
-      return sliceStringbyTokenLength(content, 3000)
+      return sliceStringbyTokenLength(content, 6000)
     })
 }
 
