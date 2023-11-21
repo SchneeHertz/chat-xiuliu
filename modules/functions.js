@@ -246,7 +246,8 @@ const readFileFromDisk = async ({ filePath }) => {
   return await fs.promises.readFile(filePath, { encoding: 'utf-8' })
 }
 
-const javaScriptInterpreter = async ({ code }) => {uickjs = await getQuickJS()
+const javaScriptInterpreter = async ({ code }) => {
+  const quickjs = await getQuickJS()
   let result = quickjs.evalCode(code, {
     shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
     memoryLimitBytes: 100 * 1024 * 1024,

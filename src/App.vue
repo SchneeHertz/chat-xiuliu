@@ -23,9 +23,6 @@ const printMessage = (type, msg, option) => {
 
 const messageHistory = ref([])
 
-let ADMIN_NAME
-onMounted(() => ipcRenderer.invoke('get-admin-name').then(name => ADMIN_NAME = name))
-
 const renderCodeBlocks = (text) => {
   return text.replace(/```(\w+)\n((?:(?!```)[\s\S])*)(?:```)?/g, (match, language, code) => {
     return `<pre class="code-block${language ? ` language-${language}` : ''}"><code class="${language ? `language-${language}` : ''}">${code.trim()}</code></pre>`
@@ -111,7 +108,7 @@ const sendText = (event) => {
     })
     messageHistory.value.push({
       id: nanoid(),
-      from: ADMIN_NAME,
+      from: config.value.ADMIN_NAME,
       text: inputText.value,
       images: imageBlobUrlList.value
     })
@@ -124,7 +121,7 @@ const sendText = (event) => {
     })
     messageHistory.value.push({
       id: nanoid(),
-      from: ADMIN_NAME,
+      from: config.value.ADMIN_NAME,
       text: inputText.value
     })
   }
@@ -135,7 +132,8 @@ const scrollToBottom = (id) => {
   const element = document.getElementById(id)
   element.scrollTop = element.scrollHeight
 }
-// API Key Check
+
+// config
 const setting = ref(null)
 const config = ref({})
 onMounted(async () => {
@@ -227,7 +225,7 @@ const removeImage = (index) => {
         <n-card v-for="message in messageHistory" :key="message.id" class="message-card">
           <n-thing>
             <template #avatar>
-              <n-avatar v-if="[ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
+              <n-avatar v-if="[config.ADMIN_NAME, `(${config.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
                 <n-icon><UserCircle /></n-icon>
               </n-avatar>
               <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>

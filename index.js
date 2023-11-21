@@ -78,13 +78,15 @@ const messageLogAndSend = (message) => {
 }
 
 let errorlogFile = fs.createWriteStream(path.join(LOG_PATH, 'error_log.txt'), { flags: 'w' })
+console.error = (...message) => {
+  errorlogFile.write(format(...message) + '\n')
+  process.stderr.write(format(...message) + '\n')
+}
 process
   .on('unhandledRejection', (reason, promise) => {
-    errorlogFile.write(format('Unhandled Rejection at:', promise, 'reason:', reason) + '\n')
     console.error('Unhandled Rejection at:', promise, 'reason:', reason)
   })
   .on('uncaughtException', err => {
-    errorlogFile.write(format(err, 'Uncaught Exception thrown') + '\n')
     console.error(err, 'Uncaught Exception thrown')
     process.exit(1)
   })
@@ -240,7 +242,7 @@ const speakPrompt = async ({ text, preAudioPath }) => {
       resolveSpeakTextList()
     }
   } catch (e) {
-    console.log(e)
+    console.error(e)
     resolveSpeakTextList()
   }
 }
@@ -332,12 +334,11 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
             break
         }
       } catch (e) {
-        console.log(e)
+        console.error(e)
         functionCallResult = e.message
       }
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
       // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
-      console.log({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
       messageLogAndSend({
         id: nanoid(),
         from: 'Function Calling',
@@ -495,7 +496,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       })
     }
   } catch (e) {
-    console.log(e)
+    console.error(e)
     if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
   }
   return resText
@@ -567,17 +568,10 @@ const triggerSpeech = async () => {
 }
 
 ipcMain.handle('send-prompt', async (event, prompt) => {
-  console.log('prompt', prompt)
   resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
-})
-ipcMain.handle('get-admin-name', async () => {
-  return ADMIN_NAME
-})
-ipcMain.handle('open-config', async () => {
-  shell.openExternal(path.join(STORE_PATH, 'config.json'))
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
