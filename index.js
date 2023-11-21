@@ -78,7 +78,8 @@ const messageLogAndSend = (message) => {
 }
 
 let errorlogFile = fs.createWriteStream(path.join(LOG_PATH, 'error_log.txt'), { flags: 'w' })
-console.error = (...message) => {
+console.error = (...message)=>{
+  errorlogFile.write('\n' + format(new Date().toLocaleString()) + '\n')
   errorlogFile.write(format(...message) + '\n')
   process.stderr.write(format(...message) + '\n')
 }
@@ -362,45 +363,54 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     content: ''
   })
 
-  for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
-    if (token) {
-      resTextTemp += token
-      resText += token
-      messageSend({
-        id: clientMessageId,
-        from,
-        content: resText
-      })
-      if (STATUS.isAudioPlay) {
-        if (resTextTemp.includes('\n')) {
-          let splitResText = resTextTemp.split('\n')
-          splitResText = _.compact(splitResText)
-          if (splitResText.length > 1) {
-            resTextTemp = splitResText.pop()
-          } else {
-            resTextTemp = ''
+  try {
+    for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
+      if (token) {
+        resTextTemp += token
+        resText += token
+        messageSend({
+          id: clientMessageId,
+          from,
+          content: resText
+        })
+        if (STATUS.isAudioPlay) {
+          if (resTextTemp.includes('\n')) {
+            let splitResText = resTextTemp.split('\n')
+            splitResText = _.compact(splitResText)
+            if (splitResText.length > 1) {
+              resTextTemp = splitResText.pop()
+            } else {
+              resTextTemp = ''
+            }
+            let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+            speakTextList.push({
+              text: speakText,
+              speakIndex,
+            })
           }
-          let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-          speakTextList.push({
-            text: speakText,
-            speakIndex,
-          })
+        }
+      }
+      let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
+      if (index !== undefined ) {
+        if (resToolCalls[index]) {
+          if (id) resToolCalls[index].id = id
+          if (type) resToolCalls[index].type = type
+          if (name) resToolCalls[index].function.name = name
+          if (arg) resToolCalls[index].function.arguments += arg
+        } else {
+          resToolCalls[index] = {
+            id, type, function: { name, arguments: arg }
+          }
         }
       }
     }
-    let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
-    if (index !== undefined ) {
-      if (resToolCalls[index]) {
-        if (id) resToolCalls[index].id = id
-        if (type) resToolCalls[index].type = type
-        if (name) resToolCalls[index].function.name = name
-        if (arg) resToolCalls[index].function.arguments += arg
-      } else {
-        resToolCalls[index] = {
-          id, type, function: { name, arguments: arg }
-        }
-      }
-    }
+  } catch (error) {
+    messageSend({
+      id: clientMessageId,
+      from,
+      content: `Error: ${error.message}`
+    })
+    throw error
   }
 
   if (STATUS.isAudioPlay) {
