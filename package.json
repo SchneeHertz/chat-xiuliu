@@ -1,7 +1,7 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "ChatGPT Client with Function Calling",
   "author": "SchneeHertz",
   "scripts": {
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "start": "chcp 65001 && electron --trace-warnings .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "vite build && electron-builder"
   },
   "build": {
     "appId": "electron.chat.xiuliu",
