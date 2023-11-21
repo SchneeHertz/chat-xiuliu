@@ -24,7 +24,11 @@ const {
   systemPrompt,
   useProxy,
   proxyObject,
-  functionCallingRoundLimit = 3
+  historyRoundLimit = 12,
+  functionCallingRoundLimit = 3,
+  disableFunctions = [],
+  searchResultLimit = 5,
+  webPageContentTokenLengthLimit = 6000,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -289,6 +293,10 @@ const addHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
+const addtionalFunctionLimit = {
+  searchResultLimit,
+  webPageContentTokenLengthLimit
+}
 const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false }) => {
 
   console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
@@ -306,7 +314,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       content: 'use Function Calling'
     })
     messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
-    addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
+    // addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
     for (let toolCall of resToolCalls) {
       let functionCallResult
       try {
@@ -317,10 +325,10 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         })
         switch (toolCall.function.name) {
           case 'getHistoricalConversationContent':
-            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)))
+            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), addtionalFunctionLimit)
             break
           default:
-            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments))
+            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), addtionalFunctionLimit)
             break
         }
       } catch (e) {
@@ -328,7 +336,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         functionCallResult = e.message
       }
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
-      addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
+      // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
       console.log({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
       messageLogAndSend({
         id: nanoid(),
@@ -342,8 +350,8 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   let prepareChatOption = { messages }
 
   if (useFunctionCalling) {
-    prepareChatOption.tools = functionInfo
-    prepareChatOption.tool_choice = 'auto'
+    prepareChatOption.tools = functionInfo.filter(f => !disableFunctions.includes(f?.function?.name))
+    if (!_.isEmpty(prepareChatOption.tools)) prepareChatOption.tool_choice = 'auto'
   }
 
   // alert chat
@@ -442,7 +450,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     { role: 'system', content: givenSystemPrompt ? givenSystemPrompt : systemPrompt },
     { role: 'user', content: `我的名字是${ADMIN_NAME}` },
     { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-    ..._.takeRight(history, 12),
+    ..._.takeRight(history, historyRoundLimit),
     { role: 'user', content: prompt }
   ]
   addHistory([{ role: 'user', content: prompt }])
@@ -622,4 +630,8 @@ ipcMain.handle('load-setting', async () => {
 
 ipcMain.handle('save-setting', async (event, receiveSetting) => {
   return await fs.promises.writeFile(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
+})
+
+ipcMain.handle('get-function-info', async () => {
+  return functionInfo
 })

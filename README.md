@@ -37,6 +37,8 @@ v2.1支持0613系列的GPT-4, GPT-3.5
 
 ![setting.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg)
 
+![setting2.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting2.jpg)
+
 
 ## 可选语音识别功能
 - _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢，可选，语音功能)_
