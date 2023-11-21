@@ -302,7 +302,7 @@ const addtionalFunctionLimit = {
 }
 const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false }) => {
 
-  console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
+  console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
   let clientMessageId = nanoid()
   let speakIndex = STATUS.speakIndex
