@@ -27,7 +27,7 @@ let ADMIN_NAME
 onMounted(() => ipcRenderer.invoke('get-admin-name').then(name => ADMIN_NAME = name))
 
 const renderCodeBlocks = (text) => {
-  return text.replace(/```([\w-]+)?\n([\s\S]*?)\n```/g, (match, language, code) => {
+  return text.replace(/```(\w+)\n((?:(?!```)[\s\S])*)(?:```)?/g, (match, language, code) => {
     return `<pre class="code-block${language ? ` language-${language}` : ''}"><code class="${language ? `language-${language}` : ''}">${code.trim()}</code></pre>`
   })
 }
