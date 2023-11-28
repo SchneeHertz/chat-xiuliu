@@ -1,8 +1,9 @@
 <script setup>
 import { onMounted, ref, nextTick } from 'vue'
+import { UserCircle } from '@vicons/fa'
+import { LogoOctocat } from '@vicons/ionicons4'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import { UserCircle } from '@vicons/fa'
 
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
@@ -26,7 +27,11 @@ const renderCodeBlocks = (text) => {
   })
 }
 const escapeHtml = (unsafe) => {
-  return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  return unsafe.replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
 }
 
 const scrollToBottom = (id) => {
@@ -63,7 +68,7 @@ onMounted(() => {
       findExist.countToken = arg.countToken
     } else {
       mainStore.messageList.push(arg)
-      mainStore.messageList = _.takeRight(mainStore.messageList, 1000)
+      mainStore.messageList = _.takeRight(mainStore.messageList, 200)
     }
     nextTick(() => {
       scrollToBottom('message-list')
@@ -97,6 +102,13 @@ onMounted(() => {
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
       </n-thing>
     </n-card>
+    <n-empty description="喵有记录" v-if="mainStore.messageList.length === 0" size="large" style="margin: 10px 0">
+      <template #icon>
+        <n-icon>
+          <LogoOctocat />
+        </n-icon>
+      </template>
+    </n-empty>
   </n-list>
 </template>
 
