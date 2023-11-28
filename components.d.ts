@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     Dialog: typeof import('./src/components/Dialog.vue')['default']
     Message: typeof import('./src/components/Message.vue')['default']
+    MessageList: typeof import('./src/components/MessageList.vue')['default']
     NAvatar: typeof import('naive-ui')['NAvatar']
     NButton: typeof import('naive-ui')['NButton']
     NCard: typeof import('naive-ui')['NCard']
