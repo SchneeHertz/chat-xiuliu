@@ -24,8 +24,12 @@ const {
   systemPrompt,
   useProxy,
   proxyObject,
+  liveMode,
+  historyRoundLimit = 12,
   functionCallingRoundLimit = 3,
-  liveMode
+  disableFunctions = [],
+  searchResultLimit = 5,
+  webPageContentTokenLengthLimit = 6000,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -75,13 +79,16 @@ const messageLogAndSend = (message) => {
 }
 
 let errorlogFile = fs.createWriteStream(path.join(LOG_PATH, 'error_log.txt'), { flags: 'w' })
+console.error = (...message)=>{
+  errorlogFile.write('\n' + format(new Date().toLocaleString()) + '\n')
+  errorlogFile.write(format(...message) + '\n')
+  process.stderr.write(format(...message) + '\n')
+}
 process
   .on('unhandledRejection', (reason, promise) => {
-    errorlogFile.write(format('Unhandled Rejection at:', promise, 'reason:', reason) + '\n')
     console.error('Unhandled Rejection at:', promise, 'reason:', reason)
   })
   .on('uncaughtException', err => {
-    errorlogFile.write(format(err, 'Uncaught Exception thrown') + '\n')
     console.error(err, 'Uncaught Exception thrown')
     process.exit(1)
   })
@@ -243,7 +250,7 @@ const speakPrompt = async ({ text, preAudioPath }) => {
       resolveSpeakTextList()
     }
   } catch (e) {
-    console.log(e)
+    console.error(e)
     resolveSpeakTextList()
   }
 }
@@ -303,9 +310,13 @@ const addLiveHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
+const addtionalFunctionLimit = {
+  searchResultLimit,
+  webPageContentTokenLengthLimit
+}
 const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, forLive = false }) => {
 
-  console.log(`use ${useAzureOpenai ? AZURE_CHAT_MODEL : DEFAULT_MODEL}`)
+  console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
   let clientMessageId = nanoid()
   let speakIndex = STATUS.speakIndex
@@ -320,7 +331,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       content: 'use Function Calling'
     })
     messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
-    if (!forLive) addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
+    // addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
     for (let toolCall of resToolCalls) {
       let functionCallResult
       try {
@@ -331,19 +342,18 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         })
         switch (toolCall.function.name) {
           case 'getHistoricalConversationContent':
-            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)))
+            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), addtionalFunctionLimit)
             break
           default:
-            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments))
+            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), addtionalFunctionLimit)
             break
         }
       } catch (e) {
-        console.log(e)
+        console.error(e)
         functionCallResult = e.message
       }
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
-      if (!forLive) addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
-      console.log({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
+      // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
       messageLogAndSend({
         id: nanoid(),
         from: 'Function Calling',
@@ -356,8 +366,8 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   let prepareChatOption = { messages }
 
   if (useFunctionCalling) {
-    prepareChatOption.tools = functionInfo
-    prepareChatOption.tool_choice = 'auto'
+    prepareChatOption.tools = functionInfo.filter(f => !disableFunctions.includes(f?.function?.name))
+    if (!_.isEmpty(prepareChatOption.tools)) prepareChatOption.tool_choice = 'auto'
   }
 
   // alert chat
@@ -367,46 +377,55 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     content: ''
   })
 
-  for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
-    if (token) {
-      resTextTemp += token
-      resText += token
-      messageSend({
-        id: clientMessageId,
-        from,
-        content: resText
-      })
-      if (STATUS.isAudioPlay) {
-        if (resTextTemp.includes('\n')) {
-          let splitResText = resTextTemp.split('\n')
-          splitResText = _.compact(splitResText)
-          if (splitResText.length > 1) {
-            resTextTemp = splitResText.pop()
-          } else {
-            resTextTemp = ''
+  try {
+    for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
+      if (token) {
+        resTextTemp += token
+        resText += token
+        messageSend({
+          id: clientMessageId,
+          from,
+          content: resText
+        })
+        if (STATUS.isAudioPlay) {
+          if (resTextTemp.includes('\n')) {
+            let splitResText = resTextTemp.split('\n')
+            splitResText = _.compact(splitResText)
+            if (splitResText.length > 1) {
+              resTextTemp = splitResText.pop()
+            } else {
+              resTextTemp = ''
+            }
+            let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+            if (STATUS.isLiving) speakText = mint.filter(speakText).text
+            speakTextList.push({
+              text: speakText,
+              speakIndex,
+            })
           }
-          let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-          if (STATUS.isLiving) speakText = mint.filter(speakText).text
-          speakTextList.push({
-            text: speakText,
-            speakIndex,
-          })
+        }
+      }
+      let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
+      if (index !== undefined ) {
+        if (resToolCalls[index]) {
+          if (id) resToolCalls[index].id = id
+          if (type) resToolCalls[index].type = type
+          if (name) resToolCalls[index].function.name = name
+          if (arg) resToolCalls[index].function.arguments += arg
+        } else {
+          resToolCalls[index] = {
+            id, type, function: { name, arguments: arg }
+          }
         }
       }
     }
-    let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
-    if (index !== undefined ) {
-      if (resToolCalls[index]) {
-        if (id) resToolCalls[index].id = id
-        if (type) resToolCalls[index].type = type
-        if (name) resToolCalls[index].function.name = name
-        if (arg) resToolCalls[index].function.arguments += arg
-      } else {
-        resToolCalls[index] = {
-          id, type, function: { name, arguments: arg }
-        }
-      }
-    }
+  } catch (error) {
+    messageSend({
+      id: clientMessageId,
+      from,
+      content: `Error: ${error.message}`
+    })
+    throw error
   }
 
   if (STATUS.isAudioPlay) {
@@ -459,7 +478,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       { role: 'system', content: givenSystemPrompt ? givenSystemPrompt : systemPrompt },
       { role: 'user', content: `我的名字是${ADMIN_NAME}` },
       { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-      ..._.takeRight(history, 12),
+      ..._.takeRight(history, historyRoundLimit),
       { role: 'user', content: prompt }
     ]
     addHistory([{ role: 'user', content: prompt }])
@@ -516,7 +535,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       })
     }
   } catch (e) {
-    console.log(e)
+    console.error(e)
     if (triggerRecord && STATUS.isSpeechTalk) triggerSpeech()
   }
   return resText
@@ -588,17 +607,10 @@ const triggerSpeech = async () => {
 }
 
 ipcMain.handle('send-prompt', async (event, prompt) => {
-  console.log('prompt', prompt)
   resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
-})
-ipcMain.handle('get-admin-name', async () => {
-  return ADMIN_NAME
-})
-ipcMain.handle('open-config', async () => {
-  shell.openExternal(path.join(STORE_PATH, 'config.json'))
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
@@ -658,6 +670,10 @@ ipcMain.handle('load-setting', async () => {
 
 ipcMain.handle('save-setting', async (event, receiveSetting) => {
   return await fs.promises.writeFile(path.join(STORE_PATH, 'config.json'), JSON.stringify(receiveSetting, null, '  '), { encoding: 'utf-8' })
+})
+
+ipcMain.handle('get-function-info', async () => {
+  return functionInfo
 })
 
 // live mode

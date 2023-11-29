@@ -200,7 +200,7 @@ const functionAction = {
   }
 }
 
-const getInformationFromGoogle = async ({ queryString }) => {
+const getInformationFromGoogle = async ({ queryString }, { searchResultLimit }) => {
   let options = { proxy: useProxy ? proxyString : undefined }
   let additionalQueryParam = {
     // lr: 'lang_zh-CN',
@@ -209,11 +209,11 @@ const getInformationFromGoogle = async ({ queryString }) => {
     // gl: 'cn',
     safe: 'high'
   }
-  let googleRes = await google({ options, disableConsole: true, query: queryString, limit: 5, additionalQueryParam })
+  let googleRes = await google({ options, disableConsole: true, query: queryString, limit: searchResultLimit, additionalQueryParam })
   return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n##\n')
 }
 
-const getContentOfWebpage = async ({ url }) => {
+const getContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
   return await axios.get(url, { proxy: useProxy ? proxyObject : undefined })
     .then(async res=>{
       let html = await res.data
@@ -225,7 +225,7 @@ const getContentOfWebpage = async ({ url }) => {
           { selector: 'img', format: 'skip' },
         ]
       })
-      return sliceStringbyTokenLength(content, 3000)
+      return sliceStringbyTokenLength(content, webPageContentTokenLengthLimit)
     })
 }
 
@@ -246,7 +246,8 @@ const readFileFromDisk = async ({ filePath }) => {
   return await fs.promises.readFile(filePath, { encoding: 'utf-8' })
 }
 
-const javaScriptInterpreter = async ({ code }) => {uickjs = await getQuickJS()
+const javaScriptInterpreter = async ({ code }) => {
+  const quickjs = await getQuickJS()
   let result = quickjs.evalCode(code, {
     shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
     memoryLimitBytes: 100 * 1024 * 1024,

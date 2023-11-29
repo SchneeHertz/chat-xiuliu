@@ -1,19 +1,16 @@
 <script setup>
 import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github-dark.css'
 import { Microphone, MicrophoneSlash, UserCircle, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled, Live24Regular } from '@vicons/fluent'
+import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, Live24Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
-import CopyButtonPlugin from 'highlightjs-copy'
-hljs.addPlugin(new CopyButtonPlugin())
+import { useMainStore } from './pinia.js'
+const mainStore = useMainStore()
 
 import Setting from './components/Setting.vue'
 import Message from './components/Message.vue'
-import XiuliuAvatar from './assets/xiuliu_avatar.jpg'
-import ChatAvatar from './assets/chatgpt.svg'
+import MessageList from './components/MessageList.vue'
 
 const messageRef = ref(null)
 const printMessage = (type, msg, option) => {
@@ -21,56 +18,6 @@ const printMessage = (type, msg, option) => {
   messageRef.value.message[type](msg, option)
 }
 
-const messageHistory = ref([])
-
-let ADMIN_NAME
-onMounted(() => ipcRenderer.invoke('get-admin-name').then(name => ADMIN_NAME = name))
-
-const renderCodeBlocks = (text) => {
-  return text.replace(/```([\w-]+)?\n([\s\S]*?)\n```/g, (match, language, code) => {
-    return `<pre class="code-block${language ? ` language-${language}` : ''}"><code class="${language ? `language-${language}` : ''}">${code.trim()}</code></pre>`
-  })
-}
-const escapeHtml = (unsafe) => {
-  return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
-}
-
-onMounted(() => {
-  ipcRenderer.on('send-message', (event, arg) => {
-    if (arg.action === 'revoke') {
-      messageHistory.value = _.filter(messageHistory.value, m => m.id !== arg.id)
-      return
-    }
-    if (typeof arg.content === 'string') {
-      arg.text = renderCodeBlocks(escapeHtml(arg.content))
-    } else {
-      arg.text = arg.content.map((item) => {
-        switch (item.type) {
-          case 'text':
-            return renderCodeBlocks(escapeHtml(item.text))
-          case 'image_url':
-            return `<img style="max-width:512px;" src="${item.image_url.url}" />`
-        }
-      }).join('\n')
-    }
-    let findExist = _.find(messageHistory.value, { id: arg.id })
-    if (findExist) {
-      findExist.text = arg.text
-      findExist.tokenCount = arg.tokenCount
-      findExist.countToken = arg.countToken
-    } else {
-      messageHistory.value.push(arg)
-      messageHistory.value = _.takeRight(messageHistory.value, 1000)
-    }
-    nextTick(() => {
-      scrollToBottom('message-list')
-      document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
-        hljs.highlightElement(el)
-      })
-    })
-  })
-  ipcRenderer.invoke('load-history')
-})
 const inputText = ref('')
 const inputArea = ref(null)
 const updateInputText = (value) => {
@@ -86,7 +33,7 @@ const sendText = (event) => {
     textareaElement.selectionStart = textareaElement.selectionEnd = pos + 1
     return
   }
-  if (imageBlobUrl.value) {
+  if (imageBlobUrlList.value.length > 0) {
     ipcRenderer.invoke('send-prompt', {
       type: 'array',
       content: [
@@ -94,30 +41,33 @@ const sendText = (event) => {
           type: 'text',
           text: inputText.value
         },
-        {
-          type: 'image_url',
-          image_url: {
-            detail: 'auto',
-            url: imageBlobUrl.value
+        ...imageBlobUrlList.value.map((url) => {
+          return {
+            type: 'image_url',
+            image_url: {
+              detail: 'auto',
+              url
+            }
           }
-        }
+        })
       ]
     })
-    messageHistory.value.push({
+    mainStore.messageList.push({
       id: nanoid(),
-      from: ADMIN_NAME,
-      text: `${inputText.value}\n<img style="max-width:512px;" src="${imageBlobUrl.value}" />`
+      from: config.value.ADMIN_NAME,
+      text: inputText.value,
+      images: imageBlobUrlList.value
     })
-    imageBlobUrl.value = ''
+    imageBlobUrlList.value = []
     showImagePopover.value = false
   } else {
     ipcRenderer.invoke('send-prompt', {
       type: 'string',
       content: inputText.value
     })
-    messageHistory.value.push({
+    mainStore.messageList.push({
       id: nanoid(),
-      from: ADMIN_NAME,
+      from: config.value.ADMIN_NAME,
       text: inputText.value
     })
   }
@@ -128,14 +78,47 @@ const scrollToBottom = (id) => {
   const element = document.getElementById(id)
   element.scrollTop = element.scrollHeight
 }
-// API Key Check
+
+const imageBlobUrlList = ref([])
+const showImagePopover = ref(false)
+const resolveImage = async ({ file, onFinish }) => {
+  const reader = new FileReader()
+  reader.onload = (evt) => {
+    imageBlobUrlList.value.push(evt.target.result)
+    showImagePopover.value = true
+    onFinish()
+  }
+  reader.readAsDataURL(file.file)
+}
+const handleImagePaste = (event) => {
+  const items = event.clipboardData.items
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image')) {
+      const blob = items[i].getAsFile()
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        imageBlobUrlList.value.push(evt.target.result)
+        showImagePopover.value = true
+      }
+      reader.readAsDataURL(blob)
+    }
+  }
+}
+const removeImage = (index) => {
+  imageBlobUrlList.value.splice(index, 1)
+  if (imageBlobUrlList.value.length === 0) {
+    showImagePopover.value = false
+  }
+}
+
+// config
 const setting = ref(null)
 const config = ref({})
 onMounted(async () => {
   config.value = await ipcRenderer.invoke('load-setting')
   if (!config.value.OPENAI_API_KEY && !config.value.AZURE_OPENAI_KEY) {
     setting.value.openConfig()
-    printMessage('error', '请先设置 OPENAI_API_KEY', { duration: 5000 })
+    printMessage('error', '请先设置 API_KEY', { duration: 5000 })
   }
 })
 
@@ -161,7 +144,7 @@ const switchAudio = () => {
 }
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
-  messageHistory.value = []
+  mainStore.messageList = []
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
@@ -183,17 +166,6 @@ const saveCapture = async () => {
 const switchLive = () => {
   ipcRenderer.invoke('switch-live')
 }
-
-const imageBlobUrl = ref('')
-const showImagePopover = ref(false)
-const resolveImage = async ({ file }) => {
-  const reader = new FileReader()
-  reader.onload = (evt) => {
-    imageBlobUrl.value = evt.target.result
-    showImagePopover.value = true
-  }
-  reader.readAsDataURL(file.file)
-}
 const handleImagePaste = (event) => {
   const items = event.clipboardData.items
   for (let i = 0; i < items.length; i++) {
@@ -214,27 +186,14 @@ const handleImagePaste = (event) => {
 <template>
   <n-grid x-gap="12" :cols="24">
     <n-gi :offset="1" :span="22">
-      <n-list id="message-list">
-        <n-card v-for="message in messageHistory" :key="message.id" class="message-card">
-          <n-thing>
-            <template #avatar>
-              <n-avatar v-if="[ADMIN_NAME, `(${ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
-                <n-icon><UserCircle /></n-icon>
-              </n-avatar>
-              <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>
-            </template>
-            <template #header>
-              {{message.from}}
-            </template>
-            <pre v-html="message.text"></pre>
-            <n-spin size="small" v-if="!message.text" />
-            <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
-          </n-thing>
-        </n-card>
-      </n-list>
+      <MessageList
+        :config="config"
+      />
       <n-input-group style="margin-top: 4px">
         <n-upload
           :show-file-list="false"
+          accept="image/png,image/jpeg,image/webp"
+          :multiple="true"
           :custom-request="resolveImage"
           style="width: auto"
         >
@@ -246,10 +205,19 @@ const handleImagePaste = (event) => {
                 </template>
               </n-button>
             </template>
-            <n-image
-              width="200"
-              :src="imageBlobUrl"
-            />
+            <div class="image-container">
+              <div v-for="(imageBlobUrl, index) in imageBlobUrlList" class="image-frame">
+                <n-image
+                  :img-props="{style: 'max-width: 200px'}"
+                  :src="imageBlobUrl"
+                />
+                <n-button text type="error" class="upload-image-close" @click="removeImage(index)">
+                  <template #icon>
+                    <n-icon><DismissCircle16Regular /></n-icon>
+                  </template>
+                </n-button>
+              </div>
+            </div>
           </n-popover>
         </n-upload>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
@@ -300,34 +268,12 @@ const handleImagePaste = (event) => {
 </template>
 
 <style lang="stylus">
-#message-list
-  margin-top: 8px
-  max-height: calc(100vh - 104px)
-  overflow-y: auto
-.message-card
-  margin: 4px 0 6px
-  .n-card-header
-    padding: 10px 26px 0
-  .n-card-content
-    padding: 0 26px
-  pre
-    font-family: Avenir, Helvetica, Arial, sans-serif
-    white-space: break-spaces
-.token-count
-  font-size: 12px
-  color: #999
-
-.code-block
+.image-frame
   position: relative
-  code.hljs
-    border-radius: 4px
-.hljs-copy-button
-  position: absolute
-  right: 4px
-  top: 4px
-.hljs-copy-alert
-  display: none
-
+  .upload-image-close
+    position: absolute
+    right: 4px
+    bottom: 10px
 
 #function-button
   margin-top: 8px
