@@ -314,7 +314,7 @@ const addtionalFunctionLimit = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
-const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, forLive = false }) => {
+const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false }) => {
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
