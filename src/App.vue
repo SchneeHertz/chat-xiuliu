@@ -166,20 +166,6 @@ const saveCapture = async () => {
 const switchLive = () => {
   ipcRenderer.invoke('switch-live')
 }
-const handleImagePaste = (event) => {
-  const items = event.clipboardData.items
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].type.startsWith('image')) {
-      const blob = items[i].getAsFile()
-      const reader = new FileReader()
-      reader.onload = (evt) => {
-        imageBlobUrl.value = evt.target.result
-        showImagePopover.value = true
-      }
-      reader.readAsDataURL(blob)
-    }
-  }
-}
 
 </script>
 
