@@ -2,9 +2,11 @@
 import { onMounted, ref, nextTick } from 'vue'
 import { UserCircle } from '@vicons/fa'
 import { LogoOctocat } from '@vicons/ionicons4'
+import { nanoid } from 'nanoid'
+
+import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
 
@@ -21,22 +23,40 @@ const props = defineProps({
   }
 })
 
-const renderCodeBlocks = (text) => {
-  return text.replace(/```(\w+)\n((?:(?!```)[\s\S])*)(?:```)?/g, (match, language, code) => {
-    return `<pre class="code-block${language ? ` language-${language}` : ''}"><code class="${language ? `language-${language}` : ''}">${code.trim()}</code></pre>`
-  })
-}
-const escapeHtml = (unsafe) => {
-  return unsafe.replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
-}
+const md = new MarkdownIt({
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return `<pre class="code-block language-${lang}"><code class="language-${lang}">` + str + '</code></pre>'
+      } catch (__) {}
+    }
+    return '<pre class="code-block"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
+  },
+  linkify: true
+})
 
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
   element.scrollTop = element.scrollHeight
+}
+
+const renderUserText = (text) => {
+  let resolveText = text.replace(/\n{1,}/g, '\n\n')
+  return md.render(resolveText)
+}
+
+const openExternalLink = (event) => {
+  event.preventDefault()
+  ipcRenderer.invoke('open-external', event.target.href || event.target.src)
+}
+
+const downloadImage = async (event) => {
+  event.preventDefault()
+  let linkElement = document.createElement('a')
+  let blob = await fetch(event.target.src).then(res => res.blob())
+  linkElement.setAttribute('download', `${event.target.alt}_${nanoid(6)}.png` || `image_${nanoid(6)}.png`)
+  linkElement.setAttribute('href', URL.createObjectURL(blob))
+  linkElement.click()
 }
 
 onMounted(() => {
@@ -46,17 +66,20 @@ onMounted(() => {
       return
     }
     if (typeof arg.content === 'string') {
-      arg.text = renderCodeBlocks(escapeHtml(arg.content))
+      if (arg.from === props.config.AI_NAME || arg.from === `(${props.config.AI_NAME})`) {
+        arg.text = md.render(arg.content)
+      } else {
+        arg.text = renderUserText(arg.content)
+      }
     } else {
       arg.text = ''
-      arg.images = []
       arg.content.forEach((item) => {
         switch (item.type) {
           case 'text':
-            arg.text += renderCodeBlocks(escapeHtml(item.text)) + '\n'
+            arg.text += renderUserText(item.text)
             break
           case 'image_url':
-            arg.images.push(item.image_url.url)
+            arg.text += md.render(`![image](${item.image_url.url})`)
             break
         }
       })
@@ -75,10 +98,45 @@ onMounted(() => {
       document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
         hljs.highlightElement(el)
       })
+      document.querySelectorAll('a:not(.added-link-handle)').forEach((el) => {
+        el.classList.add('added-link-handle')
+        el.removeEventListener('click', openExternalLink)
+        el.addEventListener('click', openExternalLink)
+      })
+      document.querySelectorAll('.message-content img:not(.added-image-handle)').forEach((el) => {
+        el.classList.add('added-image-handle')
+        el.removeEventListener('click', downloadImage)
+        el.addEventListener('click', downloadImage)
+      })
     })
   })
   ipcRenderer.invoke('load-history')
 })
+
+const addUserMessage = (message) => {
+  let resolveMessage = _.omit(message, ['content', 'type'])
+  if (typeof message.content === 'string') {
+    resolveMessage.text = renderUserText(message.content)
+  } else {
+    resolveMessage.text = ''
+    message.content.forEach((item) => {
+      switch (item.type) {
+        case 'text':
+          resolveMessage.text += renderUserText(item.text)
+          break
+        case 'image_url':
+          resolveMessage.text += md.render(`![image](${item.image_url.url})`)
+          break
+      }
+    })
+  }
+  mainStore.messageList.push(resolveMessage)
+}
+
+defineExpose({
+  addUserMessage
+})
+
 </script>
 
 <template>
@@ -94,10 +152,7 @@ onMounted(() => {
         <template #header>
           {{message.from}}
         </template>
-        <pre v-html="message.text"></pre>
-        <div v-if="message.images" class="image-container">
-          <n-image :img-props="{style: 'max-width: 512px; margin-top: 4px;'}" v-for="image in message.images" :src="image"/>
-        </div>
+        <div class="message-content" v-html="message.text"></div>
         <n-spin size="small" v-if="!message.text" />
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
       </n-thing>
@@ -128,6 +183,11 @@ onMounted(() => {
     white-space: break-spaces
   .image-container
     display: grid
+  .message-content
+    img
+      max-width: 512px
+      margin-top: 4px
+      cursor: pointer
 
 .token-count
   font-size: 12px

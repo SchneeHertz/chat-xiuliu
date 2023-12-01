@@ -12,6 +12,7 @@ const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
 const { nodejsInterpreter } = require('./vm.js')
+const { openaiImageCreate } = require('./common.js')
 
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
@@ -129,6 +130,37 @@ const functionInfo = [
       },
       "required": ["type"],
     }
+  },
+  {
+    "name": "createImageUseDALLE3",
+    "description": `Create image using DALL·E 3.
+If the description is not in English, then translate it.
+Always mention the image type (photo, oil painting, watercolor painting, illustration, cartoon, drawing, vector, render, etc.) at the beginning of the caption.`,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "A text description of the desired image",
+        },
+        "size": {
+          "type": "string",
+          "description": "The size of the generated images",
+          "enum": ["1024x1024", "1792x1024", "1024x1792"],
+        },
+        "quality": {
+          "type": "string",
+          "description": "The quality of the image that will be generated",
+          "enum": ["standard", "hd"],
+        },
+        "style": {
+          "type": "string",
+          "description": "The style of the generated images",
+          "enum": ["vivid", "natural"]
+        }
+      },
+      "required": ["prompt"],
+    }
   }
 ].map(f => {
   return {
@@ -174,7 +206,7 @@ const functionAction = {
     return `${AI_NAME}想起了关于 ${relatedText} 的事情`
   },
   writeFileToDisk ({ relativeFilePath, content }) {
-    return `${AI_NAME}保存\n${content}\n到 ${relativeFilePath}`
+    return `${AI_NAME}保存\n\n${content}\n\n到 ${relativeFilePath}`
   },
   readFileFromDisk ({ filePath }) {
     return `${AI_NAME}读取了 ${filePath}`
@@ -185,7 +217,7 @@ const functionAction = {
       space_after_anon_function: true,
       space_after_named_function: true,
     })
-    return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
+    return `${AI_NAME}运行了\n\n\`\`\`javascript\n${code}\n\`\`\``
   },
   nodejsInterpreter ({ code }) {
     code = beautify(code, {
@@ -193,10 +225,15 @@ const functionAction = {
       space_after_anon_function: true,
       space_after_named_function: true,
     })
-    return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
+    return `${AI_NAME}运行了\n\n\`\`\`javascript\n${code}\n\`\`\``
   },
   openLocalFileOrWebpage ({ filePath, url, type }) {
     return `${AI_NAME}请求打开 ${type === 'file' ? filePath : url}`
+  },
+  createImageUseDALLE3 ({ prompt, size, quality, style }) {
+    return `${AI_NAME}正在生成一张\`${size ? size : '1024x1024'}\`大小,
+质量为\`${quality ? quality : 'standard'}\`, 风格为\`${style ? style : 'vivid'}\`的图片.
+Prompt: \n\n\`\`\`json\n${prompt}\n\`\`\``
   }
 }
 
@@ -210,7 +247,7 @@ const getInformationFromGoogle = async ({ queryString }, { searchResultLimit }) 
     safe: 'high'
   }
   let googleRes = await google({ options, disableConsole: true, query: queryString, limit: searchResultLimit, additionalQueryParam })
-  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n##\n')
+  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n')
 }
 
 const getContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
@@ -264,6 +301,15 @@ const openLocalFileOrWebpage = async ({ filePath, url, type }) => {
   return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
 }
 
+const createImageUseDALLE3 = async ({ prompt, size, quality, style }) => {
+  return await openaiImageCreate({
+    prompt,
+    size,
+    quality,
+    style
+  })
+}
+
 module.exports = {
   functionInfo,
   functionAction,
@@ -275,6 +321,7 @@ module.exports = {
     readFileFromDisk,
     javaScriptInterpreter,
     nodejsInterpreter,
-    openLocalFileOrWebpage
+    openLocalFileOrWebpage,
+    createImageUseDALLE3
   }
 }

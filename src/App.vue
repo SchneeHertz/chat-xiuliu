@@ -18,6 +18,8 @@ const printMessage = (type, msg, option) => {
   messageRef.value.message[type](msg, option)
 }
 
+const messageListRef = ref(null)
+
 const inputText = ref('')
 const inputArea = ref(null)
 const updateInputText = (value) => {
@@ -34,7 +36,7 @@ const sendText = (event) => {
     return
   }
   if (imageBlobUrlList.value.length > 0) {
-    ipcRenderer.invoke('send-prompt', {
+    let userPrompt = {
       type: 'array',
       content: [
         {
@@ -51,24 +53,25 @@ const sendText = (event) => {
           }
         })
       ]
-    })
-    mainStore.messageList.push({
+    }
+    ipcRenderer.invoke('send-prompt', userPrompt)
+    messageListRef.value.addUserMessage({
       id: nanoid(),
       from: config.value.ADMIN_NAME,
-      text: inputText.value,
-      images: imageBlobUrlList.value
+      ...userPrompt
     })
     imageBlobUrlList.value = []
     showImagePopover.value = false
   } else {
-    ipcRenderer.invoke('send-prompt', {
+    let userPrompt = {
       type: 'string',
       content: inputText.value
-    })
-    mainStore.messageList.push({
+    }
+    ipcRenderer.invoke('send-prompt', userPrompt)
+    messageListRef.value.addUserMessage({
       id: nanoid(),
       from: config.value.ADMIN_NAME,
-      text: inputText.value
+      ...userPrompt
     })
   }
   nextTick(() => scrollToBottom('message-list'))
@@ -148,6 +151,7 @@ const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
   screenshotTarget.style['padding-left'] = '32px'
   const canvas = await html2canvas(screenshotTarget, {
+    useCORS: true,
     width: screenshotTarget.clientWidth - 70,
     windowWidth: screenshotTarget.clientWidth,
     height: screenshotTarget.scrollHeight + 24,
@@ -168,6 +172,7 @@ const saveCapture = async () => {
   <n-grid x-gap="12" :cols="24">
     <n-gi :offset="1" :span="22">
       <MessageList
+        ref="messageListRef"
         :config="config"
       />
       <n-input-group style="margin-top: 4px">

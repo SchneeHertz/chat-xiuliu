@@ -320,11 +320,17 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     // addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
     for (let toolCall of resToolCalls) {
       let functionCallResult
+      let functionCallResultMessageId = nanoid()
       try {
         messageLogAndSend({
           id: nanoid(),
           from,
           content: functionAction[toolCall.function.name](JSON.parse(toolCall.function.arguments))
+        })
+        messageLogAndSend({
+          id: functionCallResultMessageId,
+          from: 'Function Calling',
+          content: ''
         })
         switch (toolCall.function.name) {
           case 'getHistoricalConversationContent':
@@ -341,7 +347,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
       // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
       messageLogAndSend({
-        id: nanoid(),
+        id: functionCallResultMessageId,
         from: 'Function Calling',
         content: functionCallResult + ''
       })
@@ -638,4 +644,8 @@ ipcMain.handle('save-setting', async (event, receiveSetting) => {
 
 ipcMain.handle('get-function-info', async () => {
   return functionInfo
+})
+
+ipcMain.handle('open-external', async (event, url) => {
+  shell.openExternal(url)
 })

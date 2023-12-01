@@ -76,6 +76,13 @@ const openaiEmbedding = ({ input, model = 'text-embedding-ada-002' }) => {
     })
 }
 
+const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '1024x1024', quality = 'standard', style = 'vivid' }) => {
+  const response = await openai.images.generate({
+    model, prompt, n, size, quality, style
+  })
+  return JSON.stringify(response.data[0])
+}
+
 const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) => {
   const azureOpenai = new OpenAI({
     apiKey: AZURE_OPENAI_KEY,
@@ -154,6 +161,7 @@ module.exports = {
   openaiChat,
   openaiChatStream,
   openaiEmbedding,
+  openaiImageCreate,
   azureOpenaiChat,
   azureOpenaiChatStream,
   azureOpenaiEmbedding
