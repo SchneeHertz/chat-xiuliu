@@ -53,9 +53,8 @@ const openExternalLink = (event) => {
 const downloadImage = async (event) => {
   event.preventDefault()
   let linkElement = document.createElement('a')
-  let blob = await fetch(event.target.src).then(res => res.blob())
-  linkElement.setAttribute('download', `${event.target.alt}_${nanoid(6)}.png` || `image_${nanoid(6)}.png`)
-  linkElement.setAttribute('href', URL.createObjectURL(blob))
+  linkElement.setAttribute('download', `${event.target.alt}_${nanoid(6)}` || `image_${nanoid(6)}`)
+  linkElement.setAttribute('href', event.target.src)
   linkElement.click()
 }
 

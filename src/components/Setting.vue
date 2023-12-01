@@ -129,6 +129,9 @@ defineExpose({
           <n-form-item label="AZURE_EMBEDDING_MODEL" path="AZURE_EMBEDDING_MODEL" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_EMBEDDING_MODEL" placeholder="like text-embedding-ada-002" />
           </n-form-item>
+          <n-form-item label="AZURE_IMAGE_MODEL" path="AZURE_IMAGE_MODEL" v-show="config.useAzureOpenai">
+            <n-input v-model:value="config.AZURE_IMAGE_MODEL" placeholder="like dall-e-3" />
+          </n-form-item>
           <n-form-item label="你的称呼" path="ADMIN_NAME">
             <n-input v-model:value="config.ADMIN_NAME" />
           </n-form-item>

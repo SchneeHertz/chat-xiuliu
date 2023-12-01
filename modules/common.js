@@ -4,7 +4,7 @@ const _ = require('lodash')
 
 const { config: {
   OPENAI_API_KEY, OPENAI_API_ENDPOINT, DEFAULT_MODEL,
-  AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION, AZURE_CHAT_MODEL, AZURE_EMBEDDING_MODEL,
+  AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION, AZURE_CHAT_MODEL, AZURE_EMBEDDING_MODEL, AZURE_IMAGE_MODEL,
   useProxy, proxyObject
 } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
@@ -156,6 +156,21 @@ const azureOpenaiEmbedding = ({ input, model = AZURE_EMBEDDING_MODEL }) => {
     })
 }
 
+const azureOpenaiImageCreate = async ({ model = AZURE_IMAGE_MODEL, prompt, n = 1, size = '1024x1024', quality = 'standard', style = 'vivid' }) => {
+  const azureOpenai = new OpenAI({
+    apiKey: AZURE_OPENAI_KEY,
+    baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
+    defaultQuery: { 'api-version': AZURE_API_VERSION },
+    defaultHeaders: { 'api-key': AZURE_OPENAI_KEY },
+    httpAgent,
+    timeout: 40000
+  })
+  const response = await azureOpenai.images.generate({
+    model, prompt, n, size, quality, style
+  })
+  return JSON.stringify(response.data[0])
+}
+
 
 module.exports = {
   openaiChat,
@@ -164,5 +179,6 @@ module.exports = {
   openaiImageCreate,
   azureOpenaiChat,
   azureOpenaiChatStream,
-  azureOpenaiEmbedding
+  azureOpenaiEmbedding,
+  azureOpenaiImageCreate,
 }

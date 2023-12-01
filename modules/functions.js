@@ -7,12 +7,12 @@ const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripte
 const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 
-let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
+let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
 const { nodejsInterpreter } = require('./vm.js')
-const { openaiImageCreate } = require('./common.js')
+const { openaiImageCreate, azureOpenaiImageCreate } = require('./common.js')
 
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
@@ -302,12 +302,21 @@ const openLocalFileOrWebpage = async ({ filePath, url, type }) => {
 }
 
 const createImageUseDALLE3 = async ({ prompt, size, quality, style }) => {
-  return await openaiImageCreate({
-    prompt,
-    size,
-    quality,
-    style
-  })
+  if (useAzureOpenai) {
+    return await azureOpenaiImageCreate({
+      prompt,
+      size,
+      quality,
+      style
+    })
+  } else {
+    return await openaiImageCreate({
+      prompt,
+      size,
+      quality,
+      style
+    })
+  }
 }
 
 module.exports = {
