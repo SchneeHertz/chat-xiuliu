@@ -44,7 +44,7 @@ const alertJSPRisk = (val) => {
   if (val) {
     dialogRef.value.dialog.warning({
       title: '警告',
-      content: '可以调用更多模块和功能来执行代码，但冒失的AI可能会执行危险的代码影响你的系统',
+      content: '可以调用更多模块和功能来执行代码, 但冒失的AI可能会执行危险的代码影响你的系统',
       positiveText: '确定',
       negativeText: '取消',
       maskClosable: false,
@@ -139,7 +139,7 @@ defineExpose({
             <n-input v-model:value="config.AI_NAME" />
           </n-form-item>
           <n-form-item label="设定" path="systemPrompt">
-            <n-input v-model:value="config.systemPrompt" placeholder="AI的设定，chatgpt的默认值是'You are a helpful assistant.'"
+            <n-input v-model:value="config.systemPrompt" placeholder="AI的设定, ChatGPT的默认值是'You are a helpful assistant.'"
               type="textarea" :autosize="{
                 minRows: 2,
                 maxRows: 4

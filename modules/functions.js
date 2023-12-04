@@ -168,7 +168,7 @@ Always mention the image type (photo, oil painting, watercolor painting, illustr
         },
         "size": {
           "type": "string",
-          "description": "The size of the generated images",
+          "description": "The size of the generated images, landscape means 1792x1024 and portrait means 1024x1792",
           "enum": ["1024x1024", "1792x1024", "1024x1792"],
         },
         "quality": {
