@@ -6,6 +6,7 @@ const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
 const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
+const dayjs = require('dayjs')
 
 let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
@@ -17,6 +18,10 @@ const { openaiImageCreate, azureOpenaiImageCreate } = require('./common.js')
 let STORE_PATH = path.join(process.cwd(), 'data')
 if (!fs.existsSync(STORE_PATH)) {
   fs.mkdirSync(STORE_PATH)
+}
+if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
+if (!fs.existsSync(writeFolder)) {
+  fs.mkdirSync(writeFolder)
 }
 
 const functionInfo = [
@@ -35,7 +40,7 @@ const functionInfo = [
     }
   },
   {
-    "name": "getContentOfWebpage",
+    "name": "getTextContentOfWebpage",
     "description": "get text content of webpage based on url.",
     "parameters": {
       "type": "object",
@@ -46,6 +51,24 @@ const functionInfo = [
         },
       },
       "required": ["url"],
+    }
+  },
+  {
+    "name": "downloadFileToLocal",
+    "description": "download file from url to local.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "fileUrl": {
+          "type": "string",
+          "description": "The url of file",
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The name of file",
+        }
+      },
+      "required": ["fileUrl", "fileName"],
     }
   },
   {
@@ -63,8 +86,8 @@ const functionInfo = [
     }
   },
   {
-    "name": "writeFileToDisk",
-    "description": "Write file to disk.",
+    "name": "writeFileToLocal",
+    "description": "Write file to local disk.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -81,8 +104,8 @@ const functionInfo = [
     }
   },
   {
-    "name": "readFileFromDisk",
-    "description": "read file from disk.",
+    "name": "readFileFromLocal",
+    "description": "read file from local disk.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -199,16 +222,19 @@ const functionAction = {
   getInformationFromGoogle ({ queryString }) {
     return `${AI_NAME}正在搜索 ${queryString}`
   },
-  getContentOfWebpage ({ url }) {
+  getTextContentOfWebpage ({ url }) {
     return `${AI_NAME}正在访问 ${url}`
+  },
+  downloadFileToLocal ({ fileUrl, fileName }) {
+    return `${AI_NAME}下载了 ${fileUrl} 到 ${fileName}`
   },
   getHistoricalConversationContent ({ relatedText }) {
     return `${AI_NAME}想起了关于 ${relatedText} 的事情`
   },
-  writeFileToDisk ({ relativeFilePath, content }) {
+  writeFileToLocal ({ relativeFilePath, content }) {
     return `${AI_NAME}保存\n\n${content}\n\n到 ${relativeFilePath}`
   },
-  readFileFromDisk ({ filePath }) {
+  readFileFromLocal ({ filePath }) {
     return `${AI_NAME}读取了 ${filePath}`
   },
   javaScriptInterpreter ({ code }) {
@@ -250,7 +276,7 @@ const getInformationFromGoogle = async ({ queryString }, { searchResultLimit }) 
   return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n')
 }
 
-const getContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
+const getTextContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
   return await axios.get(url, { proxy: useProxy ? proxyObject : undefined })
     .then(async res=>{
       let html = await res.data
@@ -266,20 +292,31 @@ const getContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) 
     })
 }
 
+const downloadFileToLocal = async ({ fileUrl, fileName }) => {
+  let writeFilepath = path.join(writeFolder, fileName)
+  const response = await axios({
+    method: 'GET',
+    url: fileUrl,
+    responseType: 'arraybuffer',
+    proxy: useProxy ? proxyObject : undefined
+  })
+  await fs.promises.writeFile(writeFilepath, response.data)
+  return writeFilepath
+}
+
 const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
   let MemoryTexts = await dbTable.search(relatedText).limit(2).execute()
   return MemoryTexts.map(s => s.text).join('\n')
 }
 
-if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
-const writeFileToDisk = async ({ relativeFilePath, content }) => {
+const writeFileToLocal = async ({ relativeFilePath, content }) => {
   let writeFilepath = path.join(writeFolder, relativeFilePath)
   await fs.promises.mkdir(path.dirname(writeFilepath), { recursive: true })
   await fs.promises.writeFile(writeFilepath, content)
   return writeFilepath
 }
 
-const readFileFromDisk = async ({ filePath }) => {
+const readFileFromLocal = async ({ filePath }) => {
   return await fs.promises.readFile(filePath, { encoding: 'utf-8' })
 }
 
@@ -301,22 +338,35 @@ const openLocalFileOrWebpage = async ({ filePath, url, type }) => {
   return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
 }
 
+const _downloadImage = async (result) => {
+  try {
+    const fileId = dayjs().format('YYYYMMDDTHHmmssSSS')
+    await downloadFileToLocal({ fileUrl: result.url, fileName: fileId + '_image.png' })
+    await fs.promises.writeFile(path.join(writeFolder, fileId + '_prompt.txt'), result.revised_prompt)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 const createImageUseDALLE3 = async ({ prompt, size, quality, style }) => {
+  let result
   if (useAzureOpenai) {
-    return await azureOpenaiImageCreate({
+    result = await azureOpenaiImageCreate({
       prompt,
       size,
       quality,
       style
     })
   } else {
-    return await openaiImageCreate({
+    result = await openaiImageCreate({
       prompt,
       size,
       quality,
       style
     })
   }
+  _downloadImage(result)
+  return JSON.stringify(result)
 }
 
 module.exports = {
@@ -324,10 +374,11 @@ module.exports = {
   functionAction,
   functionList: {
     getInformationFromGoogle,
-    getContentOfWebpage,
+    getTextContentOfWebpage,
+    downloadFileToLocal,
     getHistoricalConversationContent,
-    writeFileToDisk,
-    readFileFromDisk,
+    writeFileToLocal,
+    readFileFromLocal,
     javaScriptInterpreter,
     nodejsInterpreter,
     openLocalFileOrWebpage,

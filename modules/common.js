@@ -80,7 +80,7 @@ const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '10
   const response = await openai.images.generate({
     model, prompt, n, size, quality, style
   })
-  return JSON.stringify(response.data[0])
+  return response.data[0]
 }
 
 const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) => {
@@ -168,7 +168,7 @@ const azureOpenaiImageCreate = async ({ model = AZURE_IMAGE_MODEL, prompt, n = 1
   const response = await azureOpenai.images.generate({
     model, prompt, n, size, quality, style
   })
-  return JSON.stringify(response.data[0])
+  return response.data[0]
 }
 
 

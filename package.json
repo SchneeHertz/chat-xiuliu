@@ -62,6 +62,7 @@
   "dependencies": {
     "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
+    "dayjs": "^1.11.10",
     "electron-window-state": "^5.0.3",
     "html-to-text": "^9.0.5",
     "html2canvas": "^1.4.1",

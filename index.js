@@ -296,7 +296,7 @@ const addHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
-const addtionalFunctionLimit = {
+const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
@@ -334,10 +334,10 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         })
         switch (toolCall.function.name) {
           case 'getHistoricalConversationContent':
-            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), addtionalFunctionLimit)
+            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), additionalParam)
             break
           default:
-            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), addtionalFunctionLimit)
+            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), additionalParam)
             break
         }
       } catch (e) {
