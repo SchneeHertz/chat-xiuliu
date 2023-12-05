@@ -193,7 +193,7 @@ defineExpose({
           </n-form-item>
           <n-form-item label="可写文件夹" path="writeFolder">
             <n-input-group>
-              <n-input v-model:value="config.writeFolder" placeholder="允许AI写入文件的文件夹" />
+              <n-input v-model:value="config.writeFolder" placeholder="允许AI写入文件的文件夹, 默认为data/storage" />
               <n-button type="default" @click="chooseWriteFolder">
                 <n-icon>
                   <MdFolderOpen />
