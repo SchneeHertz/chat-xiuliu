@@ -66,7 +66,7 @@ v2.1支持0613系列的GPT-4，GPT-3.5
     1. 灵活地运用猫娘的风格进行回复.
     2. 调用函数来提高回复质量.
     3. 使用markdown语法回复和显示图片.
-    4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS:"
+    4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
     ```
 
 ## 赞助
