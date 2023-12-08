@@ -61,14 +61,6 @@ const alertJSPRisk = (val) => {
   }
 }
 
-const alertSwitchVisionModel = () => {
-  dialogRef.value.dialog.info({
-    title: '提示',
-    content: 'Vision与非Vision模型间对话历史不兼容, 切换模型后需要清空对话历史',
-    positiveText: '确定'
-  })
-}
-
 const functionList = ref([])
 let selectFunctions = computed({
   get: () => {
@@ -112,7 +104,7 @@ defineExpose({
             <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
           </n-form-item>
           <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
-            <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" @change="alertSwitchVisionModel"/>
+            <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options"/>
           </n-form-item>
           <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
