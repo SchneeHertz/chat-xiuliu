@@ -17,7 +17,7 @@ try {
 }
 
 const getStore = (key, defaultValue) => {
-  return storeData[key] || defaultValue
+  return JSON.parse(JSON.stringify(storeData[key])) || defaultValue
 }
 
 const setStore = (key, value) => {

@@ -18,7 +18,7 @@ const { functionAction, functionInfo, functionList } = require('./modules/functi
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
-  DEFAULT_MODEL, AZURE_CHAT_MODEL,
+  DEFAULT_MODEL, AZURE_CHAT_MODEL, AZURE_VISION_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
@@ -29,6 +29,7 @@ const {
   disableFunctions = [],
   searchResultLimit = 5,
   webPageContentTokenLengthLimit = 6000,
+  autoUseVisionModel = false,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -300,7 +301,7 @@ const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
-const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false }) => {
+const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, model }) => {
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
@@ -355,7 +356,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   }
   resToolCalls = []
 
-  let prepareChatOption = { messages }
+  let prepareChatOption = { messages, model }
 
   if (useFunctionCalling) {
     prepareChatOption.tools = functionInfo.filter(f => !disableFunctions.includes(f?.function?.name))
@@ -463,11 +464,17 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
 const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
+  let context = _.takeRight(history, historyRoundLimit)
+  context.forEach(line => {
+    if (line.role === 'user' && typeof line.content === 'object') {
+      line.content = line.content.filter(part => part.type === 'text').map(part => part.text).join('\n')
+    }
+  })
   let messages = [
     { role: 'system', content: givenSystemPrompt ? givenSystemPrompt : systemPrompt },
-    { role: 'user', content: `我的名字是${ADMIN_NAME}` },
+    { role: 'user', content: `你好, 我的名字是${ADMIN_NAME}` },
     { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-    ..._.takeRight(history, historyRoundLimit),
+    ...context,
     { role: 'user', content: prompt }
   ]
   addHistory([{ role: 'user', content: prompt }])
@@ -494,7 +501,12 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
         round += 1
       }
     } else {
-      resText = (await resolveMessages({ resText, messages, from })).resText
+      if (autoUseVisionModel) {
+        let model = useAzureOpenai ? AZURE_VISION_MODEL : 'gpt-4-vision-preview'
+        resText = (await resolveMessages({ resText, messages, from, model })).resText
+      } else {
+        resText = (await resolveMessages({ resText, messages, from })).resText
+      }
     }
     messageLog({
       id: nanoid(),

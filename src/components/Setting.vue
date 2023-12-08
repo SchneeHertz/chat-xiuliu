@@ -132,6 +132,9 @@ defineExpose({
           <n-form-item label="AZURE_IMAGE_MODEL" path="AZURE_IMAGE_MODEL" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_IMAGE_MODEL" placeholder="like dall-e-3" />
           </n-form-item>
+          <n-form-item label="AZURE_VISION_MODEL" path="AZURE_VISION_MODEL" v-show="config.useAzureOpenai">
+            <n-input v-model:value="config.AZURE_VISION_MODEL" placeholder="like gpt-4-vision-preview" />
+          </n-form-item>
           <n-form-item label="你的称呼" path="ADMIN_NAME">
             <n-input v-model:value="config.ADMIN_NAME" />
           </n-form-item>
@@ -200,6 +203,9 @@ defineExpose({
                 </n-icon>
               </n-button>
             </n-input-group>
+          </n-form-item>
+          <n-form-item label="自动使用vision模型" path="autoUseVisionModel">
+            <n-switch v-model:value="config.autoUseVisionModel"/>
           </n-form-item>
         </n-form>
       </n-tab-pane>

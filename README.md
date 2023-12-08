@@ -58,7 +58,7 @@ v2.1支持0613系列的GPT-4，GPT-3.5
   ```
 
 ### 设置参考
-  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型
+  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型，DALL·E 3和Vision模型同理
   - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
   - 默认设定
     ```
@@ -68,6 +68,7 @@ v2.1支持0613系列的GPT-4，GPT-3.5
     3. 使用markdown语法回复和显示图片.
     4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
     ```
+  - 打开高级设置中的`自动使用Vision模型`，可以在使用其他模型时使用Vision模型处理图像识别
 
 ## 赞助
 https://afdian.net/@SeldonHorizon
