@@ -1,7 +1,7 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.2.8",
+  "version": "2.2.9",
   "description": "ChatGPT Client with Function Calling",
   "author": "SchneeHertz",
   "scripts": {
@@ -72,7 +72,7 @@
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
     "node-edge-tts": "^1.2.2",
-    "openai": "^4.16.1",
+    "openai": "^4.22.0",
     "quickjs-emscripten": "^0.23.0",
     "reconnecting-websocket": "^4.4.0",
     "sound-play": "^1.1.0",
