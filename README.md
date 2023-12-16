@@ -30,15 +30,15 @@ v2.2支持1106系列的GPT-4，GPT-4-Vision，GPT-3.5，DALL·E 3
 v2.1支持0613系列的GPT-4，GPT-3.5
 
 ## 截图
-<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg" width="1280">
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg" width="640">
 
-<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_2.jpg" width="914">
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_2.jpg" width="457">
 
-<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg" width="914">
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg" width="457">
 
-<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg" width="914">
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg" width="457">
 
-<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting2.jpg" width="914">
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting2.jpg" width="457">
 
 
 ## 可选语音识别功能
