@@ -124,6 +124,8 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
       max_tokens: 4096,
     })
   } else {
+    // hacks to enable the vision model to extract text. but it's not a good idea
+    // messages = _.takeRight(messages, 1)
     response = await azureOpenai.chat.completions.create({
       model, messages,
       stream: true,
