@@ -199,7 +199,7 @@ if (allowPowerfulInterpreter) {
       type: 'function',
       function: {
         "name": "nodejsInterpreter",
-        "description": `Useful for running JavaScript code in node.js VM.
+        "description": `Useful for running JavaScript code in node.js(version 18) VM.
   Input is a string of JavaScript code, output is the result of the code.
   You can require node modules except fs, and use lodash directly.
   You can only store variables in the "global" object for future use, like "global.hello = function () {return 'hello'}"`,
