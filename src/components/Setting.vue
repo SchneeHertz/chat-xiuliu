@@ -89,10 +89,10 @@ defineExpose({
     </template>
   </n-button>
   <n-modal v-model:show="showSettingModal" preset="dialog" title="设置" positive-text="保存后重启应用" negative-text="取消"
-    @positive-click="saveSettingAndRestart" @negative-click="cancelSetting" :show-icon="false" :style="{ width: '51em' }">
+    @positive-click="saveSettingAndRestart" @negative-click="cancelSetting" :show-icon="false" :style="{ width: '52em' }">
     <n-tabs type="line" animated default-value="general">
       <n-tab-pane name="general" tab="常用">
-        <n-form ref="formRef" :model="config" label-placement="left" label-width="210px" size="small">
+        <n-form ref="formRef" :model="config" label-placement="left" label-width="230px" size="small">
           <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
             <n-switch v-model:value="config.useAzureOpenai" />
           </n-form-item>
@@ -110,7 +110,7 @@ defineExpose({
             <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
           </n-form-item>
           <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="endpoint-name" />
+            <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="like endpoint-xxx" />
           </n-form-item>
           <n-form-item label="AZURE_API_VERSION" path="AZURE_API_VERSION" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_API_VERSION" placeholder="like 2023-07-01-preview" />
@@ -126,6 +126,15 @@ defineExpose({
           </n-form-item>
           <n-form-item label="AZURE_VISION_MODEL" path="AZURE_VISION_MODEL" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_VISION_MODEL" placeholder="like gpt-4-vision-preview" />
+          </n-form-item>
+          <n-form-item label="使用Azure视觉增强" path="useAzureVisionEnhence">
+            <n-switch v-model:value="config.useAzureVisionEnhence" />
+          </n-form-item>
+          <n-form-item label="AZURE_EXTENSION_ENDPOINT" path="AZURE_EXTENSION_ENDPOINT" v-show="config.useAzureVisionEnhence">
+            <n-input v-model:value="config.AZURE_EXTENSION_ENDPOINT" placeholder="like vision-xxx" />
+          </n-form-item>
+          <n-form-item label="AZURE_EXTENSION_API_KEY" path="AZURE_EXTENSION_API_KEY" v-show="config.useAzureVisionEnhence">
+            <n-input v-model:value="config.AZURE_EXTENSION_API_KEY" placeholder="32chars" type="password" show-password-on="click"/>
           </n-form-item>
           <n-form-item label="你的称呼" path="ADMIN_NAME">
             <n-input v-model:value="config.ADMIN_NAME" />
@@ -159,8 +168,7 @@ defineExpose({
         </n-form>
       </n-tab-pane>
       <n-tab-pane name="advance" tab="高级">
-        <n-form ref="formRef" :model="config" label-placement="left" label-width="auto" require-mark-placement="right-hanging"
-          size="small">
+        <n-form ref="formRef2" :model="config" label-placement="left" label-width="230px" size="small">
           <n-form-item label="SpeechSynthesisVoiceName" path="SpeechSynthesisVoiceName">
             <n-input v-model:value="config.SpeechSynthesisVoiceName" placeholder="like zh-CN-XiaoyiNeural" />
           </n-form-item>

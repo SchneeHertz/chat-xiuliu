@@ -38,6 +38,11 @@ try {
     searchResultLimit: 5,
     webPageContentTokenLengthLimit: 6000,
     writeFolder: '',
+    autoUseVisionModel: false,
+    AZURE_VISION_MODEL: '',
+    useAzureVisionEnhence: false,
+    AZURE_EXTENSION_ENDPOINT: '',
+    AZURE_EXTENSION_API_KEY: '',
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), { encoding: 'utf-8' })
 }
