@@ -25,5 +25,8 @@ export default defineConfig({
       resolvers: [NaiveUiResolver()]
     })
   ],
-  base: './'
+  base: './',
+  server: {
+    port: 5174
+  }
 })
