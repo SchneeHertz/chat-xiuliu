@@ -127,7 +127,7 @@ defineExpose({
           <n-form-item label="AZURE_VISION_MODEL" path="AZURE_VISION_MODEL" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_VISION_MODEL" placeholder="like gpt-4-vision-preview" />
           </n-form-item>
-          <n-form-item label="使用Azure视觉增强" path="useAzureVisionEnhence">
+          <n-form-item label="使用Azure视觉增强" path="useAzureVisionEnhence" v-show="config.useAzureOpenai">
             <n-switch v-model:value="config.useAzureVisionEnhence" />
           </n-form-item>
           <n-form-item label="AZURE_EXTENSION_ENDPOINT" path="AZURE_EXTENSION_ENDPOINT" v-show="config.useAzureVisionEnhence">
