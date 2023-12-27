@@ -130,10 +130,10 @@ defineExpose({
           <n-form-item label="使用Azure视觉增强" path="useAzureVisionEnhence" v-show="config.useAzureOpenai">
             <n-switch v-model:value="config.useAzureVisionEnhence" />
           </n-form-item>
-          <n-form-item label="AZURE_EXTENSION_ENDPOINT" path="AZURE_EXTENSION_ENDPOINT" v-show="config.useAzureVisionEnhence">
+          <n-form-item label="AZURE_EXTENSION_ENDPOINT" path="AZURE_EXTENSION_ENDPOINT" v-show="config.useAzureOpenai &&config.useAzureVisionEnhence">
             <n-input v-model:value="config.AZURE_EXTENSION_ENDPOINT" placeholder="like vision-xxx" />
           </n-form-item>
-          <n-form-item label="AZURE_EXTENSION_API_KEY" path="AZURE_EXTENSION_API_KEY" v-show="config.useAzureVisionEnhence">
+          <n-form-item label="AZURE_EXTENSION_API_KEY" path="AZURE_EXTENSION_API_KEY" v-show="config.useAzureOpenai && config.useAzureVisionEnhence">
             <n-input v-model:value="config.AZURE_EXTENSION_API_KEY" placeholder="32chars" type="password" show-password-on="click"/>
           </n-form-item>
           <n-form-item label="你的称呼" path="ADMIN_NAME">

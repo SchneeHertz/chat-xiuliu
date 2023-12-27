@@ -6,7 +6,7 @@ const { OpenAIClient, AzureKeyCredential } = require('@azure/openai')
 const { config: {
   OPENAI_API_KEY, OPENAI_API_ENDPOINT, DEFAULT_MODEL,
   AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION, AZURE_CHAT_MODEL, AZURE_EMBEDDING_MODEL, AZURE_IMAGE_MODEL,
-  useAzureVisionEnhence,
+  useAzureVisionEnhence, AZURE_EXTENSION_ENDPOINT, AZURE_EXTENSION_API_KEY,
   useProxy, proxyObject
 } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
@@ -110,13 +110,10 @@ const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '10
 //   }
 // }
 
-let proxyOptions
-if (useProxy) {
-  proxyOptions = {
-    host: `${proxyObject.protocol}://${proxyObject.host}`,
-    port: proxyObject.port
-  }
-}
+const proxyOptions = useProxy ? {
+  host: `${proxyObject.protocol}://${proxyObject.host}`,
+  port: proxyObject.port
+} : undefined
 
 let azureOpenaiClient
 try {
@@ -164,8 +161,8 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
           extensions: [{
             type: 'AzureComputerVision',
             parameters: {
-              endpoint: process.env.AZURE_EXTENSION_ENDPOINT,
-              key: process.env.AZURE_EXTENSION_API_KEY
+              endpoint: AZURE_EXTENSION_ENDPOINT,
+              key: AZURE_EXTENSION_API_KEY
             }
           }],
         } : undefined
