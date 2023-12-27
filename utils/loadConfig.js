@@ -13,7 +13,7 @@ try {
   config = {
     OPENAI_API_KEY: '',
     OPENAI_API_ENDPOINT: 'https://api.openai.com/v1',
-    DEFAULT_MODEL: 'gpt-3.5-turbo-16k',
+    DEFAULT_MODEL: 'gpt-3.5-turbo-1106',
     useAzureOpenai: false,
     AZURE_OPENAI_KEY: '',
     AZURE_OPENAI_ENDPOINT: '',
@@ -21,6 +21,10 @@ try {
     AZURE_CHAT_MODEL: '',
     AZURE_EMBEDDING_MODEL: '',
     AZURE_IMAGE_MODEL: '',
+    AZURE_VISION_MODEL: '',
+    useAzureVisionEnhence: false,
+    AZURE_EXTENSION_ENDPOINT: '',
+    AZURE_EXTENSION_API_KEY: '',
     ADMIN_NAME: 'Chell',
     AI_NAME: '休留',
     systemPrompt: '你是虚拟猫娘休留, 以下是你在回复时应该遵循的规则:  \n1. 灵活地运用猫娘的风格进行回复.  \n2. 调用函数来提高回复质量.  \n3. 使用markdown语法回复和显示图片.  \n4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "',
@@ -39,10 +43,6 @@ try {
     webPageContentTokenLengthLimit: 6000,
     writeFolder: '',
     autoUseVisionModel: false,
-    AZURE_VISION_MODEL: '',
-    useAzureVisionEnhence: false,
-    AZURE_EXTENSION_ENDPOINT: '',
-    AZURE_EXTENSION_API_KEY: '',
   }
   fs.writeFileSync(path.join(STORE_PATH, 'config.json'), JSON.stringify(config, null, '  '), { encoding: 'utf-8' })
 }

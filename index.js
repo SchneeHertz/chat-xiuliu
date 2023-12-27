@@ -465,6 +465,8 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
   let context = _.takeRight(history, historyRoundLimit)
+
+  // only use user text content
   context.forEach(line => {
     if (line.role === 'user' && typeof line.content === 'object') {
       line.content = line.content.filter(part => part.type === 'text').map(part => part.text).join('\n')
