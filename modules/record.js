@@ -1,16 +1,12 @@
 const { spawn } = require('node:child_process')
 const path = require('node:path')
-const fs = require('node:fs')
 const { nanoid } = require('nanoid')
 
+const { STORE_PATH, getRootPath } = require('../utils/fileTool.js')
 
-let STORE_PATH = path.join(process.cwd(), 'data')
-if (!fs.existsSync(STORE_PATH)) {
-  fs.mkdirSync(STORE_PATH)
-}
 const SPEECH_AUDIO_PATH = path.join(STORE_PATH, 'speechAudio')
 
-const sox = path.join(process.cwd(), 'resources/extraResources/sox/sox.exe')
+const sox = path.join(getRootPath(), 'resources/extraResources/sox/sox.exe')
 const recordPromise = () => {
   let audioFilePath = path.join(SPEECH_AUDIO_PATH, nanoid() + '.wav')
   return new Promise((resolve, reject) => {

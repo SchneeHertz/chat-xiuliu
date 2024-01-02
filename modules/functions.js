@@ -14,11 +14,8 @@ const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
 const { nodejs_interpreter } = require('./vm.js')
 const { openaiImageCreate, azureOpenaiImageCreate } = require('./common.js')
+const { STORE_PATH } = require('../utils/fileTool.js')
 
-let STORE_PATH = path.join(process.cwd(), 'data')
-if (!fs.existsSync(STORE_PATH)) {
-  fs.mkdirSync(STORE_PATH)
-}
 if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
 if (!fs.existsSync(writeFolder)) {
   fs.mkdirSync(writeFolder)
