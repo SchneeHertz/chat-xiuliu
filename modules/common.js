@@ -26,20 +26,6 @@ try {
   })
 } catch {}
 
-// const openaiChat = ({ model = DEFAULT_MODEL, messages, tools, tool_choice }) => {
-//   if (tools) {
-//     return openai.chat.completions.create({
-//       model, messages, tools, tool_choice,
-//       max_tokens: 4096,
-//     })
-//   } else {
-//     return openai.chat.completions.create({
-//       model, messages,
-//       max_tokens: 4096,
-//     })
-//   }
-// }
-
 /**
  * Generates a chat stream using the OpenAI API.
  *
@@ -87,28 +73,6 @@ const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '10
   return response.data[0]
 }
 
-// const azureOpenaiChat = ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) => {
-//   const azureOpenai = new OpenAI({
-//     apiKey: AZURE_OPENAI_KEY,
-//     baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
-//     defaultQuery: { 'api-version': AZURE_API_VERSION },
-//     defaultHeaders: { 'api-key': AZURE_OPENAI_KEY },
-//     httpAgent,
-//     timeout: 40000
-//   })
-
-//   if (tools) {
-//     return azureOpenai.chat.completions.create({
-//       model, messages, tools, tool_choice,
-//       max_tokens: 4096,
-//     })
-//   } else {
-//     return azureOpenai.chat.completions.create({
-//       model, messages,
-//       max_tokens: 4096,
-//     })
-//   }
-// }
 
 const proxyOptions = useProxy ? {
   host: `${proxyObject.protocol}://${proxyObject.host}`,
@@ -120,24 +84,10 @@ try {
   azureOpenaiClient = new OpenAIClient(`https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com`, new AzureKeyCredential(AZURE_OPENAI_KEY), { proxyOptions })
 } catch {}
 
-const streamChatCompletions = (client, deploymentId, messages, options) =>{
-  const events = client.listChatCompletions(deploymentId, messages, options)
-  const stream = new ReadableStream({
-    async start(controller) {
-      for await (const event of events) {
-        controller.enqueue(event)
-      }
-      controller.close()
-    },
-  })
-  return stream
-}
-
 const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice } = {}) {
-  let stream
+  let events
   if (tools) {
-    stream = streamChatCompletions(
-      azureOpenaiClient,
+    events = await azureOpenaiClient.streamChatCompletions(
       model,
       messages,
       {
@@ -146,8 +96,7 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
       },
     )
   } else {
-    stream = streamChatCompletions(
-      azureOpenaiClient,
+    events = await azureOpenaiClient.streamChatCompletions(
       model,
       messages,
       {
@@ -169,13 +118,8 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
       },
     )
   }
-  const reader = stream.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) {
-      break
-    }
-    for (const choice of value.choices) {
+  for await (const event of events) {
+    for (const choice of event.choices) {
       if (Array.isArray(choice.messages)) {
         for (const message of choice.messages) {
           const token = message?.delta?.content
