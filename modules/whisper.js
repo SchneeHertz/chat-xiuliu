@@ -10,7 +10,7 @@ const getSpeechAudioJSON = (audioFilePath) => {
   return new Promise((resolve, reject) => {
     const spawned = spawn(whisper, [
       audioFilePath,
-      '-m', 'large',
+      '-m', 'large-v3',
       '--output_format', 'json',
       '--output_dir', path.dirname(audioFilePath),
       '--beep_off',

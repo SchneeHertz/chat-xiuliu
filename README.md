@@ -42,13 +42,14 @@ v2.1支持0613系列的GPT-4，GPT-3.5
 
 
 ## 可选语音识别功能
-- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢，可选，语音功能)_
-  - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹_
+- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)(最好有张N卡，不然运行时很慢，可选，语音功能)_
+  - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/Systran/faster-whisper-large-v3)下载必要的文件，解压到resources/extraResources/whisper文件夹_
   ```
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/config.json
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/model.bin
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/tokenizer.json
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/vocabulary.txt
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/config.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/model.bin
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/tokenizer.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/vocabulary.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/preprocessor_config.json
   resources/extraResources/whisper/cublas64_11.dll
   resources/extraResources/whisper/cublasLt64_11.dll
   resources/extraResources/whisper/cudnn_cnn_infer64_8.dll
