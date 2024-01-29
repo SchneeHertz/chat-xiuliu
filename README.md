@@ -25,7 +25,7 @@ ChatGPT双向语音助手，通过function calling实现访问网络，执行代
 - 支持设置代理
 
 ## 支持的模型
-v2.2支持1106系列的GPT-4，GPT-4-Vision，GPT-3.5，DALL·E 3
+v2.2支持preview系列的GPT-4，GPT-4-Vision，GPT-3.5，DALL·E 3
 
 v2.1支持0613系列的GPT-4，GPT-3.5
 
