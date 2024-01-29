@@ -169,10 +169,9 @@ defineExpose({
 <style lang="stylus">
 #message-list
   margin-top: 8px
-  max-height: calc(100vh - 104px)
+  max-height: calc(100vh - 108px)
   overflow-y: auto
 .message-card
-  margin: 4px 0 6px
   .n-card-header
     padding: 10px 26px 0
   .n-card-content
@@ -187,6 +186,8 @@ defineExpose({
       max-width: 512px
       margin-top: 4px
       cursor: pointer
+.message-card + .message-card
+  margin-top: 8px
 
 .token-count
   font-size: 12px

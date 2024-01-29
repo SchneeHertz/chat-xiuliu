@@ -25,7 +25,7 @@ const model_options = [
   { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
   { label: 'gpt-3.5-turbo-1106', value: 'gpt-3.5-turbo-1106' },
   { label: 'gpt-4', value: 'gpt-4' },
-  { label: 'gpt-4-1106-preview', value: 'gpt-4-1106-preview' },
+  { label: 'gpt-4-turbo-preview', value: 'gpt-4-turbo-preview' },
   { label: 'gpt-4-vision-preview', value: 'gpt-4-vision-preview' }
 ]
 

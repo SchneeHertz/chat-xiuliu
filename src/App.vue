@@ -175,7 +175,7 @@ const saveCapture = async () => {
         ref="messageListRef"
         :config="config"
       />
-      <n-input-group style="margin-top: 4px">
+      <n-input-group style="margin-top: 8px">
         <n-upload
           :show-file-list="false"
           accept="image/png,image/jpeg,image/webp"
