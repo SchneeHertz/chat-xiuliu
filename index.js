@@ -334,7 +334,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           content: ''
         })
         switch (toolCall.function.name) {
-          case 'getHistoricalConversationContent':
+          case 'get_historical_conversation_content':
             functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), additionalParam)
             break
           default:
