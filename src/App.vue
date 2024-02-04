@@ -149,17 +149,17 @@ const emptyHistory = () => {
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
-  screenshotTarget.style['padding-left'] = '32px'
+  screenshotTarget.style['padding-left'] = '16px'
   const canvas = await html2canvas(screenshotTarget, {
     useCORS: true,
-    width: screenshotTarget.clientWidth - 70,
-    windowWidth: screenshotTarget.clientWidth,
+    width: screenshotTarget.offsetWidth + 16,
+    // windowWidth: screenshotTarget.offsetWidth,
     height: screenshotTarget.scrollHeight + 24,
-    windowHeight: screenshotTarget.scrollHeight + 120
+    windowHeight: screenshotTarget.scrollHeight + 120,
   })
   screenshotTarget.style['padding-left'] = '0'
-  const base64image = canvas.toDataURL('image/png', 0.85)
-  let exportFileDefaultName = 'export.png'
+  const base64image = canvas.toDataURL('image/jpeg', 0.85)
+  let exportFileDefaultName = 'export.jpg'
   let linkElement = document.createElement('a')
   linkElement.setAttribute('href', base64image)
   linkElement.setAttribute('download', exportFileDefaultName)
