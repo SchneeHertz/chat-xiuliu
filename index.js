@@ -100,6 +100,8 @@ const STATUS = {
   isAudioPlay: false,
   recordStatus: 'Recording',
   speakIndex: 0,
+  answeringId: null,
+  breakAnswerId: null
 }
 
 let speakTextList = []
@@ -306,6 +308,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
   let clientMessageId = nanoid()
+  STATUS.answeringId = clientMessageId
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
@@ -378,22 +381,27 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         messageSend({
           id: clientMessageId,
           from,
-          content: resText
+          content: resText,
+          allowBreak: true
         })
-        if (STATUS.isAudioPlay) {
-          if (resTextTemp.includes('\n')) {
-            let splitResText = resTextTemp.split('\n')
-            splitResText = _.compact(splitResText)
-            if (splitResText.length > 1) {
-              resTextTemp = splitResText.pop()
-            } else {
-              resTextTemp = ''
-            }
+        if (resTextTemp.includes('\n')) {
+          let splitResText = resTextTemp.split('\n')
+          splitResText = _.compact(splitResText)
+          if (splitResText.length > 1) {
+            resTextTemp = splitResText.pop()
+          } else {
+            resTextTemp = ''
+          }
+          if (STATUS.isAudioPlay) {
             let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
             speakTextList.push({
               text: speakText,
               speakIndex,
             })
+          }
+          if (STATUS.breakAnswerId === clientMessageId) {
+            STATUS.breakAnswerId = null
+            break
           }
         }
       }
@@ -441,10 +449,11 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       from,
       messages,
       countToken: true,
-      content: resText
+      content: resText,
+      allowBreak: false
     })
   }
-
+  STATUS.answeringId = null
   return {
     messages,
     resToolCalls,
@@ -479,7 +488,6 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     ...context,
     { role: 'user', content: prompt }
   ]
-  addHistory([{ role: 'user', content: prompt }])
 
   messageLog({
     id: nanoid(),
@@ -515,6 +523,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       from,
       content: resText
     })
+    addHistory([{ role: 'user', content: prompt }])
     addHistory([{ role: 'assistant', content: resText }])
     memoryTable.add([{ text: resText }])
     if (triggerRecord) {
@@ -598,10 +607,14 @@ const triggerSpeech = async () => {
 }
 
 ipcMain.handle('send-prompt', async (event, prompt) => {
+  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
   resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
+})
+ipcMain.handle('break-answer', async () => {
+  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk

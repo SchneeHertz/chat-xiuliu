@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref, nextTick } from 'vue'
-import { UserCircle } from '@vicons/fa'
+import { UserCircle, StopCircleRegular } from '@vicons/fa'
 import { LogoOctocat } from '@vicons/ionicons4'
 import { nanoid } from 'nanoid'
 
@@ -88,6 +88,7 @@ onMounted(() => {
       findExist.text = arg.text
       findExist.tokenCount = arg.tokenCount
       findExist.countToken = arg.countToken
+      findExist.allowBreak = arg.allowBreak
     } else {
       mainStore.messageList.push(arg)
       mainStore.messageList = _.takeRight(mainStore.messageList, 200)
@@ -132,6 +133,10 @@ const addUserMessage = (message) => {
   mainStore.messageList.push(resolveMessage)
 }
 
+const breakAnswer = () => {
+  ipcRenderer.invoke('break-answer')
+}
+
 defineExpose({
   addUserMessage
 })
@@ -154,6 +159,13 @@ defineExpose({
         <div class="message-content" v-html="message.text"></div>
         <n-spin size="small" v-if="!message.text" />
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
+        <template #footer>
+          <n-button size="tiny" secondary circle v-if="message.allowBreak" @click="breakAnswer">
+            <template #icon>
+              <n-icon><StopCircleRegular /></n-icon>
+            </template>
+          </n-button>
+        </template>
       </n-thing>
     </n-card>
     <n-empty description="喵有记录" v-if="mainStore.messageList.length === 0" size="large" style="margin: 10px 0">
