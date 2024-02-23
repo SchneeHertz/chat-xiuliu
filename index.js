@@ -525,7 +525,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     })
     addHistory([{ role: 'user', content: prompt }])
     addHistory([{ role: 'assistant', content: resText }])
-    memoryTable.add([{ text: resText }])
+    // memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
       STATUS.speakIndex += 1

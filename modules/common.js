@@ -57,7 +57,7 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, too
   }
 }
 
-const openaiEmbedding = ({ input, model = 'text-embedding-ada-002' }) => {
+const openaiEmbedding = ({ input, model = 'text-embedding-3-small' }) => {
   return openai.embeddings.create({
     model, input
   })
