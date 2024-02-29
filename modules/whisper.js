@@ -22,9 +22,10 @@ const getSpeechAudioJSON = (audioFilePath) => {
     })
     spawned.on('exit', code => {
       if (code === 0) {
-        return resolve()
+        resolve()
+      } else {
+        reject('whisper close code is ' + code)
       }
-      return reject('whisper close code is ' + code)
     })
   })
 }

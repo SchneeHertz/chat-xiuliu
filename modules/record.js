@@ -16,9 +16,10 @@ const recordPromise = () => {
     })
     spawned.on('exit', code => {
       if (code === 0) {
-        return resolve(audioFilePath)
+        resolve(audioFilePath)
+      } else {
+        reject('sox close code is ' + code)
       }
-      return reject('sox close code is ' + code)
     })
   })
 }
