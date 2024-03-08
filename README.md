@@ -1,6 +1,6 @@
 # chat-xiuliu
 
-ChatGPT双向语音助手, 通过function calling实现访问网络，执行代码，读写文件等功能，支持GPT-4V的图像识别功能。
+ChatGPT双向语音助手，通过function calling实现访问网络，执行代码，读写文件等功能，支持GPT-4V的图像识别功能，支持调用DALL·E 3生成图片。
 
 >这个项目是由虚拟猫娘休留(直播搞不下去了)的后台fork来的，去掉了弹幕互动的部分，增加了语音输入<br>
 截止到2023年8月15日，使用LLM模拟人格的尝试，在我这里没有看到效果及成本可以接受的希望。<br>
@@ -14,6 +14,7 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
   - 连续调用函数处理
   - 对话内容回忆
   - 联网搜索关键词，获取网页内容
+  - 生成图片(DALL·E 3)
   - 读写本地文件
   - 在沙箱中执行JavaScript代码
   - 打开本地文件或网页
@@ -24,30 +25,31 @@ ChatGPT双向语音助手, 通过function calling实现访问网络，执行代�
 - 支持设置代理
 
 ## 支持的模型
-v2.2支持1106系列的GPT-4, GPT-4-Vision, GPT-3.5
+v2.2支持preview系列的GPT-4，GPT-4-Vision，GPT-3.5，DALL·E 3
 
-v2.1支持0613系列的GPT-4, GPT-3.5
+v2.1支持0613系列的GPT-4，GPT-3.5
 
 ## 截图
-![screenshot_1.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg)
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg" width="640">
 
-![screenshot_2.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_2.jpg)
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_2.jpg" width="457">
 
-![code_interpreter.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg)
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/code_interpreter.jpg" width="457">
 
-![setting.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg)
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting.jpg" width="457">
 
-![setting2.jpg](https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting2.jpg)
+<img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/setting2.jpg" width="457">
 
 
 ## 可选语音识别功能
-- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)r145.3(最好有张N卡，不然运行时很慢，可选，语音功能)_
-  - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/guillaumekln)下载必要的文件，解压到resources/extraResources/whisper文件夹_
+- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)(最好有张N卡，不然运行时很慢，可选，语音功能)_
+  - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/Systran/faster-whisper-large-v3)下载必要的文件，解压到resources/extraResources/whisper文件夹_
   ```
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/config.json
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/model.bin
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/tokenizer.json
-  resources/extraResources/whisper/_models/faster-whisper-large-v2/vocabulary.txt
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/config.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/model.bin
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/tokenizer.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/vocabulary.json
+  resources/extraResources/whisper/_models/faster-whisper-large-v3/preprocessor_config.json
   resources/extraResources/whisper/cublas64_11.dll
   resources/extraResources/whisper/cublasLt64_11.dll
   resources/extraResources/whisper/cudnn_cnn_infer64_8.dll
@@ -57,8 +59,17 @@ v2.1支持0613系列的GPT-4, GPT-3.5
   ```
 
 ### 设置参考
-  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型
+  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型，DALL·E 3和Vision模型同理
   - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
+  - 默认设定
+    ```
+    你是虚拟猫娘休留, 以下是你在回复时应该遵循的规则:
+    1. 灵活地运用猫娘的风格进行回复.
+    2. 调用函数来提高回复质量.
+    3. 使用markdown语法回复和显示图片.
+    4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
+    ```
+  - 打开高级设置中的`自动使用Vision模型`，可以在使用其他模型时使用Vision模型处理图像识别
 
 ## 赞助
 https://afdian.net/@SeldonHorizon

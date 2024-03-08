@@ -18,7 +18,7 @@ const { functionAction, functionInfo, functionList } = require('./modules/functi
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
-  DEFAULT_MODEL, AZURE_CHAT_MODEL,
+  DEFAULT_MODEL, AZURE_CHAT_MODEL, AZURE_VISION_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
@@ -30,6 +30,7 @@ const {
   disableFunctions = [],
   searchResultLimit = 5,
   webPageContentTokenLengthLimit = 6000,
+  autoUseVisionModel = false,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -100,6 +101,8 @@ const STATUS = {
   isAudioPlay: false,
   recordStatus: 'Recording',
   speakIndex: 0,
+  answeringId: null,
+  breakAnswerId: null,
   isLiving: false,
   selfTalk: 3,
 }
@@ -138,7 +141,7 @@ const createWindow = () => {
   if (app.isPackaged) {
     win.loadFile('dist/index.html')
   } else {
-    win.loadURL('http://localhost:5173')
+    win.loadURL('http://localhost:5174')
   }
   win.setMenuBarVisibility(false)
   win.setAutoHideMenuBar(true)
@@ -310,15 +313,16 @@ const addLiveHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
-const addtionalFunctionLimit = {
+const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
-const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false }) => {
+const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, model }) => {
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
   let clientMessageId = nanoid()
+  STATUS.answeringId = clientMessageId
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
@@ -334,18 +338,24 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     // addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
     for (let toolCall of resToolCalls) {
       let functionCallResult
+      let functionCallResultMessageId = nanoid()
       try {
         messageLogAndSend({
           id: nanoid(),
           from,
           content: functionAction[toolCall.function.name](JSON.parse(toolCall.function.arguments))
         })
+        messageLogAndSend({
+          id: functionCallResultMessageId,
+          from: 'Function Calling',
+          content: ''
+        })
         switch (toolCall.function.name) {
-          case 'getHistoricalConversationContent':
-            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), addtionalFunctionLimit)
+          case 'get_historical_conversation_content':
+            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), additionalParam)
             break
           default:
-            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), addtionalFunctionLimit)
+            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), additionalParam)
             break
         }
       } catch (e) {
@@ -355,7 +365,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
       // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
       messageLogAndSend({
-        id: nanoid(),
+        id: functionCallResultMessageId,
         from: 'Function Calling',
         content: functionCallResult + ''
       })
@@ -363,7 +373,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   }
   resToolCalls = []
 
-  let prepareChatOption = { messages }
+  let prepareChatOption = { messages, model }
 
   if (useFunctionCalling) {
     prepareChatOption.tools = functionInfo.filter(f => !disableFunctions.includes(f?.function?.name))
@@ -385,23 +395,28 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         messageSend({
           id: clientMessageId,
           from,
-          content: resText
+          content: resText,
+          allowBreak: true
         })
-        if (STATUS.isAudioPlay) {
-          if (resTextTemp.includes('\n')) {
-            let splitResText = resTextTemp.split('\n')
-            splitResText = _.compact(splitResText)
-            if (splitResText.length > 1) {
-              resTextTemp = splitResText.pop()
-            } else {
-              resTextTemp = ''
-            }
+        if (resTextTemp.includes('\n')) {
+          let splitResText = resTextTemp.split('\n')
+          splitResText = _.compact(splitResText)
+          if (splitResText.length > 1) {
+            resTextTemp = splitResText.pop()
+          } else {
+            resTextTemp = ''
+          }
+          if (STATUS.isAudioPlay) {
             let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
             if (STATUS.isLiving) speakText = mint.filter(speakText).text
             speakTextList.push({
               text: speakText,
               speakIndex,
             })
+          }
+          if (STATUS.breakAnswerId === clientMessageId) {
+            STATUS.breakAnswerId = null
+            break
           }
         }
       }
@@ -450,10 +465,11 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       from,
       messages,
       countToken: true,
-      content: resText
+      content: resText,
+      allowBreak: false
     })
   }
-
+  STATUS.answeringId = null
   return {
     messages,
     resToolCalls,
@@ -473,12 +489,20 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
 const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt, messages, line = {}, forLive = false }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
+  let context = _.takeRight(history, historyRoundLimit)
+
+  // only use user text content
+  context.forEach(line => {
+    if (line.role === 'user' && typeof line.content === 'object') {
+      line.content = line.content.filter(part => part.type === 'text').map(part => part.text).join('\n')
+    }
+  })
   if (!forLive) {
     messages = [
       { role: 'system', content: givenSystemPrompt ? givenSystemPrompt : systemPrompt },
-      { role: 'user', content: `我的名字是${ADMIN_NAME}` },
+      { role: 'user', content: `你好, 我的名字是${ADMIN_NAME}` },
       { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-      ..._.takeRight(history, historyRoundLimit),
+      ...context,
       { role: 'user', content: prompt }
     ]
     addHistory([{ role: 'user', content: prompt }])
@@ -504,7 +528,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   try {
     if (promptType === 'string') {
       let round = 0
-      while (resText === '') {
+      while (resText === '' && round <= functionCallingRoundLimit + 1) {
         let useFunctionCalling = round > functionCallingRoundLimit ? false : true
         if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
         ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
@@ -513,19 +537,25 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
         round += 1
       }
     } else {
-      resText = (await resolveMessages({ resText, messages, from })).resText
+      if (autoUseVisionModel) {
+        let model = useAzureOpenai ? AZURE_VISION_MODEL : 'gpt-4-vision-preview'
+        resText = (await resolveMessages({ resText, messages, from, model })).resText
+      } else {
+        resText = (await resolveMessages({ resText, messages, from })).resText
+      }
     }
     messageLog({
       id: nanoid(),
       from,
       content: resText
     })
+    addHistory([{ role: 'user', content: prompt }])
     if (forLive) {
       addLiveHistory([{ from: AI_NAME, content: resText }])
     } else {
       addHistory([{ role: 'assistant', content: resText }])
     }
-    memoryTable.add([{ text: resText }])
+    // memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
       STATUS.speakIndex += 1
@@ -607,10 +637,14 @@ const triggerSpeech = async () => {
 }
 
 ipcMain.handle('send-prompt', async (event, prompt) => {
+  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
   resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
+})
+ipcMain.handle('break-answer', async () => {
+  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
@@ -707,3 +741,7 @@ if (liveMode) {
   }
   setTimeout(liveMainStep, 4000)
 }
+
+ipcMain.handle('open-external', async (event, url) => {
+  shell.openExternal(url)
+})

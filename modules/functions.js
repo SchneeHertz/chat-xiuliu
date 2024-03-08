@@ -6,35 +6,38 @@ const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
 const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
+const dayjs = require('dayjs')
 
-let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter } } = require('../utils/loadConfig.js')
+let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
-const { nodejsInterpreter } = require('./vm.js')
+const { nodejs_interpreter } = require('./vm.js')
+const { openaiImageCreate, azureOpenaiImageCreate } = require('./common.js')
+const { STORE_PATH } = require('../utils/fileTool.js')
 
-let STORE_PATH = path.join(process.cwd(), 'data')
-if (!fs.existsSync(STORE_PATH)) {
-  fs.mkdirSync(STORE_PATH)
+if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
+if (!fs.existsSync(writeFolder)) {
+  fs.mkdirSync(writeFolder)
 }
 
 const functionInfo = [
   {
-    "name": "getInformationFromGoogle",
+    "name": "get_information_from_google",
     "description": "Fetch information from Google based on a query string",
     "parameters": {
       "type": "object",
       "properties": {
-        "queryString": {
+        "query_string": {
           "type": "string",
           "description": "The search term to lookup",
         },
       },
-      "required": ["queryString"],
+      "required": ["query_string"],
     }
   },
   {
-    "name": "getContentOfWebpage",
+    "name": "get_text_content_of_webpage",
     "description": "get text content of webpage based on url.",
     "parameters": {
       "type": "object",
@@ -48,26 +51,44 @@ const functionInfo = [
     }
   },
   {
-    "name": "getHistoricalConversationContent",
+    "name": "download_file_to_local",
+    "description": "download file from url to local.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file_url": {
+          "type": "string",
+          "description": "The url of file",
+        },
+        "file_name": {
+          "type": "string",
+          "description": "The name of file",
+        }
+      },
+      "required": ["file_url", "file_name"],
+    }
+  },
+  {
+    "name": "get_historical_conversation_content",
     "description": "Searching historical conversation content in conversation history.",
     "parameters": {
       "type": "object",
       "properties": {
-        "relatedText": {
+        "related_text": {
           "type": "string",
           "description": "The related text to find historical conversation content",
         },
       },
-      "required": ["relatedText"],
+      "required": ["related_text"],
     }
   },
   {
-    "name": "writeFileToDisk",
-    "description": "Write file to disk.",
+    "name": "write_file_to_local",
+    "description": "Write file to local disk.",
     "parameters": {
       "type": "object",
       "properties": {
-        "relativeFilePath": {
+        "relative_file_path": {
           "type": "string",
           "description": "Relative file path, relative to the storage folder",
         },
@@ -76,25 +97,25 @@ const functionInfo = [
           "description": "The content of file",
         }
       },
-      "required": ["relativeFilePath", "content"],
+      "required": ["relative_file_path", "content"],
     }
   },
   {
-    "name": "readFileFromDisk",
-    "description": "read file from disk.",
+    "name": "read_file_from_local",
+    "description": "read file from local disk.",
     "parameters": {
       "type": "object",
       "properties": {
-        "filePath": {
+        "file_path": {
           "type": "string",
           "description": "The path of file to read",
         }
       },
-      "required": ["filePath"],
+      "required": ["file_path"],
     }
   },
   {
-    "name": "javaScriptInterpreter",
+    "name": "java_script_interpreter",
     "description": "Useful for running JavaScript code in sandbox. Input is a string of JavaScript code, output is the result of the code.",
     "parameters": {
       "type": "object",
@@ -108,12 +129,12 @@ const functionInfo = [
     }
   },
   {
-    "name": "openLocalFileOrWebpage",
+    "name": "open_local_file_or_webpage",
     "description": "Open local file or webpage, display it to the user",
     "parameters": {
       "type": "object",
       "properties": {
-        "filePath": {
+        "file_path": {
           "type": "string",
           "description": "The path of file to open",
         },
@@ -129,6 +150,37 @@ const functionInfo = [
       },
       "required": ["type"],
     }
+  },
+  {
+    "name": "create_image_use_DALLE3",
+    "description": `Create image using DALL·E 3.
+If the description is not in English, then translate it.
+Always mention the image type (photo, oil painting, watercolor painting, illustration, cartoon, drawing, vector, render, etc.) at the beginning of the caption.`,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "A text description of the desired image",
+        },
+        "size": {
+          "type": "string",
+          "description": "The size of the generated images, landscape means 1792x1024 and portrait means 1024x1792",
+          "enum": ["1024x1024", "1792x1024", "1024x1792"],
+        },
+        "quality": {
+          "type": "string",
+          "description": "The quality of the image that will be generated",
+          "enum": ["standard", "hd"],
+        },
+        "style": {
+          "type": "string",
+          "description": "The style of the generated images",
+          "enum": ["vivid", "natural"]
+        }
+      },
+      "required": ["prompt"],
+    }
   }
 ].map(f => {
   return {
@@ -138,13 +190,13 @@ const functionInfo = [
 })
 
 if (allowPowerfulInterpreter) {
-  let findExistInterpreter = functionInfo.findIndex(f => f.function.name === 'javaScriptInterpreter')
+  let findExistInterpreter = functionInfo.findIndex(f => f.function.name === 'java_script_interpreter')
   if (findExistInterpreter !== -1) {
     functionInfo.splice(findExistInterpreter, 1, {
       type: 'function',
       function: {
-        "name": "nodejsInterpreter",
-        "description": `Useful for running JavaScript code in node.js VM.
+        "name": "nodejs_interpreter",
+        "description": `Useful for running JavaScript code in node.js(version 18) VM.
   Input is a string of JavaScript code, output is the result of the code.
   You can require node modules except fs, and use lodash directly.
   You can only store variables in the "global" object for future use, like "global.hello = function () {return 'hello'}"`,
@@ -164,43 +216,51 @@ if (allowPowerfulInterpreter) {
 }
 
 const functionAction = {
-  getInformationFromGoogle ({ queryString }) {
-    return `${AI_NAME}正在搜索 ${queryString}`
+  get_information_from_google ({ query_string }) {
+    return `${AI_NAME}正在搜索 ${query_string}`
   },
-  getContentOfWebpage ({ url }) {
+  get_text_content_of_webpage ({ url }) {
     return `${AI_NAME}正在访问 ${url}`
   },
-  getHistoricalConversationContent ({ relatedText }) {
-    return `${AI_NAME}想起了关于 ${relatedText} 的事情`
+  download_file_to_local ({ file_url, file_name }) {
+    return `${AI_NAME}下载了 ${file_url} 到 ${file_name}`
   },
-  writeFileToDisk ({ relativeFilePath, content }) {
-    return `${AI_NAME}保存\n${content}\n到 ${relativeFilePath}`
+  get_historical_conversation_content ({ related_text }) {
+    return `${AI_NAME}想起了关于 ${related_text} 的事情`
   },
-  readFileFromDisk ({ filePath }) {
-    return `${AI_NAME}读取了 ${filePath}`
+  write_file_to_local ({ relative_file_path, content }) {
+    return `${AI_NAME}保存\n\n${content}\n\n到 ${relative_file_path}`
   },
-  javaScriptInterpreter ({ code }) {
+  read_file_from_local ({ file_path }) {
+    return `${AI_NAME}读取了 ${file_path}`
+  },
+  java_script_interpreter ({ code }) {
     code = beautify(code, {
       indent_size: 2,
       space_after_anon_function: true,
       space_after_named_function: true,
     })
-    return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
+    return `${AI_NAME}运行了\n\n\`\`\`javascript\n${code}\n\`\`\``
   },
-  nodejsInterpreter ({ code }) {
+  nodejs_interpreter ({ code }) {
     code = beautify(code, {
       indent_size: 2,
       space_after_anon_function: true,
       space_after_named_function: true,
     })
-    return `${AI_NAME}运行了\n\`\`\`javascript\n${code}\n\`\`\``
+    return `${AI_NAME}运行了\n\n\`\`\`javascript\n${code}\n\`\`\``
   },
-  openLocalFileOrWebpage ({ filePath, url, type }) {
-    return `${AI_NAME}请求打开 ${type === 'file' ? filePath : url}`
+  open_local_file_or_webpage ({ file_path, url, type }) {
+    return `${AI_NAME}请求打开 ${type === 'file' ? file_path : url}`
+  },
+  create_image_use_DALLE3 ({ prompt, size, quality, style }) {
+    return `${AI_NAME}正在生成一张\`${size ? size : '1024x1024'}\`大小,
+质量为\`${quality ? quality : 'standard'}\`, 风格为\`${style ? style : 'vivid'}\`的图片.
+Prompt: \n\n\`\`\`json\n${prompt}\n\`\`\``
   }
 }
 
-const getInformationFromGoogle = async ({ queryString }, { searchResultLimit }) => {
+const get_information_from_google = async ({ query_string }, { searchResultLimit }) => {
   let options = { proxy: useProxy ? proxyString : undefined }
   let additionalQueryParam = {
     // lr: 'lang_zh-CN',
@@ -209,11 +269,11 @@ const getInformationFromGoogle = async ({ queryString }, { searchResultLimit }) 
     // gl: 'cn',
     safe: 'high'
   }
-  let googleRes = await google({ options, disableConsole: true, query: queryString, limit: searchResultLimit, additionalQueryParam })
-  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n##\n')
+  let googleRes = await google({ options, disableConsole: true, query: query_string, limit: searchResultLimit, additionalQueryParam })
+  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n')
 }
 
-const getContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
+const get_text_content_of_webpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
   return await axios.get(url, { proxy: useProxy ? proxyObject : undefined })
     .then(async res=>{
       let html = await res.data
@@ -229,24 +289,35 @@ const getContentOfWebpage = async ({ url }, { webPageContentTokenLengthLimit }) 
     })
 }
 
-const getHistoricalConversationContent = async ({ relatedText, dbTable }) => {
-  let MemoryTexts = await dbTable.search(relatedText).limit(2).execute()
+const download_file_to_local = async ({ file_url, file_name }) => {
+  let writefile_path = path.join(writeFolder, file_name)
+  const response = await axios({
+    method: 'GET',
+    url: file_url,
+    responseType: 'arraybuffer',
+    proxy: useProxy ? proxyObject : undefined
+  })
+  await fs.promises.writeFile(writefile_path, response.data)
+  return writefile_path
+}
+
+const get_historical_conversation_content = async ({ related_text, dbTable }) => {
+  let MemoryTexts = await dbTable.search(related_text).limit(2).execute()
   return MemoryTexts.map(s => s.text).join('\n')
 }
 
-if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
-const writeFileToDisk = async ({ relativeFilePath, content }) => {
-  let writeFilepath = path.join(writeFolder, relativeFilePath)
-  await fs.promises.mkdir(path.dirname(writeFilepath), { recursive: true })
-  await fs.promises.writeFile(writeFilepath, content)
-  return writeFilepath
+const write_file_to_local = async ({ relative_file_path, content }) => {
+  let writefile_path = path.join(writeFolder, relative_file_path)
+  await fs.promises.mkdir(path.dirname(writefile_path), { recursive: true })
+  await fs.promises.writeFile(writefile_path, content)
+  return writefile_path
 }
 
-const readFileFromDisk = async ({ filePath }) => {
-  return await fs.promises.readFile(filePath, { encoding: 'utf-8' })
+const read_file_from_local = async ({ file_path }) => {
+  return await fs.promises.readFile(file_path, { encoding: 'utf-8' })
 }
 
-const javaScriptInterpreter = async ({ code }) => {
+const java_script_interpreter = async ({ code }) => {
   const quickjs = await getQuickJS()
   let result = quickjs.evalCode(code, {
     shouldInterrupt: shouldInterruptAfterDeadline(Date.now() + 10000),
@@ -255,26 +326,59 @@ const javaScriptInterpreter = async ({ code }) => {
   return JSON.stringify(result)
 }
 
-const openLocalFileOrWebpage = async ({ filePath, url, type }) => {
+const open_local_file_or_webpage = async ({ file_path, url, type }) => {
   if (type === 'file') {
-    shell.openPath(filePath)
+    shell.openPath(file_path)
   } else {
     shell.openExternal(url)
   }
-  return `${AI_NAME}打开了 ${type === 'file' ? filePath : url}`
+  return `${AI_NAME}打开了 ${type === 'file' ? file_path : url}`
+}
+
+const _downloadImage = async (result) => {
+  try {
+    const fileId = dayjs().format('YYYYMMDDTHHmmssSSS')
+    await download_file_to_local({ file_url: result.url, file_name: fileId + '_image.png' })
+    await fs.promises.writeFile(path.join(writeFolder, fileId + '_prompt.txt'), result.revised_prompt)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const create_image_use_DALLE3 = async ({ prompt, size, quality, style }) => {
+  let result
+  if (useAzureOpenai) {
+    result = await azureOpenaiImageCreate({
+      prompt,
+      size,
+      quality,
+      style
+    })
+  } else {
+    result = await openaiImageCreate({
+      prompt,
+      size,
+      quality,
+      style
+    })
+  }
+  _downloadImage(result)
+  return JSON.stringify(result)
 }
 
 module.exports = {
   functionInfo,
   functionAction,
   functionList: {
-    getInformationFromGoogle,
-    getContentOfWebpage,
-    getHistoricalConversationContent,
-    writeFileToDisk,
-    readFileFromDisk,
-    javaScriptInterpreter,
-    nodejsInterpreter,
-    openLocalFileOrWebpage
+    get_information_from_google,
+    get_text_content_of_webpage,
+    download_file_to_local,
+    get_historical_conversation_content,
+    write_file_to_local,
+    read_file_from_local,
+    java_script_interpreter,
+    nodejs_interpreter,
+    open_local_file_or_webpage,
+    create_image_use_DALLE3
   }
 }

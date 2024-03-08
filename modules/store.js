@@ -1,10 +1,7 @@
 const path = require('node:path')
 const fs = require('node:fs')
 
-let STORE_PATH = path.join(process.cwd(), 'data')
-if (!fs.existsSync(STORE_PATH)) {
-  fs.mkdirSync(STORE_PATH)
-}
+const { STORE_PATH } = require('../utils/fileTool.js')
 
 let storeData
 try {
@@ -21,7 +18,7 @@ try {
 }
 
 const getStore = (key, defaultValue) => {
-  return storeData[key] || defaultValue
+  return JSON.parse(JSON.stringify(storeData[key])) || defaultValue
 }
 
 const setStore = (key, value) => {

@@ -2,14 +2,15 @@ const { spawn } = require('node:child_process')
 const path = require('node:path')
 const fs = require('node:fs')
 const { recordPromise } = require('./record.js')
+const { getRootPath } = require('../utils/fileTool.js')
 
-const whisper = path.join(process.cwd(), 'resources/extraResources/whisper/whisper-faster.exe')
+const whisper = path.join(getRootPath(), 'resources/extraResources/whisper/whisper-faster.exe')
 
 const getSpeechAudioJSON = (audioFilePath) => {
   return new Promise((resolve, reject) => {
     const spawned = spawn(whisper, [
       audioFilePath,
-      '-m', 'large',
+      '-m', 'large-v3',
       '--output_format', 'json',
       '--output_dir', path.dirname(audioFilePath),
       '--beep_off',
@@ -21,9 +22,10 @@ const getSpeechAudioJSON = (audioFilePath) => {
     })
     spawned.on('exit', code => {
       if (code === 0) {
-        return resolve()
+        resolve()
+      } else {
+        reject('whisper close code is ' + code)
       }
-      return reject('whisper close code is ' + code)
     })
   })
 }

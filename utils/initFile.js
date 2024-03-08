@@ -1,7 +1,7 @@
 const path = require('node:path')
 const fs = require('node:fs')
 
-let STORE_PATH = path.join(process.cwd(), 'data')
+const { STORE_PATH } = require('./fileTool.js')
 if (!fs.existsSync(STORE_PATH)) {
   fs.mkdirSync(STORE_PATH)
 }

@@ -18,6 +18,8 @@ const printMessage = (type, msg, option) => {
   messageRef.value.message[type](msg, option)
 }
 
+const messageListRef = ref(null)
+
 const inputText = ref('')
 const inputArea = ref(null)
 const updateInputText = (value) => {
@@ -34,7 +36,7 @@ const sendText = (event) => {
     return
   }
   if (imageBlobUrlList.value.length > 0) {
-    ipcRenderer.invoke('send-prompt', {
+    let userPrompt = {
       type: 'array',
       content: [
         {
@@ -51,24 +53,25 @@ const sendText = (event) => {
           }
         })
       ]
-    })
-    mainStore.messageList.push({
+    }
+    ipcRenderer.invoke('send-prompt', userPrompt)
+    messageListRef.value.addUserMessage({
       id: nanoid(),
       from: config.value.ADMIN_NAME,
-      text: inputText.value,
-      images: imageBlobUrlList.value
+      ...userPrompt
     })
     imageBlobUrlList.value = []
     showImagePopover.value = false
   } else {
-    ipcRenderer.invoke('send-prompt', {
+    let userPrompt = {
       type: 'string',
       content: inputText.value
-    })
-    mainStore.messageList.push({
+    }
+    ipcRenderer.invoke('send-prompt', userPrompt)
+    messageListRef.value.addUserMessage({
       id: nanoid(),
       from: config.value.ADMIN_NAME,
-      text: inputText.value
+      ...userPrompt
     })
   }
   nextTick(() => scrollToBottom('message-list'))
@@ -148,16 +151,17 @@ const emptyHistory = () => {
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
-  screenshotTarget.style['padding-left'] = '32px'
+  screenshotTarget.style['padding-left'] = '16px'
   const canvas = await html2canvas(screenshotTarget, {
-    width: screenshotTarget.clientWidth - 70,
-    windowWidth: screenshotTarget.clientWidth,
+    useCORS: true,
+    width: screenshotTarget.offsetWidth + 16,
+    // windowWidth: screenshotTarget.offsetWidth,
     height: screenshotTarget.scrollHeight + 24,
-    windowHeight: screenshotTarget.scrollHeight + 120
+    windowHeight: screenshotTarget.scrollHeight + 120,
   })
   screenshotTarget.style['padding-left'] = '0'
-  const base64image = canvas.toDataURL('image/png', 0.85)
-  let exportFileDefaultName = 'export.png'
+  const base64image = canvas.toDataURL('image/jpeg', 0.85)
+  let exportFileDefaultName = 'export.jpg'
   let linkElement = document.createElement('a')
   linkElement.setAttribute('href', base64image)
   linkElement.setAttribute('download', exportFileDefaultName)
@@ -173,9 +177,10 @@ const switchLive = () => {
   <n-grid x-gap="12" :cols="24">
     <n-gi :offset="1" :span="22">
       <MessageList
+        ref="messageListRef"
         :config="config"
       />
-      <n-input-group style="margin-top: 4px">
+      <n-input-group style="margin-top: 8px">
         <n-upload
           :show-file-list="false"
           accept="image/png,image/jpeg,image/webp"
