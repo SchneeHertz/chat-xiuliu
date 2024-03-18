@@ -148,7 +148,7 @@ defineExpose({
     <n-card v-for="message in mainStore.messageList" :key="message.id" class="message-card">
       <n-thing>
         <template #avatar>
-          <n-avatar v-if="[props.config?.ADMIN_NAME, `(${props.config?.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
+          <n-avatar v-if="[config?.ADMIN_NAME, `(${config?.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
             <n-icon><UserCircle /></n-icon>
           </n-avatar>
           <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>
