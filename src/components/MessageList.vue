@@ -41,7 +41,12 @@ const scrollToBottom = (id) => {
 }
 
 const renderUserText = (text) => {
-  let resolveText = text.replace(/\n{1,}/g, '\n\n')
+  let resolveText = text.replace(/(```[\s\S]*?```)|(\n{1,})/g, (match, p1, p2) => {
+    // 如果匹配到的是代码块，直接返回代码块
+    if (p1) return p1
+    // 如果匹配到的是换行符，且不在代码块内，替换为双换行符
+    if (p2) return '\n\n'
+  })
   return md.render(resolveText)
 }
 
