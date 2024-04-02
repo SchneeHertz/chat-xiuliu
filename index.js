@@ -382,7 +382,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           id: clientMessageId,
           from,
           content: resText,
-          allowBreak: true
+          allowBreak: STATUS.breakAnswerId !== clientMessageId
         })
         if (resTextTemp.includes('\n')) {
           let splitResText = resTextTemp.split('\n')
@@ -606,15 +606,24 @@ const triggerSpeech = async () => {
   }
 }
 
+const breakAnswer = () => {
+  if (STATUS.answeringId) {
+    STATUS.breakAnswerId = STATUS.answeringId
+    messageSend({
+      id: STATUS.answeringId,
+      allowBreak: false
+    })
+  }
+}
 ipcMain.handle('send-prompt', async (event, prompt) => {
-  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
+  breakAnswer()
   resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
 })
 ipcMain.handle('break-answer', async () => {
-  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
+  breakAnswer()
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk

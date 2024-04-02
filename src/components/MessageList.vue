@@ -90,7 +90,7 @@ onMounted(() => {
     }
     let findExist = _.find(mainStore.messageList, { id: arg.id })
     if (findExist) {
-      findExist.text = arg.text
+      if (!_.isUndefined(arg.text)) findExist.text = arg.text
       findExist.tokenCount = arg.tokenCount
       findExist.countToken = arg.countToken
       findExist.allowBreak = arg.allowBreak
