@@ -500,7 +500,9 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resToolCalls = []
 
   try {
-    if (promptType === 'string') {
+    if (useAzureOpenai && promptType !== 'string' && autoUseVisionModel) {
+      resText = (await resolveMessages({ resText, messages, from, model: AZURE_VISION_MODEL })).resText
+    } else {
       let round = 0
       while (resText === '' && round <= functionCallingRoundLimit + 1) {
         let useFunctionCalling = round > functionCallingRoundLimit ? false : true
@@ -509,13 +511,6 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
           resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
         }))
         round += 1
-      }
-    } else {
-      if (autoUseVisionModel) {
-        let model = useAzureOpenai ? AZURE_VISION_MODEL : 'gpt-4-vision-preview'
-        resText = (await resolveMessages({ resText, messages, from, model })).resText
-      } else {
-        resText = (await resolveMessages({ resText, messages, from })).resText
       }
     }
     messageLog({

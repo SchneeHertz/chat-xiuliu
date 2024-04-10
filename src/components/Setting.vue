@@ -25,8 +25,7 @@ const model_options = [
   { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
   { label: 'gpt-3.5-turbo-1106', value: 'gpt-3.5-turbo-1106' },
   { label: 'gpt-4', value: 'gpt-4' },
-  { label: 'gpt-4-turbo-preview', value: 'gpt-4-turbo-preview' },
-  { label: 'gpt-4-vision-preview', value: 'gpt-4-vision-preview' }
+  { label: 'gpt-4-turbo', value: 'gpt-4-turbo' }
 ]
 
 const parseNumber = (str) => {
@@ -204,7 +203,7 @@ defineExpose({
               </n-button>
             </n-input-group>
           </n-form-item>
-          <n-form-item label="自动使用vision模型" path="autoUseVisionModel">
+          <n-form-item label="自动使用vision模型(Azure)" path="autoUseVisionModel">
             <n-switch v-model:value="config.autoUseVisionModel"/>
           </n-form-item>
         </n-form>
