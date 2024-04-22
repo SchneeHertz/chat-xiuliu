@@ -51,6 +51,7 @@
     "highlight.js": "^11.8.0",
     "highlightjs-copy": "^1.0.4",
     "markdown-it": "^14.0.0",
+    "markdown-it-katex-gpt": "^1.0.0",
     "naive-ui": "^2.35.0",
     "pinia": "^2.1.7",
     "stylus": "^0.59.0",

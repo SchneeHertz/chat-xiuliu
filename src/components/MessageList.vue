@@ -10,6 +10,8 @@ import 'highlight.js/styles/github-dark.css'
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
 
+import mdItKatex from 'markdown-it-katex-gpt'
+
 import XiuliuAvatar from '../assets/xiuliu_avatar.jpg'
 
 import { useMainStore } from '../pinia.js'
@@ -33,6 +35,8 @@ const md = new MarkdownIt({
   },
   linkify: true
 })
+
+md.use(mdItKatex)
 
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
