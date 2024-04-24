@@ -26,9 +26,9 @@ const props = defineProps({
 
 const md = new MarkdownIt({
   highlight: function (str, lang) {
-    if (lang && !['html', 'xml'].includes(lang) && hljs.getLanguage(lang)) {
+    if (lang && hljs.getLanguage(lang)) {
       try {
-        return `<pre class="code-block language-${lang}"><code class="language-${lang}">` + str + '</code></pre>'
+        return `<pre class="code-block language-${lang}"><code class="language-${lang}">` + md.utils.escapeHtml(str) + '</code></pre>'
       } catch (__) {}
     }
     return '<pre class="code-block"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
