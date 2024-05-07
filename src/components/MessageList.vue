@@ -97,6 +97,7 @@ onMounted(() => {
       findExist.tokenCount = arg.tokenCount
       findExist.countToken = arg.countToken
       findExist.allowBreak = arg.allowBreak
+      findExist.useContext = arg.useContext
     } else {
       mainStore.messageList.push(arg)
       mainStore.messageList = _.takeRight(mainStore.messageList, 200)
@@ -166,6 +167,7 @@ defineExpose({
         </template>
         <div class="message-content" v-html="message.text"></div>
         <n-spin size="small" v-if="!message.text" />
+        <p v-if="message.useContext" class="token-count">With {{ message.useContext }}</p>
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
         <template #footer>
           <n-button size="tiny" secondary circle v-if="message.allowBreak" @click="breakAnswer">

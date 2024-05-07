@@ -69,20 +69,6 @@ const functionInfo = [
     }
   },
   {
-    "name": "get_historical_conversation_content",
-    "description": "Searching historical conversation content in conversation history.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "related_text": {
-          "type": "string",
-          "description": "The related text to find historical conversation content",
-        },
-      },
-      "required": ["related_text"],
-    }
-  },
-  {
     "name": "write_file_to_local",
     "description": "Write file to local disk.",
     "parameters": {
@@ -225,9 +211,6 @@ const functionAction = {
   download_file_to_local ({ file_url, file_name }) {
     return `${AI_NAME}下载了 ${file_url} 到 ${file_name}`
   },
-  get_historical_conversation_content ({ related_text }) {
-    return `${AI_NAME}想起了关于 ${related_text} 的事情`
-  },
   write_file_to_local ({ relative_file_path, content }) {
     return `${AI_NAME}保存\n\n${content}\n\n到 ${relative_file_path}`
   },
@@ -301,11 +284,6 @@ const download_file_to_local = async ({ file_url, file_name }) => {
   return writefile_path
 }
 
-const get_historical_conversation_content = async ({ related_text, dbTable }) => {
-  let MemoryTexts = await dbTable.search(related_text).limit(2).execute()
-  return MemoryTexts.map(s => s.text).join('\n')
-}
-
 const write_file_to_local = async ({ relative_file_path, content }) => {
   let writefile_path = path.join(writeFolder, relative_file_path)
   await fs.promises.mkdir(path.dirname(writefile_path), { recursive: true })
@@ -373,7 +351,6 @@ module.exports = {
     get_information_from_google,
     get_text_content_of_webpage,
     download_file_to_local,
-    get_historical_conversation_content,
     write_file_to_local,
     read_file_from_local,
     java_script_interpreter,

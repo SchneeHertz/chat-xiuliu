@@ -30,7 +30,7 @@
         "from": "resources/extraResources",
         "to": "extraResources",
         "filter": [
-          "sox"
+          "**/*"
         ]
       }
     ],
