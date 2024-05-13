@@ -61,8 +61,6 @@
     "vue": "^3.2.45"
   },
   "dependencies": {
-    "@azure/openai": "^1.0.0-beta.10",
-    "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
     "dayjs": "^1.11.10",
     "electron-window-state": "^5.0.3",
@@ -74,11 +72,10 @@
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
     "node-edge-tts": "^1.2.2",
-    "openai": "^4.22.0",
+    "openai": "^4.45.0",
     "quickjs-emscripten": "^0.23.0",
     "reconnecting-websocket": "^4.4.0",
     "sound-play": "^1.1.0",
-    "vectordb": "^0.2.2",
     "ws": "^8.14.1"
   }
 }

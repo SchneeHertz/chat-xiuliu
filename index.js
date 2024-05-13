@@ -19,7 +19,7 @@ const { functionAction, functionInfo, functionList } = require('./modules/functi
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
-  DEFAULT_MODEL, AZURE_CHAT_MODEL, AZURE_VISION_MODEL,
+  DEFAULT_MODEL, AZURE_CHAT_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
@@ -30,7 +30,6 @@ const {
   disableFunctions = [],
   searchResultLimit = 5,
   webPageContentTokenLengthLimit = 6000,
-  autoUseVisionModel = false,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
@@ -489,8 +488,8 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resToolCalls = []
 
   try {
-    if (useAzureOpenai && promptType !== 'string' && autoUseVisionModel) {
-      resText = (await resolveMessages({ resText, messages, from, model: AZURE_VISION_MODEL })).resText
+    if (useAzureOpenai && promptType !== 'string') {
+      resText = (await resolveMessages({ resText, messages, from })).resText
     } else {
       let round = 0
       while (resText === '' && round <= functionCallingRoundLimit + 1) {

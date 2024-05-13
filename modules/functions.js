@@ -1,6 +1,5 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const google = require('@schneehertz/google-it')
 const axios = require('axios')
 const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
@@ -8,7 +7,7 @@ const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 const dayjs = require('dayjs')
 
-let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai } } = require('../utils/loadConfig.js')
+let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai, CustomSearchAPI } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
@@ -244,16 +243,10 @@ Prompt: \n\n\`\`\`json\n${prompt}\n\`\`\``
 }
 
 const get_information_from_google = async ({ query_string }, { searchResultLimit }) => {
-  let options = { proxy: useProxy ? proxyString : undefined }
-  let additionalQueryParam = {
-    // lr: 'lang_zh-CN',
-    // hl: 'zh-CN',
-    // cr: 'countryCN',
-    // gl: 'cn',
-    safe: 'high'
-  }
-  let googleRes = await google({ options, disableConsole: true, query: query_string, limit: searchResultLimit, additionalQueryParam })
-  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n')
+  const response = await axios.get(`${CustomSearchAPI}${encodeURIComponent(query_string)}`, {
+    proxy: useProxy ? proxyObject : undefined
+  })
+  return response.data.items.filter(i => i.title && i.snippet).map(i => `[${i.title}](${i.link}): ${i.snippet}`).slice(0, searchResultLimit).join('\n')
 }
 
 const get_text_content_of_webpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
