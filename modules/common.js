@@ -1,12 +1,11 @@
 const OpenAI = require('openai')
+const { AzureOpenAI } = require('openai')
 const { HttpsProxyAgent } = require('https-proxy-agent')
 const _ = require('lodash')
-const { OpenAIClient, AzureKeyCredential } = require('@azure/openai')
 
 const { config: {
   OPENAI_API_KEY, OPENAI_API_ENDPOINT, DEFAULT_MODEL,
   AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_API_VERSION, AZURE_CHAT_MODEL, AZURE_EMBEDDING_MODEL, AZURE_IMAGE_MODEL,
-  useAzureVisionEnhence, AZURE_EXTENSION_ENDPOINT, AZURE_EXTENSION_API_KEY,
   useProxy, proxyObject
 } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
@@ -74,128 +73,45 @@ const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '10
 }
 
 
-const proxyOptions = useProxy ? {
-  host: `${proxyObject.protocol}://${proxyObject.host}`,
-  port: proxyObject.port
-} : undefined
+const azureOpenai = new AzureOpenAI({
+  apiKey: AZURE_OPENAI_KEY,
+  endpoint: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/`,
+  apiVersion: AZURE_API_VERSION,
+  httpAgent,
+  timeout: 40000
+})
 
-let azureOpenaiClient
-try {
-  azureOpenaiClient = new OpenAIClient(`https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com`, new AzureKeyCredential(AZURE_OPENAI_KEY), { proxyOptions })
-} catch {}
-
-const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice } = {}) {
-  let events
+const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) {
+  let response
   if (tools) {
-    events = await azureOpenaiClient.streamChatCompletions(
-      model,
-      messages,
-      {
-        maxTokens: 4096,
-        tools, tool_choice
-      },
-    )
+    response = await azureOpenai.chat.completions.create({
+      model, messages, tools, tool_choice,
+      stream: true,
+      max_tokens: 4096,
+    })
   } else {
-    events = await azureOpenaiClient.streamChatCompletions(
-      model,
-      messages,
-      {
-        maxTokens: 4096,
-        azureExtensionOptions: useAzureVisionEnhence ? {
-          enhancements: {
-            ocr: {
-              enabled: true
-            }
-          },
-          extensions: [{
-            type: 'AzureComputerVision',
-            parameters: {
-              endpoint: AZURE_EXTENSION_ENDPOINT,
-              key: AZURE_EXTENSION_API_KEY
-            }
-          }],
-        } : undefined
-      },
-    )
+    response = await azureOpenai.chat.completions.create({
+      model, messages,
+      stream: true,
+      max_tokens: 4096,
+    })
   }
-  for await (const event of events) {
-    for (const choice of event.choices) {
-      if (Array.isArray(choice.messages)) {
-        for (const message of choice.messages) {
-          const token = message?.delta?.content
-          const f_token = message?.delta?.toolCalls || []
-          if (token || f_token.length > 0) yield { token, f_token }
-        }
-      } else {
-        const token = choice?.delta?.content
-        const f_token = choice?.delta?.toolCalls || []
-        if (token || f_token.length > 0) yield { token, f_token }
-      }
-    }
+  for await (const part of response) {
+    if (['stop', 'tool_calls'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
+    const token = _.get(part, 'choices[0].delta.content')
+    const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
+    if (token || !_.isEmpty(f_token)) yield { token, f_token }
   }
 }
 
-// const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) {
-//   const azureOpenai = new OpenAI({
-//     apiKey: AZURE_OPENAI_KEY,
-//     baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
-//     defaultQuery: { 'api-version': AZURE_API_VERSION },
-//     defaultHeaders: { 'api-key': AZURE_OPENAI_KEY },
-//     httpAgent,
-//     timeout: 40000
-//   })
-
-//   let response
-//   if (tools) {
-//     response = await azureOpenai.chat.completions.create({
-//       model, messages, tools, tool_choice,
-//       stream: true,
-//       max_tokens: 4096,
-//     })
-//   } else {
-//     // hacks to enable the vision model to extract text. but it's not a good idea
-//     // messages = _.takeRight(messages, 1)
-//     response = await azureOpenai.chat.completions.create({
-//       model, messages,
-//       stream: true,
-//       max_tokens: 4096,
-//     })
-//   }
-//   for await (const part of response) {
-//     if (['stop', 'tool_calls'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
-//     const token = _.get(part, 'choices[0].delta.content')
-//     const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
-//     if (token || !_.isEmpty(f_token)) yield { token, f_token }
-//   }
-// }
-
-const azureOpenaiEmbedding = ({ input, model = AZURE_EMBEDDING_MODEL }) => {
-  const azureEmbedding = new OpenAI({
-    apiKey: AZURE_OPENAI_KEY,
-    baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
-    defaultQuery: { 'api-version': AZURE_API_VERSION },
-    defaultHeaders: { 'api-key': AZURE_OPENAI_KEY },
-    httpAgent,
-    timeout: 40000
-  })
-
-  return azureEmbedding.embeddings.create({
+const azureOpenaiEmbedding = async ({ input, model = AZURE_EMBEDDING_MODEL }) => {
+  const res = await azureOpenai.embeddings.create({
     model, input
   })
-    .then(res => {
-      return _.get(res, 'data[0].embedding')
-    })
+  return _.get(res, 'data[0].embedding')
 }
 
 const azureOpenaiImageCreate = async ({ model = AZURE_IMAGE_MODEL, prompt, n = 1, size = '1024x1024', quality = 'standard', style = 'vivid' }) => {
-  const azureOpenai = new OpenAI({
-    apiKey: AZURE_OPENAI_KEY,
-    baseURL: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${model}`,
-    defaultQuery: { 'api-version': AZURE_API_VERSION },
-    defaultHeaders: { 'api-key': AZURE_OPENAI_KEY },
-    httpAgent,
-    timeout: 40000
-  })
   const response = await azureOpenai.images.generate({
     model, prompt, n, size, quality, style
   })
@@ -204,11 +120,9 @@ const azureOpenaiImageCreate = async ({ model = AZURE_IMAGE_MODEL, prompt, n = 1
 
 
 module.exports = {
-  // openaiChat,
   openaiChatStream,
   openaiEmbedding,
   openaiImageCreate,
-  // azureOpenaiChat,
   azureOpenaiChatStream,
   azureOpenaiEmbedding,
   azureOpenaiImageCreate,

@@ -2,14 +2,15 @@ const { BrowserWindow, app, ipcMain, shell, Menu, dialog } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { format } = require('node:util')
+const { pathToFileURL } = require('node:url')
 const { nanoid } = require('nanoid')
 const sound = require('sound-play')
 const _ = require('lodash')
-const lancedb = require('vectordb')
 const windowStateKeeper = require('electron-window-state')
 const { EdgeTTS } = require('node-edge-tts')
 
 const { STORE_PATH, LOG_PATH, AUDIO_PATH } = require('./utils/initFile.js')
+const { getRootPath } = require('./utils/fileTool.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { getTokenLength } = require('./modules/tiktoken.js')
@@ -18,7 +19,7 @@ const { functionAction, functionInfo, functionList } = require('./modules/functi
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
-  DEFAULT_MODEL, AZURE_CHAT_MODEL, AZURE_VISION_MODEL,
+  DEFAULT_MODEL, AZURE_CHAT_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
@@ -30,9 +31,14 @@ const {
   disableFunctions = [],
   searchResultLimit = 5,
   webPageContentTokenLengthLimit = 6000,
-  autoUseVisionModel = false,
 } = config
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
+
+let pdfjsLib
+;(async () => {
+  const pdfjsDistUrl = pathToFileURL(path.join(getRootPath(), 'resources/extraResources/pdfjs-4.2.67-legacy-dist/build/pdf.mjs'))
+  pdfjsLib = await import(pdfjsDistUrl)
+})()
 
 const logFile = fs.createWriteStream(path.join(LOG_PATH, `log-${new Date().toLocaleString('zh-CN').replace(/[\/:]/gi, '-')}.txt`), { flags: 'w' })
 const messageLog = (message) => {
@@ -93,8 +99,6 @@ process
     console.error(err, 'Uncaught Exception thrown')
     process.exit(1)
   })
-
-let memoryTable
 
 const STATUS = {
   isSpeechTalk: false,
@@ -195,24 +199,6 @@ const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : opena
 app.whenReady().then(async () => {
   mainWindow = createWindow()
   setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
-  const memorydb = await lancedb.connect(path.join(STORE_PATH, 'memorydb'))
-  const embedding = {
-    sourceColumn: 'text',
-    embed: async (batch) => {
-      let result = []
-      for (let text of batch) {
-        result.push(await useOpenaiEmbeddingFunction({ input: text }))
-      }
-      return result
-    }
-  }
-  try {
-    memoryTable = await memorydb.openTable('memory', embedding)
-  } catch {
-    try {
-      memoryTable = await memorydb.createTable('memory', [{ text: 'Hello world!' }], embedding)
-    } catch { }
-  }
 })
 
 
@@ -350,14 +336,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           from: 'Function Calling',
           content: ''
         })
-        switch (toolCall.function.name) {
-          case 'get_historical_conversation_content':
-            functionCallResult = await functionList[toolCall.function.name](_.assign({ dbTable: memoryTable }, JSON.parse(toolCall.function.arguments)), additionalParam)
-            break
-          default:
-            functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), additionalParam)
-            break
-        }
+        functionCallResult = await functionList[toolCall.function.name](JSON.parse(toolCall.function.arguments), additionalParam)
       } catch (e) {
         console.error(e)
         functionCallResult = e.message
@@ -396,7 +375,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           id: clientMessageId,
           from,
           content: resText,
-          allowBreak: true
+          allowBreak: STATUS.breakAnswerId !== clientMessageId
         })
         if (resTextTemp.includes('\n')) {
           let splitResText = resTextTemp.split('\n')
@@ -466,7 +445,8 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       messages,
       countToken: true,
       content: resText,
-      allowBreak: false
+      allowBreak: false,
+      useContext: contextFileName
     })
   }
   STATUS.answeringId = null
@@ -497,9 +477,17 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       line.content = line.content.filter(part => part.type === 'text').map(part => part.text).join('\n')
     }
   })
+  let fullSystemPrompt = givenSystemPrompt ? givenSystemPrompt : systemPrompt
+  if (contextFileName && fileContext.length > 0) {
+    let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
+    let closestChunks = findClosestEmbeddedChunks(await useOpenaiEmbeddingFunction({ input: promptText }), fileContext)
+    let contextText = closestChunks.map(chunk => chunk.text).join('\n')
+    fullSystemPrompt = `${fullSystemPrompt}\n\nContext: \n\n${contextText}`
+  }
+
   if (!forLive) {
     messages = [
-      { role: 'system', content: givenSystemPrompt ? givenSystemPrompt : systemPrompt },
+      { role: 'system', content: fullSystemPrompt },
       { role: 'user', content: `你好, 我的名字是${ADMIN_NAME}` },
       { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
       ...context,
@@ -526,7 +514,9 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resToolCalls = []
 
   try {
-    if (promptType === 'string') {
+    if (useAzureOpenai && promptType !== 'string') {
+      resText = (await resolveMessages({ resText, messages, from })).resText
+    } else {
       let round = 0
       while (resText === '' && round <= functionCallingRoundLimit + 1) {
         let useFunctionCalling = round > functionCallingRoundLimit ? false : true
@@ -535,13 +525,6 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
           resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling, forLive
         }))
         round += 1
-      }
-    } else {
-      if (autoUseVisionModel) {
-        let model = useAzureOpenai ? AZURE_VISION_MODEL : 'gpt-4-vision-preview'
-        resText = (await resolveMessages({ resText, messages, from, model })).resText
-      } else {
-        resText = (await resolveMessages({ resText, messages, from })).resText
       }
     }
     messageLog({
@@ -555,7 +538,6 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     } else {
       addHistory([{ role: 'assistant', content: resText }])
     }
-    // memoryTable.add([{ text: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
       STATUS.speakIndex += 1
@@ -636,15 +618,24 @@ const triggerSpeech = async () => {
   }
 }
 
+const breakAnswer = () => {
+  if (STATUS.answeringId) {
+    STATUS.breakAnswerId = STATUS.answeringId
+    messageSend({
+      id: STATUS.answeringId,
+      allowBreak: false
+    })
+  }
+}
 ipcMain.handle('send-prompt', async (event, prompt) => {
-  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
+  breakAnswer()
   resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
 })
 ipcMain.handle('break-answer', async () => {
-  if (STATUS.answeringId) STATUS.breakAnswerId = STATUS.answeringId
+  breakAnswer()
 })
 ipcMain.handle('switch-speech-talk', async () => {
   STATUS.isSpeechTalk = !STATUS.isSpeechTalk
@@ -687,9 +678,10 @@ ipcMain.handle('select-folder', async () => {
   }
 })
 
-ipcMain.handle('select-file', async () => {
+ipcMain.handle('select-file', async (event, { filters } = {}) => {
   let result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile']
+    properties: ['openFile'],
+    filters
   })
   if (!result.canceled) {
     return result.filePaths[0]
@@ -744,4 +736,145 @@ if (liveMode) {
 
 ipcMain.handle('open-external', async (event, url) => {
   shell.openExternal(url)
+})
+
+let fileContext = []
+let contextFileName
+
+ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
+
+  contextFileName = path.basename(pdfPath)
+  const clientMessageId = nanoid()
+  messageSend({
+    id: clientMessageId,
+    from: AI_NAME,
+    content: `正在读取和解析 ${contextFileName} ...`
+  })
+
+  //检查pdfPath + '.json'是否存在，如果存在则直接返回
+  if (fs.existsSync(pdfPath + '.json')) {
+    fileContext = JSON.parse(await fs.promises.readFile(pdfPath + '.json', { encoding: 'utf-8' }))
+    messageSend({
+      id: clientMessageId,
+      from: AI_NAME,
+      content: `已从缓存文件中读取 ${contextFileName} 的解析结果。`
+    })
+    return
+  }
+
+  const data = new Uint8Array(await fs.promises.readFile(pdfPath))
+  const pdfDocument = await pdfjsLib.getDocument({ data }).promise
+
+  let chunks = []
+  let currentChunk = ''
+  let currentTokenCount = 0
+  const maxTokenLength = 1024
+
+  for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+    const page = await pdfDocument.getPage(pageNum)
+    const textContent = await page.getTextContent()
+    let lastY = -1
+
+    for (const item of textContent.items) {
+      const itemText = item.str
+      const itemTokenLength = getTokenLength(itemText)
+
+      // 检查是否需要添加换行符
+      if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
+        if (currentTokenCount + 1 > maxTokenLength) {
+          chunks.push({ text: currentChunk, index: chunks.length })
+          currentChunk = ''
+          currentTokenCount = 0
+        }
+        currentChunk += '\n'
+        currentTokenCount += 1 // 换行符也算作一个token
+      }
+
+      // 检查添加该文本项是否会超过限制
+      if (currentTokenCount + itemTokenLength > maxTokenLength) {
+        chunks.push({ text: currentChunk, index: chunks.length })
+        currentChunk = itemText
+        currentTokenCount = itemTokenLength
+      } else {
+        currentChunk += itemText
+        currentTokenCount += itemTokenLength
+      }
+
+      lastY = item.transform[5]
+    }
+
+    // 每页之间添加额外的换行以分隔
+    if (currentTokenCount + 2 <= maxTokenLength) {
+      currentChunk += '\n\n'
+      currentTokenCount += 2
+    } else {
+      chunks.push({ text: currentChunk, index: chunks.length })
+      currentChunk = '\n\n'
+      currentTokenCount = 2
+    }
+  }
+
+  // 添加最后一块
+  if (currentChunk.trim().length > 0) {
+    chunks.push({ text: currentChunk, index: chunks.length })
+  }
+
+  const chunkSize = 5
+  const embeddedChunks = []
+
+  for (let i = 0; i < chunks.length; i += chunkSize) {
+    let batch = chunks.slice(i, i + chunkSize)
+    let results = await Promise.allSettled(batch.map(chunk => useOpenaiEmbeddingFunction({ input: chunk.text })))
+
+    // 处理结果，只收集成功的
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        embeddedChunks.push({ index: batch[index].index, text: batch[index].text, embedding: result.value })
+      } else {
+        console.error('Embedding failed for: ', batch[index])
+      }
+    })
+  }
+
+  await fs.promises.writeFile(pdfPath + '.json', JSON.stringify(embeddedChunks, null, '  '), { encoding: 'utf-8' })
+
+  fileContext = embeddedChunks
+
+  messageSend({
+    id: clientMessageId,
+    from: AI_NAME,
+    content: `已解析 ${contextFileName} 。`
+  })
+})
+
+function cosineSimilarity(vec1, vec2) {
+  const dotProduct = vec1.reduce((acc, curr, idx) => acc + (curr * vec2[idx]), 0);
+  const magVec1 = Math.sqrt(vec1.reduce((acc, curr) => acc + (curr * curr), 0));
+  const magVec2 = Math.sqrt(vec2.reduce((acc, curr) => acc + (curr * curr), 0));
+  return dotProduct / (magVec1 * magVec2);
+}
+
+function findClosestEmbeddedChunks(newEmbedded, embeddedChunks) {
+
+  // 为每个chunk计算与新嵌入向量的距离
+  let similarities = embeddedChunks.map(chunk => ({
+      chunk: chunk,
+      similarity: cosineSimilarity(newEmbedded, chunk.embedding)
+  }))
+
+  // 按相似度降序排序，获取最相似的前两个
+  similarities.sort((a, b) => b.similarity - a.similarity)
+
+  // 只返回前三个最接近的chunks
+  let closestChunks = similarities.slice(0, 3).map(item => item.chunk)
+
+  // 按index属性对这些chunks进行升序排序
+  closestChunks.sort((a, b) => a.index - b.index)
+
+  return closestChunks
+}
+
+ipcMain.handle('remove-context', async (event) => {
+  fileContext = []
+  contextFileName = undefined
 })

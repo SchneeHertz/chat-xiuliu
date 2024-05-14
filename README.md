@@ -10,10 +10,11 @@ ChatGPT双向语音助手，通过function calling实现访问网络，执行代
 - 从麦克风或界面接收问题
 - 使用语音回答问题并显示在界面
 - 上传图片
+- 上传PDF作为对话上下文
 - 调用函数处理任务
   - 连续调用函数处理
   - 对话内容回忆
-  - 联网搜索关键词，获取网页内容
+  - 联网搜索关键词[^1]，获取网页内容
   - 生成图片(DALL·E 3)
   - 读写本地文件
   - 在沙箱中执行JavaScript代码
@@ -24,10 +25,7 @@ ChatGPT双向语音助手，通过function calling实现访问网络，执行代
 - 支持兼容openai api格式的其他api端点
 - 支持设置代理
 
-## 支持的模型
-v2.2支持preview系列的GPT-4，GPT-4-Vision，GPT-3.5，DALL·E 3
-
-v2.1支持0613系列的GPT-4，GPT-3.5
+[^1]: 需要配置Google Custom Search JSON API: 参考[Custom Search JSON API](https://developers.google.com/custom-search/v1/overview).
 
 ## 截图
 <img src="https://raw.githubusercontent.com/SchneeHertz/chat-xiuliu/master/screenshots/screenshot_1.jpg" width="640">
@@ -42,7 +40,7 @@ v2.1支持0613系列的GPT-4，GPT-3.5
 
 
 ## 可选语音识别功能
-- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)(最好有张N卡，不然运行时很慢，可选，语音功能)_
+- _下载[whisper-standalone-win](https://github.com/Purfview/whisper-standalone-win)(最好有张独立显卡，不然运行很慢，可选，语音功能)_
   - _在whisper-standalone-win的Release和[huggingface](https://huggingface.co/Systran/faster-whisper-large-v3)下载必要的文件，解压到resources/extraResources/whisper文件夹_
   ```
   resources/extraResources/whisper/_models/faster-whisper-large-v3/config.json
@@ -59,7 +57,7 @@ v2.1支持0613系列的GPT-4，GPT-3.5
   ```
 
 ### 设置参考
-  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat和embedding的模型，DALL·E 3和Vision模型同理
+  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat, embedding和image的模型
   - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
   - 默认设定
     ```
@@ -69,7 +67,6 @@ v2.1支持0613系列的GPT-4，GPT-3.5
     3. 使用markdown语法回复和显示图片.
     4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
     ```
-  - 打开高级设置中的`自动使用Vision模型`，可以在使用其他模型时使用Vision模型处理图像识别
 
 ## 赞助
 https://afdian.net/@SeldonHorizon

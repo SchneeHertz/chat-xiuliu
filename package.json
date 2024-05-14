@@ -1,7 +1,7 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.2.12",
+  "version": "2.2.15",
   "description": "ChatGPT Client with Function Calling",
   "author": "SchneeHertz",
   "scripts": {
@@ -30,7 +30,7 @@
         "from": "resources/extraResources",
         "to": "extraResources",
         "filter": [
-          "sox"
+          "**/*"
         ]
       }
     ],
@@ -51,6 +51,7 @@
     "highlight.js": "^11.8.0",
     "highlightjs-copy": "^1.0.4",
     "markdown-it": "^14.0.0",
+    "markdown-it-katex-gpt": "^1.0.0",
     "naive-ui": "^2.35.0",
     "pinia": "^2.1.7",
     "stylus": "^0.59.0",
@@ -60,8 +61,6 @@
     "vue": "^3.2.45"
   },
   "dependencies": {
-    "@azure/openai": "^1.0.0-beta.10",
-    "@schneehertz/google-it": "^1.7.3",
     "axios": "^1.4.0",
     "bilibili-live-ws": "^6.3.1",
     "dayjs": "^1.11.10",
@@ -75,11 +74,10 @@
     "mint-filter": "^4.0.3",
     "nanoid": "^3.3.6",
     "node-edge-tts": "^1.2.2",
-    "openai": "^4.22.0",
+    "openai": "^4.45.0",
     "quickjs-emscripten": "^0.23.0",
     "reconnecting-websocket": "^4.4.0",
     "sound-play": "^1.1.0",
-    "vectordb": "^0.2.2",
     "ws": "^8.14.1"
   }
 }

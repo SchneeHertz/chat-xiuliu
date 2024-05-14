@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
-import { Microphone, MicrophoneSlash, UserCircle, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, Live24Regular } from '@vicons/fluent'
+import { Microphone, MicrophoneSlash, ImageRegular } from '@vicons/fa'
+import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular, Live24Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
 import { useMainStore } from './pinia.js'
@@ -148,6 +148,7 @@ const switchAudio = () => {
 const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
   mainStore.messageList = []
+  ipcRenderer.invoke('remove-context')
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
@@ -166,9 +167,6 @@ const saveCapture = async () => {
   linkElement.setAttribute('href', base64image)
   linkElement.setAttribute('download', exportFileDefaultName)
   linkElement.click()
-}
-const switchLive = () => {
-  ipcRenderer.invoke('switch-live')
 }
 
 </script>
@@ -211,6 +209,11 @@ const switchLive = () => {
             </div>
           </n-popover>
         </n-upload>
+        <n-button style="height: 36px" @click="choosePdfFile">
+          <template #icon>
+            <n-icon><DocumentPdf16Regular /></n-icon>
+          </template>
+        </n-button>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
           @paste="handleImagePaste"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"

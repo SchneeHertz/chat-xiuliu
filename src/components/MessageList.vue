@@ -10,8 +10,9 @@ import 'highlight.js/styles/github-dark.css'
 import CopyButtonPlugin from 'highlightjs-copy'
 hljs.addPlugin(new CopyButtonPlugin())
 
+import mdItKatex from 'markdown-it-katex-gpt'
+
 import XiuliuAvatar from '../assets/xiuliu_avatar.jpg'
-import ChatAvatar from '../assets/chatgpt.svg'
 
 import { useMainStore } from '../pinia.js'
 const mainStore = useMainStore()
@@ -27,7 +28,7 @@ const md = new MarkdownIt({
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return `<pre class="code-block language-${lang}"><code class="language-${lang}">` + str + '</code></pre>'
+        return `<pre class="code-block language-${lang}"><code class="language-${lang}">` + md.utils.escapeHtml(str) + '</code></pre>'
       } catch (__) {}
     }
     return '<pre class="code-block"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
@@ -35,13 +36,20 @@ const md = new MarkdownIt({
   linkify: true
 })
 
+md.use(mdItKatex)
+
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
   element.scrollTop = element.scrollHeight
 }
 
 const renderUserText = (text) => {
-  let resolveText = text.replace(/\n{1,}/g, '\n\n')
+  let resolveText = text.replace(/(```[\s\S]*?```)|(\n{1,})/g, (match, p1, p2) => {
+    // 如果匹配到的是代码块，直接返回代码块
+    if (p1) return p1
+    // 如果匹配到的是换行符，且不在代码块内，替换为双换行符
+    if (p2) return '\n\n'
+  })
   return md.render(resolveText)
 }
 
@@ -85,10 +93,11 @@ onMounted(() => {
     }
     let findExist = _.find(mainStore.messageList, { id: arg.id })
     if (findExist) {
-      findExist.text = arg.text
+      if (!_.isUndefined(arg.text)) findExist.text = arg.text
       findExist.tokenCount = arg.tokenCount
       findExist.countToken = arg.countToken
       findExist.allowBreak = arg.allowBreak
+      findExist.useContext = arg.useContext
     } else {
       mainStore.messageList.push(arg)
       mainStore.messageList = _.takeRight(mainStore.messageList, 200)
@@ -148,7 +157,7 @@ defineExpose({
     <n-card v-for="message in mainStore.messageList" :key="message.id" class="message-card">
       <n-thing>
         <template #avatar>
-          <n-avatar v-if="[props.config?.ADMIN_NAME, `(${props.config?.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
+          <n-avatar v-if="[config?.ADMIN_NAME, `(${config?.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
             <n-icon><UserCircle /></n-icon>
           </n-avatar>
           <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>
@@ -158,6 +167,7 @@ defineExpose({
         </template>
         <div class="message-content" v-html="message.text"></div>
         <n-spin size="small" v-if="!message.text" />
+        <p v-if="message.useContext" class="token-count">With {{ message.useContext }}</p>
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
         <template #footer>
           <n-button size="tiny" secondary circle v-if="message.allowBreak" @click="breakAnswer">

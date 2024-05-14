@@ -23,10 +23,8 @@ const cancelSetting = () => {
 
 const model_options = [
   { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
-  { label: 'gpt-3.5-turbo-1106', value: 'gpt-3.5-turbo-1106' },
-  { label: 'gpt-4', value: 'gpt-4' },
-  { label: 'gpt-4-turbo-preview', value: 'gpt-4-turbo-preview' },
-  { label: 'gpt-4-vision-preview', value: 'gpt-4-vision-preview' }
+  { label: 'gpt-4-turbo', value: 'gpt-4-turbo' },
+  { label: 'gpt-4o', value: 'gpt-4o' },
 ]
 
 const parseNumber = (str) => {
@@ -104,7 +102,7 @@ defineExpose({
             <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
           </n-form-item>
           <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
-            <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options"/>
+            <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" filterable tag/>
           </n-form-item>
           <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
@@ -123,18 +121,6 @@ defineExpose({
           </n-form-item>
           <n-form-item label="AZURE_IMAGE_MODEL" path="AZURE_IMAGE_MODEL" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_IMAGE_MODEL" placeholder="like dall-e-3" />
-          </n-form-item>
-          <n-form-item label="AZURE_VISION_MODEL" path="AZURE_VISION_MODEL" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_VISION_MODEL" placeholder="like gpt-4-vision-preview" />
-          </n-form-item>
-          <n-form-item label="使用Azure视觉增强" path="useAzureVisionEnhence" v-show="config.useAzureOpenai">
-            <n-switch v-model:value="config.useAzureVisionEnhence" />
-          </n-form-item>
-          <n-form-item label="AZURE_EXTENSION_ENDPOINT" path="AZURE_EXTENSION_ENDPOINT" v-show="config.useAzureOpenai &&config.useAzureVisionEnhence">
-            <n-input v-model:value="config.AZURE_EXTENSION_ENDPOINT" placeholder="like vision-xxx" />
-          </n-form-item>
-          <n-form-item label="AZURE_EXTENSION_API_KEY" path="AZURE_EXTENSION_API_KEY" v-show="config.useAzureOpenai && config.useAzureVisionEnhence">
-            <n-input v-model:value="config.AZURE_EXTENSION_API_KEY" placeholder="32chars" type="password" show-password-on="click"/>
           </n-form-item>
           <n-form-item label="你的称呼" path="ADMIN_NAME">
             <n-input v-model:value="config.ADMIN_NAME" />
@@ -188,6 +174,13 @@ defineExpose({
           <n-form-item label="使用nodejs解释器" path="allowPowerfulInterpreter">
             <n-switch v-model:value="config.allowPowerfulInterpreter" @update:value="alertJSPRisk" />
           </n-form-item>
+          <n-form-item label="Google自定义搜索链接" path="CustomSearchAPI">
+            <n-input
+              v-model:value="config.CustomSearchAPI"
+              placeholder="like https://customsearch.googleapis.com/customsearch/v1?cx=yourid&key=yourkey&q="
+              title="请参考Google Custom Search API, 例如: https://customsearch.googleapis.com/customsearch/v1?cx=yourid&key=yourkey&q="
+            />
+          </n-form-item>
           <n-form-item label="搜索结果个数" path="searchResultLimit">
             <n-input-number v-model:value="config.searchResultLimit" :default-value="5" :precision="0" :min="0" :parse="parseNumber"/>
           </n-form-item>
@@ -203,9 +196,6 @@ defineExpose({
                 </n-icon>
               </n-button>
             </n-input-group>
-          </n-form-item>
-          <n-form-item label="自动使用vision模型" path="autoUseVisionModel">
-            <n-switch v-model:value="config.autoUseVisionModel"/>
           </n-form-item>
         </n-form>
       </n-tab-pane>

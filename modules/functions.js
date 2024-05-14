@@ -1,6 +1,5 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const google = require('@schneehertz/google-it')
 const axios = require('axios')
 const { convert } = require('html-to-text')
 const { getQuickJS, shouldInterruptAfterDeadline  } = require('quickjs-emscripten')
@@ -8,7 +7,7 @@ const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 const dayjs = require('dayjs')
 
-let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai } } = require('../utils/loadConfig.js')
+let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai, CustomSearchAPI } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
@@ -66,20 +65,6 @@ const functionInfo = [
         }
       },
       "required": ["file_url", "file_name"],
-    }
-  },
-  {
-    "name": "get_historical_conversation_content",
-    "description": "Searching historical conversation content in conversation history.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "related_text": {
-          "type": "string",
-          "description": "The related text to find historical conversation content",
-        },
-      },
-      "required": ["related_text"],
     }
   },
   {
@@ -225,9 +210,6 @@ const functionAction = {
   download_file_to_local ({ file_url, file_name }) {
     return `${AI_NAME}下载了 ${file_url} 到 ${file_name}`
   },
-  get_historical_conversation_content ({ related_text }) {
-    return `${AI_NAME}想起了关于 ${related_text} 的事情`
-  },
   write_file_to_local ({ relative_file_path, content }) {
     return `${AI_NAME}保存\n\n${content}\n\n到 ${relative_file_path}`
   },
@@ -261,16 +243,10 @@ Prompt: \n\n\`\`\`json\n${prompt}\n\`\`\``
 }
 
 const get_information_from_google = async ({ query_string }, { searchResultLimit }) => {
-  let options = { proxy: useProxy ? proxyString : undefined }
-  let additionalQueryParam = {
-    // lr: 'lang_zh-CN',
-    // hl: 'zh-CN',
-    // cr: 'countryCN',
-    // gl: 'cn',
-    safe: 'high'
-  }
-  let googleRes = await google({ options, disableConsole: true, query: query_string, limit: searchResultLimit, additionalQueryParam })
-  return googleRes.map(l=>`[${l.title}](${l.link}): ${l.snippet}`).join('\n')
+  const response = await axios.get(`${CustomSearchAPI}${encodeURIComponent(query_string)}`, {
+    proxy: useProxy ? proxyObject : undefined
+  })
+  return response.data.items.filter(i => i.title && i.snippet).map(i => `[${i.title}](${i.link}): ${i.snippet}`).slice(0, searchResultLimit).join('\n')
 }
 
 const get_text_content_of_webpage = async ({ url }, { webPageContentTokenLengthLimit }) => {
@@ -299,11 +275,6 @@ const download_file_to_local = async ({ file_url, file_name }) => {
   })
   await fs.promises.writeFile(writefile_path, response.data)
   return writefile_path
-}
-
-const get_historical_conversation_content = async ({ related_text, dbTable }) => {
-  let MemoryTexts = await dbTable.search(related_text).limit(2).execute()
-  return MemoryTexts.map(s => s.text).join('\n')
 }
 
 const write_file_to_local = async ({ relative_file_path, content }) => {
@@ -373,7 +344,6 @@ module.exports = {
     get_information_from_google,
     get_text_content_of_webpage,
     download_file_to_local,
-    get_historical_conversation_content,
     write_file_to_local,
     read_file_from_local,
     java_script_interpreter,
