@@ -30,7 +30,8 @@
         "from": "resources/extraResources",
         "to": "extraResources",
         "filter": [
-          "**/*"
+          "**/*",
+          "!whisper/**/*"
         ]
       }
     ],
