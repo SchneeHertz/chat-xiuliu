@@ -713,7 +713,7 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
       // 检查是否需要添加换行符
       if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
         if (currentTokenCount + 1 > maxTokenLength) {
-          chunks.push({ text:currentChunk, index: chunks.length })
+          chunks.push({ text: currentChunk, index: chunks.length })
           currentChunk = ''
           currentTokenCount = 0
         }
@@ -723,7 +723,7 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
 
       // 检查添加该文本项是否会超过限制
       if (currentTokenCount + itemTokenLength > maxTokenLength) {
-        chunks.push({ text:currentChunk, index: chunks.length })
+        chunks.push({ text: currentChunk, index: chunks.length })
         currentChunk = itemText
         currentTokenCount = itemTokenLength
       } else {
@@ -739,7 +739,7 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
       currentChunk += '\n\n'
       currentTokenCount += 2
     } else {
-      chunks.push({ text:currentChunk, index: chunks.length })
+      chunks.push({ text: currentChunk, index: chunks.length })
       currentChunk = '\n\n'
       currentTokenCount = 2
     }
@@ -747,7 +747,7 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
 
   // 添加最后一块
   if (currentChunk.trim().length > 0) {
-    chunks.push({ text:currentChunk, index: chunks.length })
+    chunks.push({ text: currentChunk, index: chunks.length })
   }
 
   const chunkSize = 5
