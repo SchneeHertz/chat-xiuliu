@@ -102,7 +102,7 @@ defineExpose({
             <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
           </n-form-item>
           <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
-            <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options"/>
+            <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" filterable tag/>
           </n-form-item>
           <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
