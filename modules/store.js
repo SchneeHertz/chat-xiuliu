@@ -1,5 +1,6 @@
 const path = require('node:path')
 const fs = require('node:fs')
+const _ = require('lodash')
 
 const { STORE_PATH } = require('../utils/fileTool.js')
 
@@ -10,7 +11,7 @@ try {
   storeData = {
     history: [],
     liveHistory: [],
-    LIVE_ROOM_CODE: 0,
+    LIVE_ROOM_CODE: 100,
     authBody: {},
     scriptSystemPrompt: ''
   }
@@ -18,7 +19,7 @@ try {
 }
 
 const getStore = (key, defaultValue) => {
-  return JSON.parse(JSON.stringify(storeData[key])) || defaultValue
+  return JSON.parse(JSON.stringify(_.get(storeData, key, null))) || defaultValue
 }
 
 const setStore = (key, value) => {
