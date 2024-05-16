@@ -39,10 +39,6 @@ const sendText = (event) => {
     let userPrompt = {
       type: 'array',
       content: [
-        {
-          type: 'text',
-          text: inputText.value
-        },
         ...imageBlobUrlList.value.map((url) => {
           return {
             type: 'image_url',
@@ -51,7 +47,11 @@ const sendText = (event) => {
               url
             }
           }
-        })
+        }),
+        {
+          type: 'text',
+          text: inputText.value
+        },
       ]
     }
     ipcRenderer.invoke('send-prompt', userPrompt)
