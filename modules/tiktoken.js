@@ -14,15 +14,18 @@ const getTokenLength = (str = '') => {
  * @return {string} The sliced string.
  */
 const sliceStringbyTokenLength = (str, length) => {
-  let strSplitList = str.split(/(?=[^a-zA-Z0-9一-龟])/)
-  let result = ''
+  let resultParts = []
+  let currentLength = 0
+  let strSplitList = str.split(/\n/)
+
   for (let part of strSplitList) {
-    result += part
-    if (getTokenLength(result) > length) {
-      return result
+    currentLength += getTokenLength(part)
+    if (currentLength > length) {
+      break
     }
+    resultParts.push(part)
   }
-  return result
+  return resultParts.join('')
 }
 
 module.exports = {
