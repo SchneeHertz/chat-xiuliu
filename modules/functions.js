@@ -254,7 +254,7 @@ const get_text_content_of_webpage = async ({ url }, { webPageContentTokenLengthL
     .then(async res=>{
       let html = await res.data
       let content = convert(html, {
-        baseElements: { selectors: ['p'] },
+        baseElements: { selectors: ['p', 'pre'] },
         wordwrap: false,
         selectors: [
           { selector: 'a', options: { ignoreHref: true } },
