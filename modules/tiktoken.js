@@ -1,6 +1,6 @@
 const { getEncoding } = require('js-tiktoken')
 
-const tokenizer = getEncoding('cl100k_base')
+const tokenizer = getEncoding('o200k_base')
 
 const getTokenLength = (str = '') => {
   return tokenizer.encode(str).length

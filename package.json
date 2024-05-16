@@ -69,7 +69,7 @@
     "html2canvas": "^1.4.1",
     "https-proxy-agent": "^7.0.1",
     "js-beautify": "^1.14.9",
-    "js-tiktoken": "^1.0.7",
+    "js-tiktoken": "^1.0.12",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.6",
     "node-edge-tts": "^1.2.2",
