@@ -73,6 +73,27 @@ onMounted(async () => {
   functionList.value = functionInfo.map(f => f?.function?.name)
 })
 
+const rules = {
+  OPENAI_API_KEY: {
+    required: true,
+  },
+  DEFAULT_MODEL: {
+    required: true,
+  },
+  ADMIN_NAME: {
+    required: true,
+  },
+  AI_NAME: {
+    required: true,
+  },
+  historyRoundLimit: {
+    required: true,
+  },
+  functionCallingRoundLimit: {
+    required: true,
+  },
+}
+
 defineExpose({
   openConfig
 })
@@ -90,7 +111,7 @@ defineExpose({
     @positive-click="saveSettingAndRestart" @negative-click="cancelSetting" :show-icon="false" :style="{ width: '52em' }">
     <n-tabs type="line" animated default-value="general">
       <n-tab-pane name="general" tab="常用">
-        <n-form ref="formRef" :model="config" label-placement="left" label-width="230px" size="small">
+        <n-form ref="formRef" :model="config" label-placement="left" label-width="230px" size="small" :rules="rules">
           <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
             <n-switch v-model:value="config.useAzureOpenai" />
           </n-form-item>
@@ -99,7 +120,7 @@ defineExpose({
               show-password-on="click" />
           </n-form-item>
           <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT" v-show="!config.useAzureOpenai">
-            <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="like https://api.openai.com/v1" />
+            <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="default https://api.openai.com/v1" />
           </n-form-item>
           <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
             <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" filterable tag/>
@@ -154,7 +175,7 @@ defineExpose({
         </n-form>
       </n-tab-pane>
       <n-tab-pane name="advance" tab="高级">
-        <n-form ref="formRef2" :model="config" label-placement="left" label-width="230px" size="small">
+        <n-form ref="formRef2" :model="config" label-placement="left" label-width="230px" size="small" :rules="rules">
           <n-form-item label="SpeechSynthesisVoiceName" path="SpeechSynthesisVoiceName">
             <n-input v-model:value="config.SpeechSynthesisVoiceName" placeholder="like zh-CN-XiaoyiNeural" />
           </n-form-item>
