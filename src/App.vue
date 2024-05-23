@@ -2,7 +2,7 @@
 import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
 import { Microphone, MicrophoneSlash, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular } from '@vicons/fluent'
+import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular, Send16Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
 import { useMainStore } from './pinia.js'
@@ -221,6 +221,11 @@ const choosePdfFile = async () => {
           @paste="handleImagePaste"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
         ></n-input>
+        <n-button style="height: 36px" @click="sendText">
+          <template #icon>
+            <n-icon><Send16Regular /></n-icon>
+          </template>
+        </n-button>
       </n-input-group>
     </n-gi>
     <n-gi :offset="1" :span="22">

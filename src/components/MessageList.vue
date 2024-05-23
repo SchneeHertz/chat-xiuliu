@@ -166,7 +166,7 @@ defineExpose({
           {{message.from}}
         </template>
         <div class="message-content" v-html="message.text"></div>
-        <n-spin size="small" v-if="!message.text" />
+        <n-spin size="small" v-if="!message.text && message.from !== props.config.ADMIN_NAME" />
         <p v-if="message.useContext" class="token-count">With {{ message.useContext }}</p>
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
         <template #footer>
