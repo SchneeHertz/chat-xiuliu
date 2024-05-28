@@ -160,7 +160,8 @@ defineExpose({
           <n-avatar v-if="[config?.ADMIN_NAME, `(${config?.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
             <n-icon><UserCircle /></n-icon>
           </n-avatar>
-          <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>
+          <!-- <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar> -->
+          <n-avatar v-else size="small"><n-icon><LogoOctocat /></n-icon></n-avatar>
         </template>
         <template #header>
           {{message.from}}

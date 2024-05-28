@@ -337,7 +337,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     }
   }
   resToolCalls = []
-
   let prepareChatOption = { messages, model }
 
   if (useFunctionCalling) {
@@ -471,8 +470,8 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
 
   let messages = [
     { role: 'system', content: fullSystemPrompt },
-    { role: 'user', content: `你好, 我的名字是${ADMIN_NAME}` },
-    { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
+    { role: 'user', content: `Hello, my name is ${ADMIN_NAME}` },
+    { role: 'assistant', content: `Hello, ${ADMIN_NAME}` },
     ...context,
     { role: 'user', content: prompt }
   ]
@@ -488,18 +487,14 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resToolCalls = []
 
   try {
-    if (useAzureOpenai && promptType !== 'string') {
-      resText = (await resolveMessages({ resText, messages, from })).resText
-    } else {
-      let round = 0
-      while (resText === '' && round <= functionCallingRoundLimit + 1) {
-        let useFunctionCalling = round > functionCallingRoundLimit ? false : true
-        if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
-        ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
-          resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
-        }))
-        round += 1
-      }
+    let round = 0
+    while (resText === '' && round <= functionCallingRoundLimit + 1) {
+      let useFunctionCalling = round > functionCallingRoundLimit ? false : true
+      if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
+      ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
+        resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
+      }))
+      round += 1
     }
     messageLog({
       id: nanoid(),
