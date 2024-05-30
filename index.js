@@ -454,12 +454,6 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let history = getStore('history')
   let context = _.takeRight(history, historyRoundLimit)
 
-  // only use user text content
-  context.forEach(line => {
-    if (line.role === 'user' && typeof line.content === 'object') {
-      line.content = line.content.filter(part => part.type === 'text').map(part => part.text).join('\n')
-    }
-  })
   let fullSystemPrompt = givenSystemPrompt ? givenSystemPrompt : systemPrompt
   if (contextFileName && fileContext.length > 0) {
     let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
