@@ -181,6 +181,7 @@ const switchMessageList = () => {
   } else {
     mainStore.messageList = _.cloneDeep(mainStore.tempMessageList)
   }
+  nextTick(messageListRef.value.applyRender)
 }
 
 </script>
@@ -191,6 +192,7 @@ const switchMessageList = () => {
       <MessageList
         ref="messageListRef"
         :config="config"
+        @message="printMessage"
       />
       <n-input-group style="margin-top: 8px">
         <n-upload

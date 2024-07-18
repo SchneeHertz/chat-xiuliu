@@ -24,6 +24,8 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['message'])
+
 const md = new MarkdownIt({
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
@@ -104,26 +106,28 @@ onMounted(async () => {
       mainStore.messageList.push(arg)
       mainStore.messageList = _.takeRight(mainStore.messageList, 200)
     }
-    nextTick(() => {
-      scrollToBottom('message-list')
-      document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
-        hljs.highlightElement(el)
-      })
-      document.querySelectorAll('a:not(.added-link-handle)').forEach((el) => {
-        el.classList.add('added-link-handle')
-        el.removeEventListener('click', openExternalLink)
-        el.addEventListener('click', openExternalLink)
-      })
-      document.querySelectorAll('.message-content img:not(.added-image-handle)').forEach((el) => {
-        el.classList.add('added-image-handle')
-        el.removeEventListener('click', downloadImage)
-        el.addEventListener('click', downloadImage)
-      })
-    })
+    nextTick(applyRender)
   })
   ipcRenderer.invoke('load-history')
   mainStore.savedMessageList = await ipcRenderer.invoke('load-saved-message')
 })
+
+const applyRender = () => {
+  scrollToBottom('message-list')
+  document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
+    hljs.highlightElement(el)
+  })
+  document.querySelectorAll('a:not(.added-link-handle)').forEach((el) => {
+    el.classList.add('added-link-handle')
+    el.removeEventListener('click', openExternalLink)
+    el.addEventListener('click', openExternalLink)
+  })
+  document.querySelectorAll('.message-content img:not(.added-image-handle)').forEach((el) => {
+    el.classList.add('added-image-handle')
+    el.removeEventListener('click', downloadImage)
+    el.addEventListener('click', downloadImage)
+  })
+}
 
 const addUserMessage = (message) => {
   let resolveMessage = _.omit(message, ['content', 'type'])
@@ -158,6 +162,7 @@ const saveMessage = (message) => {
     messageToSave[1].isSaved = true
     ipcRenderer.invoke('save-message', messageToSave)
     mainStore.savedMessageList.push(...messageToSave)
+    emit('message', 'success', 'Message Saved')
   }
 }
 
@@ -170,7 +175,8 @@ const deleteSavedMessage = (message) => {
 }
 
 defineExpose({
-  addUserMessage
+  addUserMessage,
+  applyRender
 })
 
 </script>
