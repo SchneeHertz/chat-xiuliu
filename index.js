@@ -429,7 +429,8 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       countToken: true,
       content: resText,
       allowBreak: false,
-      useContext: contextFileName
+      useContext: contextFileName,
+      allowSave: true
     })
   }
   STATUS.answeringId = null
@@ -538,7 +539,8 @@ const sendHistory = (limit) => {
         messageSend({
           id: nanoid(),
           from: AI_NAME,
-          content: text
+          content: text,
+          allowSave: true
         })
         break
       case 'tool':
@@ -616,6 +618,19 @@ ipcMain.handle('load-history', async() => {
 ipcMain.handle('restart-app', async()=>{
   app.relaunch()
   app.exit(0)
+})
+ipcMain.handle('save-message', async (event, message) => {
+  const saveMessage = getStore('saveMessage') || []
+  saveMessage.push(...message)
+  setStore('saveMessage', saveMessage)
+})
+ipcMain.handle('load-saved-message', async () => {
+  return getStore('saveMessage') || []
+})
+ipcMain.handle('delete-saved-message', async (event, messageIds) => {
+  let saveMessage = getStore('saveMessage')
+  saveMessage = saveMessage.filter(item => !messageIds.includes(item.id))
+  setStore('saveMessage', saveMessage)
 })
 
 // setting

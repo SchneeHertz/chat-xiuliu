@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, nextTick } from 'vue'
 import { UserCircle, StopCircleRegular } from '@vicons/fa'
-import { LogoOctocat } from '@vicons/ionicons4'
+import { LogoOctocat, IosSave, MdRemoveCircleOutline } from '@vicons/ionicons4'
 import { nanoid } from 'nanoid'
 
 import MarkdownIt from 'markdown-it'
@@ -66,7 +66,7 @@ const downloadImage = async (event) => {
   linkElement.click()
 }
 
-onMounted(() => {
+onMounted(async () => {
   ipcRenderer.on('send-message', (event, arg) => {
     if (arg.action === 'revoke') {
       mainStore.messageList = _.filter(mainStore.messageList, m => m.id !== arg.id)
@@ -98,6 +98,8 @@ onMounted(() => {
       findExist.countToken = arg.countToken
       findExist.allowBreak = arg.allowBreak
       findExist.useContext = arg.useContext
+      findExist.allowSave = arg.allowSave
+      findExist.isSaved = arg.isSaved
     } else {
       mainStore.messageList.push(arg)
       mainStore.messageList = _.takeRight(mainStore.messageList, 200)
@@ -120,6 +122,7 @@ onMounted(() => {
     })
   })
   ipcRenderer.invoke('load-history')
+  mainStore.savedMessageList = await ipcRenderer.invoke('load-saved-message')
 })
 
 const addUserMessage = (message) => {
@@ -144,6 +147,26 @@ const addUserMessage = (message) => {
 
 const breakAnswer = () => {
   ipcRenderer.invoke('break-answer')
+}
+
+const saveMessage = (message) => {
+  const findMessageIndex = mainStore.messageList.findIndex(m => m.id === message.id)
+  if (findMessageIndex !== -1) {
+    // find previous user message
+    const findPreviousUserMessage = _.findLast(mainStore.messageList.slice(0, findMessageIndex), m => m.from === props.config.ADMIN_NAME)
+    const messageToSave = _.cloneDeep([findPreviousUserMessage, _.omit(message, ['countToken', 'allowBreak', 'allowSave'])])
+    messageToSave[1].isSaved = true
+    ipcRenderer.invoke('save-message', messageToSave)
+    mainStore.savedMessageList.push(...messageToSave)
+  }
+}
+
+const deleteSavedMessage = (message) => {
+  const findMessageIndex = mainStore.messageList.findIndex(m => m.id === message.id)
+  const deleteSavedMessageId = mainStore.messageList.slice(findMessageIndex - 1, findMessageIndex + 1).map(m => m.id)
+  ipcRenderer.invoke('delete-saved-message', deleteSavedMessageId)
+  mainStore.savedMessageList = _.filter(mainStore.savedMessageList, m => !deleteSavedMessageId.includes(m.id))
+  mainStore.messageList = _.filter(mainStore.messageList, m => !deleteSavedMessageId.includes(m.id))
 }
 
 defineExpose({
@@ -174,6 +197,16 @@ defineExpose({
           <n-button size="tiny" secondary circle v-if="message.allowBreak" @click="breakAnswer">
             <template #icon>
               <n-icon><StopCircleRegular /></n-icon>
+            </template>
+          </n-button>
+          <n-button size="tiny" secondary circle v-if="message.allowSave" @click="saveMessage(message)">
+            <template #icon>
+              <n-icon><IosSave /></n-icon>
+            </template>
+          </n-button>
+          <n-button size="tiny" secondary circle v-if="message.isSaved" @click="deleteSavedMessage(message)">
+            <template #icon>
+              <n-icon><MdRemoveCircleOutline /></n-icon>
             </template>
           </n-button>
         </template>

@@ -172,6 +172,17 @@ const choosePdfFile = async () => {
   if (filepath) await ipcRenderer.invoke('resolve-pdf', filepath)
 }
 
+const showSavedMessage = ref(false)
+const switchMessageList = () => {
+  showSavedMessage.value = !showSavedMessage.value
+  if (showSavedMessage.value) {
+    mainStore.tempMessageList = _.cloneDeep(mainStore.messageList)
+    mainStore.messageList = _.cloneDeep(mainStore.savedMessageList)
+  } else {
+    mainStore.messageList = _.cloneDeep(mainStore.tempMessageList)
+  }
+}
+
 </script>
 
 <template>
@@ -220,8 +231,13 @@ const choosePdfFile = async () => {
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
           @paste="handleImagePaste"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
+          :disabled="showSavedMessage"
         ></n-input>
-        <n-button style="height: 36px" @click="sendText">
+        <n-button
+          style="height: 36px"
+          @click="sendText"
+          :disabled="showSavedMessage"
+        >
           <template #icon>
             <n-icon><Send16Regular /></n-icon>
           </template>
@@ -255,6 +271,7 @@ const choosePdfFile = async () => {
         </n-button>
         <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
         <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
+        <n-button type="primary" tertiary @click="switchMessageList">{{showSavedMessage ? '显示对话' : '显示已保存内容'}}</n-button>
         <Setting ref="setting"/>
       </n-space>
     </n-gi>
