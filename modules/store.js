@@ -10,7 +10,7 @@ try {
 } catch {
   storeData = {
     history: [],
-    liveHistory: [],
+    liveHistory: undefined,
     LIVE_ROOM_CODE: 100,
     authBody: {},
     scriptSystemPrompt: ''

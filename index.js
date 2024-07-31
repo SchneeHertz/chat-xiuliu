@@ -109,7 +109,6 @@ const STATUS = {
   answeringId: null,
   breakAnswerId: null,
   isLiving: false,
-  selfTalk: 3,
 }
 
 const { prepareMint } = require('./modules/sensitive-word.js')
@@ -292,13 +291,6 @@ const addHistory = (lines) => {
   setStore('history', history)
 }
 
-const addLiveHistory = (lines) => {
-  let history = getStore('liveHistory') || []
-  history.push(...lines)
-  history = _.takeRight(history, 1000)
-  setStore('liveHistory', history)
-}
-
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
 const additionalParam = {
   searchResultLimit,
@@ -467,7 +459,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt, messages, line = {}, forLive = false }) => {
+const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt, line = {}, forLive = false }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history')
   let context = _.takeRight(history, historyRoundLimit)
@@ -488,19 +480,11 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     { role: 'user', content: prompt }
   ]
 
-    messageLog({
-      id: nanoid(),
-      from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
-      content: prompt
-    })
-  } else {
-    if (!_.isEmpty(line)) addLiveHistory([{ from: line.from, content: line.content }])
-    messageLogAndSend({
-      id: nanoid(),
-      from: 'Live',
-      content: messages?.[1]?.content
-    })
-  }
+  messageLog({
+    id: nanoid(),
+    from: triggerRecord ? `(${ADMIN_NAME})` : ADMIN_NAME,
+    content: prompt
+  })
 
   let resTextTemp = ''
   let resText = ''
@@ -522,11 +506,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
       content: resText
     })
     addHistory([{ role: 'user', content: prompt }])
-    if (forLive) {
-      addLiveHistory([{ from: AI_NAME, content: resText }])
-    } else {
-      addHistory([{ role: 'assistant', content: resText }])
-    }
+    addHistory([{ role: 'assistant', content: resText }])
     if (triggerRecord) {
       let speakIndex = STATUS.speakIndex
       STATUS.speakIndex += 1
@@ -708,33 +688,6 @@ ipcMain.handle('get-function-info', async () => {
 // live mode
 if (liveMode) {
   const { geneMessages } = require('./live/think-script.js')
-  const liveMainStep = async () => {
-    if (STATUS.isLiving) {
-      if (Object.keys(_.groupBy(speakTextList, 'id')).length <= 1) {
-        try {
-          let useSpark
-          if (STATUS.selfTalk >= 3) {
-            useSpark = true
-            STATUS.selfTalk = 0
-          } else {
-            useSpark = false
-          }
-          let { messages, line } = await geneMessages({ dbTable: memoryTable, useSpark })
-          if (_.isEmpty(line)) STATUS.selfTalk += 1
-          await resloveAdminPrompt({ messages, line, forLive: true })
-          setTimeout(liveMainStep, 4000)
-        } catch (error) {
-          console.log(error)
-          setTimeout(liveMainStep, 10000)
-        }
-      } else {
-        setTimeout(liveMainStep, 1000)
-      }
-    } else {
-      setTimeout(liveMainStep, 1000)
-    }
-  }
-  setTimeout(liveMainStep, 4000)
 }
 
 ipcMain.handle('open-external', async (event, url) => {
