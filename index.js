@@ -16,6 +16,7 @@ const { getSpeechText } = require('./modules/whisper.js')
 const { getTokenLength } = require('./modules/tiktoken.js')
 const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
+const { addText, searchSimilarText, cosineSimilarity } = require('./modules/vectorDb.js')
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
@@ -781,13 +782,6 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
     content: `已解析 ${contextFileName} 。`
   })
 })
-
-function cosineSimilarity(vec1, vec2) {
-  const dotProduct = vec1.reduce((acc, curr, idx) => acc + (curr * vec2[idx]), 0);
-  const magVec1 = Math.sqrt(vec1.reduce((acc, curr) => acc + (curr * curr), 0));
-  const magVec2 = Math.sqrt(vec2.reduce((acc, curr) => acc + (curr * curr), 0));
-  return dotProduct / (magVec1 * magVec2);
-}
 
 function findClosestEmbeddedChunks(newEmbedded, embeddedChunks) {
 
