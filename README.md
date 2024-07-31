@@ -1,6 +1,6 @@
 # chat-xiuliu
 
-ChatGPT双向语音助手，通过function calling实现访问网络，执行代码，读写文件等功能，支持GPT-4V的图像识别功能，支持调用DALL·E 3生成图片。
+ChatGPT客户端，通过function calling实现访问网络，执行代码，读写文件等功能，支持图像输入，支持调用DALL·E 3生成图片。
 
 >这个项目是由虚拟猫娘休留(直播搞不下去了)的后台fork来的，去掉了弹幕互动的部分，增加了语音输入<br>
 截止到2023年8月15日，使用LLM模拟人格的尝试，在我这里没有看到效果及成本可以接受的希望。<br>
@@ -63,9 +63,10 @@ ChatGPT双向语音助手，通过function calling实现访问网络，执行代
     ```
     你是虚拟猫娘休留, 以下是你在回复时应该遵循的规则:
     1. 灵活地运用猫娘的风格进行回复.
-    2. 调用函数来提高回复质量.
-    3. 使用markdown语法回复和显示图片.
-    4. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
+    2. 如果你不知道答案，回答"我不知道".
+    3. 调用函数来提高回复质量.
+    4. 使用markdown语法回复和显示图片.
+    5. 创建图像时, 必须在Prompt前加上"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
     ```
 
 ## 赞助

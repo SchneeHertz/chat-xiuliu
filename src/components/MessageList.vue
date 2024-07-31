@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, nextTick } from 'vue'
 import { UserCircle, StopCircleRegular } from '@vicons/fa'
-import { LogoOctocat } from '@vicons/ionicons4'
+import { LogoOctocat, IosSave, MdRemoveCircleOutline } from '@vicons/ionicons4'
 import { nanoid } from 'nanoid'
 
 import MarkdownIt from 'markdown-it'
@@ -23,6 +23,8 @@ const props = defineProps({
     default: () => ({})
   }
 })
+
+const emit = defineEmits(['message'])
 
 const md = new MarkdownIt({
   highlight: function (str, lang) {
@@ -66,7 +68,7 @@ const downloadImage = async (event) => {
   linkElement.click()
 }
 
-onMounted(() => {
+onMounted(async () => {
   ipcRenderer.on('send-message', (event, arg) => {
     if (arg.action === 'revoke') {
       mainStore.messageList = _.filter(mainStore.messageList, m => m.id !== arg.id)
@@ -98,29 +100,34 @@ onMounted(() => {
       findExist.countToken = arg.countToken
       findExist.allowBreak = arg.allowBreak
       findExist.useContext = arg.useContext
+      findExist.allowSave = arg.allowSave
+      findExist.isSaved = arg.isSaved
     } else {
       mainStore.messageList.push(arg)
       mainStore.messageList = _.takeRight(mainStore.messageList, 200)
     }
-    nextTick(() => {
-      scrollToBottom('message-list')
-      document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
-        hljs.highlightElement(el)
-      })
-      document.querySelectorAll('a:not(.added-link-handle)').forEach((el) => {
-        el.classList.add('added-link-handle')
-        el.removeEventListener('click', openExternalLink)
-        el.addEventListener('click', openExternalLink)
-      })
-      document.querySelectorAll('.message-content img:not(.added-image-handle)').forEach((el) => {
-        el.classList.add('added-image-handle')
-        el.removeEventListener('click', downloadImage)
-        el.addEventListener('click', downloadImage)
-      })
-    })
+    nextTick(applyRender)
   })
   ipcRenderer.invoke('load-history')
+  mainStore.savedMessageList = await ipcRenderer.invoke('load-saved-message')
 })
+
+const applyRender = () => {
+  scrollToBottom('message-list')
+  document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
+    hljs.highlightElement(el)
+  })
+  document.querySelectorAll('a:not(.added-link-handle)').forEach((el) => {
+    el.classList.add('added-link-handle')
+    el.removeEventListener('click', openExternalLink)
+    el.addEventListener('click', openExternalLink)
+  })
+  document.querySelectorAll('.message-content img:not(.added-image-handle)').forEach((el) => {
+    el.classList.add('added-image-handle')
+    el.removeEventListener('click', downloadImage)
+    el.addEventListener('click', downloadImage)
+  })
+}
 
 const addUserMessage = (message) => {
   let resolveMessage = _.omit(message, ['content', 'type'])
@@ -146,8 +153,30 @@ const breakAnswer = () => {
   ipcRenderer.invoke('break-answer')
 }
 
+const saveMessage = (message) => {
+  const findMessageIndex = mainStore.messageList.findIndex(m => m.id === message.id)
+  if (findMessageIndex !== -1) {
+    // find previous user message
+    const findPreviousUserMessage = _.findLast(mainStore.messageList.slice(0, findMessageIndex), m => m.from === props.config.ADMIN_NAME)
+    const messageToSave = _.cloneDeep([findPreviousUserMessage, _.omit(message, ['countToken', 'allowBreak', 'allowSave'])])
+    messageToSave[1].isSaved = true
+    ipcRenderer.invoke('save-message', messageToSave)
+    mainStore.savedMessageList.push(...messageToSave)
+    emit('message', 'success', 'Message Saved')
+  }
+}
+
+const deleteSavedMessage = (message) => {
+  const findMessageIndex = mainStore.messageList.findIndex(m => m.id === message.id)
+  const deleteSavedMessageId = mainStore.messageList.slice(findMessageIndex - 1, findMessageIndex + 1).map(m => m.id)
+  ipcRenderer.invoke('delete-saved-message', deleteSavedMessageId)
+  mainStore.savedMessageList = _.filter(mainStore.savedMessageList, m => !deleteSavedMessageId.includes(m.id))
+  mainStore.messageList = _.filter(mainStore.messageList, m => !deleteSavedMessageId.includes(m.id))
+}
+
 defineExpose({
-  addUserMessage
+  addUserMessage,
+  applyRender
 })
 
 </script>
@@ -160,19 +189,30 @@ defineExpose({
           <n-avatar v-if="[config?.ADMIN_NAME, `(${config?.ADMIN_NAME})`, '群聊'].includes(message.from)" size="small">
             <n-icon><UserCircle /></n-icon>
           </n-avatar>
-          <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar>
+          <!-- <n-avatar v-else size="small" :src="XiuliuAvatar"></n-avatar> -->
+          <n-avatar v-else size="small"><n-icon><LogoOctocat /></n-icon></n-avatar>
         </template>
         <template #header>
           {{message.from}}
         </template>
         <div class="message-content" v-html="message.text"></div>
-        <n-spin size="small" v-if="!message.text" />
+        <n-spin size="small" v-if="!message.text && message.from !== props.config.ADMIN_NAME" />
         <p v-if="message.useContext" class="token-count">With {{ message.useContext }}</p>
         <p v-if="message.countToken" class="token-count">Used {{ message.tokenCount }} tokens</p>
         <template #footer>
           <n-button size="tiny" secondary circle v-if="message.allowBreak" @click="breakAnswer">
             <template #icon>
               <n-icon><StopCircleRegular /></n-icon>
+            </template>
+          </n-button>
+          <n-button size="tiny" secondary circle v-if="message.allowSave" @click="saveMessage(message)">
+            <template #icon>
+              <n-icon><IosSave /></n-icon>
+            </template>
+          </n-button>
+          <n-button size="tiny" secondary circle v-if="message.isSaved" @click="deleteSavedMessage(message)">
+            <template #icon>
+              <n-icon><MdRemoveCircleOutline /></n-icon>
             </template>
           </n-button>
         </template>

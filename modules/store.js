@@ -1,6 +1,6 @@
 const path = require('node:path')
 const fs = require('node:fs')
-const _ = require('lodash')
+const { get } = require('lodash')
 
 const { STORE_PATH } = require('../utils/fileTool.js')
 
@@ -18,8 +18,8 @@ try {
   fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), { encoding: 'utf-8' })
 }
 
-const getStore = (key, defaultValue) => {
-  return JSON.parse(JSON.stringify(_.get(storeData, key, null))) || defaultValue
+const getStore = (key) => {
+  return JSON.parse(JSON.stringify(get(storeData, key, null)))
 }
 
 const setStore = (key, value) => {

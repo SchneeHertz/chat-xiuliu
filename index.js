@@ -16,6 +16,7 @@ const { getSpeechText } = require('./modules/whisper.js')
 const { getTokenLength } = require('./modules/tiktoken.js')
 const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
+const { addText, searchSimilarText, cosineSimilarity } = require('./modules/vectorDb.js')
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
@@ -351,7 +352,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     }
   }
   resToolCalls = []
-
   let prepareChatOption = { messages, model }
 
   if (useFunctionCalling) {
@@ -446,7 +446,8 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       countToken: true,
       content: resText,
       allowBreak: false,
-      useContext: contextFileName
+      useContext: contextFileName,
+      allowSave: true
     })
   }
   STATUS.answeringId = null
@@ -471,12 +472,6 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let history = getStore('history')
   let context = _.takeRight(history, historyRoundLimit)
 
-  // only use user text content
-  context.forEach(line => {
-    if (line.role === 'user' && typeof line.content === 'object') {
-      line.content = line.content.filter(part => part.type === 'text').map(part => part.text).join('\n')
-    }
-  })
   let fullSystemPrompt = givenSystemPrompt ? givenSystemPrompt : systemPrompt
   if (contextFileName && fileContext.length > 0) {
     let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
@@ -485,15 +480,13 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
     fullSystemPrompt = `${fullSystemPrompt}\n\nContext: \n\n${contextText}`
   }
 
-  if (!forLive) {
-    messages = [
-      { role: 'system', content: fullSystemPrompt },
-      { role: 'user', content: `你好, 我的名字是${ADMIN_NAME}` },
-      { role: 'assistant', content: `你好, ${ADMIN_NAME}` },
-      ...context,
-      { role: 'user', content: prompt }
-    ]
-    addHistory([{ role: 'user', content: prompt }])
+  let messages = [
+    { role: 'system', content: fullSystemPrompt },
+    { role: 'user', content: `Hello, my name is ${ADMIN_NAME}` },
+    { role: 'assistant', content: `Hello, ${ADMIN_NAME}` },
+    ...context,
+    { role: 'user', content: prompt }
+  ]
 
     messageLog({
       id: nanoid(),
@@ -514,18 +507,14 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resToolCalls = []
 
   try {
-    if (useAzureOpenai && promptType !== 'string') {
-      resText = (await resolveMessages({ resText, messages, from })).resText
-    } else {
-      let round = 0
-      while (resText === '' && round <= functionCallingRoundLimit + 1) {
-        let useFunctionCalling = round > functionCallingRoundLimit ? false : true
-        if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
-        ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
-          resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling, forLive
-        }))
-        round += 1
-      }
+    let round = 0
+    while (resText === '' && round <= functionCallingRoundLimit + 1) {
+      let useFunctionCalling = round > functionCallingRoundLimit ? false : true
+      if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
+      ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
+        resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
+      }))
+      round += 1
     }
     messageLog({
       id: nanoid(),
@@ -579,7 +568,8 @@ const sendHistory = (limit) => {
         messageSend({
           id: nanoid(),
           from: AI_NAME,
-          content: text
+          content: text,
+          allowSave: true
         })
         break
       case 'tool':
@@ -664,6 +654,19 @@ ipcMain.handle('load-history', async() => {
 ipcMain.handle('restart-app', async()=>{
   app.relaunch()
   app.exit(0)
+})
+ipcMain.handle('save-message', async (event, message) => {
+  const saveMessage = getStore('saveMessage') || []
+  saveMessage.push(...message)
+  setStore('saveMessage', saveMessage)
+})
+ipcMain.handle('load-saved-message', async () => {
+  return getStore('saveMessage') || []
+})
+ipcMain.handle('delete-saved-message', async (event, messageIds) => {
+  let saveMessage = getStore('saveMessage')
+  saveMessage = saveMessage.filter(item => !messageIds.includes(item.id))
+  setStore('saveMessage', saveMessage)
 })
 
 // setting
@@ -846,13 +849,6 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
     content: `已解析 ${contextFileName} 。`
   })
 })
-
-function cosineSimilarity(vec1, vec2) {
-  const dotProduct = vec1.reduce((acc, curr, idx) => acc + (curr * vec2[idx]), 0);
-  const magVec1 = Math.sqrt(vec1.reduce((acc, curr) => acc + (curr * curr), 0));
-  const magVec2 = Math.sqrt(vec2.reduce((acc, curr) => acc + (curr * curr), 0));
-  return dotProduct / (magVec1 * magVec2);
-}
 
 function findClosestEmbeddedChunks(newEmbedded, embeddedChunks) {
 

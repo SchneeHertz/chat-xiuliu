@@ -2,7 +2,7 @@
 import { onMounted, ref, nextTick } from 'vue'
 import { nanoid } from 'nanoid'
 import { Microphone, MicrophoneSlash, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular, Live24Regular } from '@vicons/fluent'
+import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular, Send16Regular, Live24Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
 
 import { useMainStore } from './pinia.js'
@@ -39,10 +39,6 @@ const sendText = (event) => {
     let userPrompt = {
       type: 'array',
       content: [
-        {
-          type: 'text',
-          text: inputText.value
-        },
         ...imageBlobUrlList.value.map((url) => {
           return {
             type: 'image_url',
@@ -51,7 +47,11 @@ const sendText = (event) => {
               url
             }
           }
-        })
+        }),
+        {
+          type: 'text',
+          text: inputText.value
+        },
       ]
     }
     ipcRenderer.invoke('send-prompt', userPrompt)
@@ -169,6 +169,23 @@ const saveCapture = async () => {
   linkElement.click()
 }
 
+const choosePdfFile = async () => {
+  const filepath = await ipcRenderer.invoke('select-file', { filters: [{ name: 'PDF', extensions: ['pdf'] }] })
+  if (filepath) await ipcRenderer.invoke('resolve-pdf', filepath)
+}
+
+const showSavedMessage = ref(false)
+const switchMessageList = () => {
+  showSavedMessage.value = !showSavedMessage.value
+  if (showSavedMessage.value) {
+    mainStore.tempMessageList = _.cloneDeep(mainStore.messageList)
+    mainStore.messageList = _.cloneDeep(mainStore.savedMessageList)
+  } else {
+    mainStore.messageList = _.cloneDeep(mainStore.tempMessageList)
+  }
+  nextTick(messageListRef.value.applyRender)
+}
+
 </script>
 
 <template>
@@ -177,6 +194,7 @@ const saveCapture = async () => {
       <MessageList
         ref="messageListRef"
         :config="config"
+        @message="printMessage"
       />
       <n-input-group style="margin-top: 8px">
         <n-upload
@@ -217,7 +235,17 @@ const saveCapture = async () => {
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
           @paste="handleImagePaste"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
+          :disabled="showSavedMessage"
         ></n-input>
+        <n-button
+          style="height: 36px"
+          @click="sendText"
+          :disabled="showSavedMessage"
+        >
+          <template #icon>
+            <n-icon><Send16Regular /></n-icon>
+          </template>
+        </n-button>
       </n-input-group>
     </n-gi>
     <n-gi :offset="1" :span="22">
@@ -247,6 +275,7 @@ const saveCapture = async () => {
         </n-button>
         <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
         <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
+        <n-button type="primary" tertiary @click="switchMessageList">{{showSavedMessage ? '显示对话' : '显示已保存内容'}}</n-button>
         <n-button tertiary :type="isLiving ? 'primary' : 'default'" @click="switchLive" v-show="config.liveMode">
           <template #icon>
             <n-icon>
