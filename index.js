@@ -279,7 +279,7 @@ const resolveSpeakTextList = async (preAudioPath) => {
 resolveSpeakTextList()
 
 const addHistory = (lines) => {
-  let history = getStore('history')
+  let history = getStore('history') || []
   history.push(...lines)
   history = _.takeRight(history, 1000)
   setStore('history', history)
@@ -453,7 +453,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
  */
 const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
-  let history = getStore('history')
+  let history = getStore('history') || []
   let context = _.takeRight(history, historyRoundLimit)
 
   let fullSystemPrompt = givenSystemPrompt ? givenSystemPrompt : systemPrompt
@@ -515,7 +515,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
 }
 
 const sendHistory = (limit) => {
-  let history = getStore('history')
+  let history = getStore('history') || []
   history = _.takeRight(history, limit)
   history.forEach((item) => {
     switch (item.role) {
@@ -629,7 +629,7 @@ ipcMain.handle('load-saved-message', async () => {
   return getStore('saveMessage') || []
 })
 ipcMain.handle('delete-saved-message', async (event, messageIds) => {
-  let saveMessage = getStore('saveMessage')
+  let saveMessage = getStore('saveMessage') || []
   saveMessage = saveMessage.filter(item => !messageIds.includes(item.id))
   setStore('saveMessage', saveMessage)
 })
