@@ -186,6 +186,10 @@ const switchMessageList = () => {
   nextTick(messageListRef.value.applyRender)
 }
 
+const switchLive = () => {
+  ipcRenderer.invoke('switch-live')
+}
+
 </script>
 
 <template>

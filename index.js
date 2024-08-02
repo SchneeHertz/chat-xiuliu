@@ -721,27 +721,30 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
     response_format: { "type": "json_object" }
   }
 
+  let response
   try {
     const responseMessage = await useOpenaiChatFunction(chatOption)
     console.log(responseMessage)
-    const response = JSON.parse(resolveMessages)
+    response = JSON.parse(responseMessage.content)
 
     if (response.thoughtPiece) {
       liveState.thoughtCloud.push(
         _.assign(
           {},
           response.thoughtPiece,
-          { timestamp: new Date.toLocaleString('zh-CN') }
+          { timestamp: new Date().toLocaleString('zh-CN') }
         )
       )
     }
+    if (prompt) addHistory([{ role: 'user', content: prompt }])
     if (response.text) {
       liveState.conversationState.push({
-        timestamp: new Date.toLocaleString('zh-CN'),
+        timestamp: new Date().toLocaleString('zh-CN'),
         speaker: 'Healow',
         type: response.action,
         text: response.text
       })
+      addHistory([{ role: 'assistant', content: `${response.action}: \n${response.text}` }])
     }
 
     switch (response.action) {
@@ -758,7 +761,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
       case "remember":
         if (response.text) {
           addText({
-            timestamp: new Date.toLocaleString('zh-CN'),
+            timestamp: new Date().toLocaleString('zh-CN'),
             text: response.text
           }, 'live')
         }
@@ -767,7 +770,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         if (response.text) {
           const result = await functionList['get_information_from_google']({ query_string: response.text }, additionalParam)
           liveState.conversationState.push({
-            timestamp: new Date.toLocaleString('zh-CN'),
+            timestamp: new Date().toLocaleString('zh-CN'),
             speaker: 'Browser',
             type: 'internet',
             text: result
@@ -779,7 +782,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         if (response.text) {
           const result = await functionList['get_text_content_of_webpage']({ url: response.text }, additionalParam)
           liveState.conversationState.push({
-            timestamp: new Date.toLocaleString('zh-CN'),
+            timestamp: new Date().toLocaleString('zh-CN'),
             speaker: 'Browser',
             type: 'internet',
             text: result
