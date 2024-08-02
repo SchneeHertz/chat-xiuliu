@@ -25,6 +25,19 @@ try {
   })
 } catch {}
 
+
+/**
+ * Generates a chat response using the OpenAI API.
+ * @param {*} chatOption
+ * @returns  {Promise<string>} The response from the chat API.
+ */
+const openaiChat = async (chatOption) => {
+  chatOption.model = chatOption.model || DEFAULT_MODEL
+  chatOption.max_tokens = chatOption.max_tokens || 4096
+  const response = await openai.chat.completions.create(chatOption)
+  return response.data.choices[0].message
+}
+
 /**
  * Generates a chat stream using the OpenAI API.
  *
@@ -79,6 +92,13 @@ const azureOpenai = new AzureOpenAI({
   timeout: 40000
 })
 
+const azureOpenaiChat = async (chatOption) => {
+  chatOption.model = chatOption.model || AZURE_CHAT_MODEL
+  chatOption.max_tokens = chatOption.max_tokens || 4096
+  const response = await azureOpenai.chat.completions.create(chatOption)
+  return response.data.choices[0].message
+}
+
 const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messages, tools, tool_choice }) {
   let response
   if (tools) {
@@ -118,9 +138,11 @@ const azureOpenaiImageCreate = async ({ model = AZURE_IMAGE_MODEL, prompt, n = 1
 
 
 module.exports = {
+  openaiChat,
   openaiChatStream,
   openaiEmbedding,
   openaiImageCreate,
+  azureOpenaiChat,
   azureOpenaiChatStream,
   azureOpenaiEmbedding,
   azureOpenaiImageCreate,
