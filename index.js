@@ -14,9 +14,9 @@ const { getRootPath } = require('./utils/fileTool.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { getTokenLength } = require('./modules/tiktoken.js')
-const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
+const { openaiChat, openaiChatStream, openaiEmbedding, azureOpenaiChat, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
-const { addText, searchSimilarText, cosineSimilarity } = require('./modules/vectorDb.js')
+const { addText, cosineSimilarity } = require('./modules/vectorDb.js')
 const { config } = require('./utils/loadConfig.js')
 const {
   useAzureOpenai,
@@ -26,7 +26,6 @@ const {
   systemPrompt,
   useProxy,
   proxyObject,
-  liveMode,
   historyRoundLimit = 12,
   functionCallingRoundLimit = 3,
   disableFunctions = [],
@@ -112,8 +111,7 @@ const STATUS = {
 }
 
 const { prepareMint } = require('./modules/sensitive-word.js')
-let mint
-if (liveMode) mint = prepareMint()
+const mint = prepareMint()
 
 let speakTextList = []
 let tts = new EdgeTTS({
@@ -292,6 +290,7 @@ const addHistory = (lines) => {
 }
 
 const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
+const useOpenaiChatFunction = useAzureOpenai ? azureOpenaiChat : openaiChat
 const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
@@ -459,7 +458,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt, line = {}, forLive = false }) => {
+const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history') || []
   let context = _.takeRight(history, historyRoundLimit)
@@ -598,6 +597,10 @@ const breakAnswer = () => {
   }
 }
 ipcMain.handle('send-prompt', async (event, prompt) => {
+  if (STATUS.isLiving) {
+    resolveLivePrompt({ prompt: prompt.content })
+    return
+  }
   breakAnswer()
   resloveAdminPrompt({
     prompt: prompt.content,
@@ -618,15 +621,8 @@ ipcMain.handle('switch-speech-talk', async () => {
 ipcMain.handle('switch-audio', async () => {
   STATUS.isAudioPlay = !STATUS.isAudioPlay
 })
-ipcMain.handle('switch-live', async () => {
-  STATUS.isLiving = !STATUS.isLiving
-})
 ipcMain.handle('empty-history', async () => {
-  if (STATUS.isLiving) {
-    setStore('liveHistory', [])
-  } else {
-    setStore('history', [])
-  }
+  setStore('history', [])
 })
 ipcMain.handle('load-history', async() => {
   sendHistory(20)
@@ -686,8 +682,142 @@ ipcMain.handle('get-function-info', async () => {
 })
 
 // live mode
-if (liveMode) {
+
+
+ipcMain.handle('switch-live', async () => {
+  STATUS.isLiving = !STATUS.isLiving
+  if (STATUS.isLiving) {
+    setInterval(() => {
+      if (!STATUS.answeringId) resolveLivePrompt()
+    }, 30000)
+  }
+})
+
+const resolveLivePrompt = async ({ prompt } = {}) => {
   const { geneMessages } = require('./live/think-script.js')
+  const { messages, liveState } = await geneMessages({ prompt })
+  const from = 'Healow'
+  console.log(messages)
+
+  console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
+
+  let clientMessageId = nanoid()
+  STATUS.answeringId = clientMessageId
+  let speakIndex = STATUS.speakIndex
+  STATUS.speakIndex += 1
+
+  // alert chat
+  messageSend({
+    id: clientMessageId,
+    from,
+    content: ''
+  })
+
+  const chatOption = {
+    messages,
+    response_format: { "type": "json_object" }
+  }
+
+  try {
+    const responseMessage = await useOpenaiChatFunction(chatOption)
+    console.log(responseMessage)
+    const response = JSON.parse(resolveMessages)
+
+    if (response.thoughtPiece) {
+      liveState.thoughtCloud.push(
+        _.assign(
+          {},
+          response.thoughtPiece,
+          { timestamp: new Date.toLocaleString('zh-CN') }
+        )
+      )
+    }
+    if (response.text) {
+      liveState.conversationState.push({
+        timestamp: new Date.toLocaleString('zh-CN'),
+        speaker: 'Healow',
+        type: response.action,
+        text: response.text
+      })
+    }
+
+    switch (response.action) {
+      case "thought":
+        break
+      case "speaking":
+        if (STATUS.isAudioPlay && response.text) {
+          speakTextList.push({
+            text: response.text,
+            speakIndex,
+          })
+        }
+        break
+      case "remember":
+        if (response.text) {
+          addText({
+            timestamp: new Date.toLocaleString('zh-CN'),
+            text: response.text
+          })
+        }
+        break
+      case "search":
+        if (response.text) {
+          const result = await functionList['get_information_from_google']({ query_string: response.text }, additionalParam)
+          liveState.conversationState.push({
+            timestamp: new Date.toLocaleString('zh-CN'),
+            speaker: 'Browser',
+            type: 'internet',
+            text: result
+          })
+          await resolveLivePrompt()
+        }
+        break
+      case "view_web_page":
+        if (response.text) {
+          const result = await functionList['get_text_content_of_webpage']({ url: response.text }, additionalParam)
+          liveState.conversationState.push({
+            timestamp: new Date.toLocaleString('zh-CN'),
+            speaker: 'Browser',
+            type: 'internet',
+            text: result
+          })
+          await resolveLivePrompt()
+        }
+        break
+    }
+    setStore('liveState', liveState)
+  } catch (error) {
+    messageSend({
+      id: clientMessageId,
+      from,
+      content: `Error: ${error.message}`
+    })
+    throw error
+  }
+
+  if (_.isEmpty(response.text)) {
+    messageSend({
+      id: clientMessageId,
+      from,
+      action: 'revoke'
+    })
+  } else {
+    messageSend({
+      id: clientMessageId,
+      from,
+      messages,
+      countToken: true,
+      content: response.text,
+      allowBreak: false,
+      useContext: contextFileName,
+      allowSave: true
+    })
+  }
+  STATUS.answeringId = null
+  return {
+    messages,
+    response
+  }
 }
 
 ipcMain.handle('open-external', async (event, url) => {

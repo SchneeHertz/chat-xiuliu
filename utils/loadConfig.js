@@ -26,7 +26,6 @@ try {
       host: '127.0.0.1',
       port: 7890
     },
-    liveMode: false,
     SpeechSynthesisVoiceName: 'zh-CN-XiaoyiNeural',
     historyRoundLimit: 12,
     functionCallingRoundLimit: 3,
