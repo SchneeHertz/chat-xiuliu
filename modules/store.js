@@ -13,7 +13,7 @@ try {
     liveHistory: undefined,
     LIVE_ROOM_CODE: 100,
     authBody: {},
-    scriptSystemPrompt: ''
+    liveState: {}
   }
   fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), { encoding: 'utf-8' })
 }
