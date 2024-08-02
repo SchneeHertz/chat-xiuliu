@@ -10,7 +10,6 @@ try {
 } catch {
   storeData = {
     history: [],
-    liveHistory: undefined,
     LIVE_ROOM_CODE: 100,
     authBody: {},
     liveState: {}

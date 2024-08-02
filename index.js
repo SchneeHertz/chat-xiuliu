@@ -378,7 +378,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           }
           if (STATUS.isAudioPlay) {
             let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-            if (STATUS.isLiving) speakText = mint.filter(speakText).text
             speakTextList.push({
               text: speakText,
               speakIndex,
@@ -416,7 +415,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   if (STATUS.isAudioPlay) {
     if (resTextTemp) {
       let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
-      if (STATUS.isLiving) speakText = mint.filter(speakText).text
       speakTextList.push({
         text: speakText,
         speakIndex,
@@ -757,7 +755,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
           addText({
             timestamp: new Date.toLocaleString('zh-CN'),
             text: response.text
-          })
+          }, 'live')
         }
         break
       case "search":
