@@ -3,6 +3,8 @@ const { openaiEmbedding, azureOpenaiEmbedding } = require('./common.js')
 const { config: { useAzureOpenai } } = require('../utils/loadConfig.js')
 const { join } = require('path')
 
+const { STORE_PATH } = require('../utils/fileTool.js')
+
 const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : openaiEmbedding
 
 function dotProduct(vecA, vecB) {
@@ -24,7 +26,7 @@ function cosineSimilarity(vecA, vecB) {
 // 初始化 SQLite 数据库
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: join(__dirname, '../data/vector.sqlite'),
+  storage: join(STORE_PATH, 'vector.sqlite'),
   logging: false
 })
 

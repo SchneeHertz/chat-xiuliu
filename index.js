@@ -685,6 +685,11 @@ ipcMain.handle('get-function-info', async () => {
 ipcMain.handle('switch-live', async () => {
   STATUS.isLiving = !STATUS.isLiving
   if (STATUS.isLiving) {
+    const liveState = getStore('liveState') || {}
+    if (_.isEmpty(liveState)) {
+      const init = await fs.promises.readFile(path.join(__dirname, 'live/liveStateDemo.json'), { encoding: 'utf-8' })
+      setStore('liveState', JSON.parse(init))
+    }
     setInterval(() => {
       if (!STATUS.answeringId) resolveLivePrompt()
     }, 30000)
@@ -783,6 +788,9 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         }
         break
     }
+    // limit the length of the conversationState and thoughtCloud
+    liveState.conversationState = _.takeRight(liveState.conversationState, 42)
+    liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 100)
     setStore('liveState', liveState)
   } catch (error) {
     messageSend({
