@@ -1,6 +1,6 @@
 const path = require('node:path')
 const fs = require('node:fs')
-const { get } = require('lodash')
+const { get, cloneDeep } = require('lodash')
 
 const { STORE_PATH } = require('../utils/fileTool.js')
 
@@ -15,11 +15,11 @@ try {
 }
 
 const getStore = (key) => {
-  return JSON.parse(JSON.stringify(get(storeData, key, null)))
+  return cloneDeep(get(storeData, key, null))
 }
 
 const setStore = (key, value) => {
-  storeData[key] = value
+  storeData[key] = cloneDeep(value)
   fs.writeFileSync(path.join(STORE_PATH, 'storeData.json'), JSON.stringify(storeData, null, '  '), { encoding: 'utf-8' })
 }
 
