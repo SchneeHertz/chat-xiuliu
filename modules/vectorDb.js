@@ -77,7 +77,7 @@ async function searchSimilarText(query, count) {
   })
 
   results.sort((a, b) => b.similarity - a.similarity)
-  return results.slice(0, count)
+  return results.slice(0, count).map(item => item.content)
 }
 
 /**

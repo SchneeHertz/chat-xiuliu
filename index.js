@@ -596,11 +596,11 @@ const breakAnswer = () => {
 }
 ipcMain.handle('send-prompt', async (event, prompt) => {
   if (STATUS.isLiving) {
-    resolveLivePrompt({ prompt: prompt.content })
+    await resolveLivePrompt({ prompt: prompt.content })
     return
   }
   breakAnswer()
-  resloveAdminPrompt({
+  await resloveAdminPrompt({
     prompt: prompt.content,
     promptType: prompt.type
   })
@@ -697,10 +697,10 @@ ipcMain.handle('switch-live', async () => {
 })
 
 const resolveLivePrompt = async ({ prompt } = {}) => {
+  if (!STATUS.isLiving) return
   const { geneMessages } = require('./live/think-script.js')
   const { messages, liveState } = await geneMessages({ prompt })
-  const from = 'Healow'
-  console.log(messages)
+  const from = AI_NAME
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
@@ -735,16 +735,18 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
           { timestamp: new Date().toLocaleString('zh-CN') }
         )
       )
+      setStore('liveState', liveState)
     }
     if (prompt) addHistory([{ role: 'user', content: prompt }])
     if (response.text) {
       liveState.conversationState.push({
         timestamp: new Date().toLocaleString('zh-CN'),
-        speaker: 'Healow',
+        speaker: AI_NAME,
         type: response.action,
         text: response.text
       })
-      addHistory([{ role: 'assistant', content: `${response.action}: \n${response.text}` }])
+      setStore('liveState', liveState)
+      addHistory([{ role: 'assistant', content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}` }])
     }
 
     switch (response.action) {
@@ -775,6 +777,23 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
             type: 'internet',
             text: result
           })
+          setStore('liveState', liveState)
+          messageSend({
+            id: clientMessageId,
+            from,
+            messages,
+            countToken: true,
+            content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}`,
+            allowBreak: false,
+            useContext: contextFileName,
+            allowSave: true
+          })
+          messageSend({
+            id: nanoid(),
+            from: 'Browser',
+            content: result
+          })
+          STATUS.answeringId = null
           await resolveLivePrompt()
         }
         break
@@ -787,6 +806,23 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
             type: 'internet',
             text: result
           })
+          setStore('liveState', liveState)
+          messageSend({
+            id: clientMessageId,
+            from,
+            messages,
+            countToken: true,
+            content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}`,
+            allowBreak: false,
+            useContext: contextFileName,
+            allowSave: true
+          })
+          messageSend({
+            id: nanoid(),
+            from: 'Browser',
+            content: result
+          })
+          STATUS.answeringId = null
           await resolveLivePrompt()
         }
         break
@@ -816,7 +852,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
       from,
       messages,
       countToken: true,
-      content: response.text,
+      content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}`,
       allowBreak: false,
       useContext: contextFileName,
       allowSave: true
