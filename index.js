@@ -107,7 +107,7 @@ const STATUS = {
   speakIndex: 0,
   answeringId: null,
   breakAnswerId: null,
-  isLiving: false,
+  isLiving: false
 }
 
 const { prepareMint } = require('./modules/sensitive-word.js')
@@ -596,7 +596,7 @@ const breakAnswer = () => {
 }
 ipcMain.handle('send-prompt', async (event, prompt) => {
   if (STATUS.isLiving) {
-    await resolveLivePrompt({ prompt: prompt.content })
+    processLive.addToQueue({ prompt: prompt.content })
     return
   }
   breakAnswer()
@@ -681,6 +681,59 @@ ipcMain.handle('get-function-info', async () => {
 
 // live mode
 
+/**
+ * 异步处理器，用于管理一个队列并按序处理，每隔一段时间检查队列并处理空队列情况
+ */
+class AsyncProcessor {
+  /**
+   * 创建一个异步处理器
+   * @param {Function} asyncFunction - 异步处理函数
+   * @param {number} waitTime - 等待时间(毫秒)
+   */
+  constructor(asyncFunction, waitTime = 30000) {
+    this.queue = []
+    this.asyncFunction = asyncFunction
+    this.waitTime = waitTime
+    this.processing = true
+  }
+
+  async startProcessing() {
+    while (this.processing) {
+      while (this.queue.length > 0) {
+        const item = this.queue.shift()
+        await this.asyncFunction(item)
+      }
+
+      await this.delayOrCheckQueue(this.waitTime)
+    }
+  }
+
+  stopProcessing() {
+    this.processing = false
+  }
+
+  async delayOrCheckQueue(ms) {
+    const checkInterval = 1000
+    const start = Date.now()
+    while (Date.now() - start < ms) {
+      if (this.queue.length > 0) {
+        return
+      }
+      await this.delay(checkInterval)
+    }
+    await this.asyncFunction()
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  addToQueue(item) {
+    this.queue.push(item)
+  }
+}
+
+let processLive
 
 ipcMain.handle('switch-live', async () => {
   STATUS.isLiving = !STATUS.isLiving
@@ -690,9 +743,8 @@ ipcMain.handle('switch-live', async () => {
       const init = await fs.promises.readFile(path.join(__dirname, 'live/liveStateDemo.json'), { encoding: 'utf-8' })
       setStore('liveState', JSON.parse(init))
     }
-    setInterval(() => {
-      if (!STATUS.answeringId) resolveLivePrompt()
-    }, 30000)
+    processLive = new AsyncProcessor(resolveLivePrompt)
+    processLive.startProcessing()
   }
 })
 
@@ -718,10 +770,11 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
 
   const chatOption = {
     messages,
-    response_format: { "type": "json_object" }
+    response_format: { 'type': 'json_object' }
   }
 
   let response
+  let internetResult
   try {
     const responseMessage = await useOpenaiChatFunction(chatOption)
     console.log(responseMessage)
@@ -735,7 +788,6 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
           { timestamp: new Date().toLocaleString('zh-CN') }
         )
       )
-      setStore('liveState', liveState)
     }
     if (prompt) addHistory([{ role: 'user', content: prompt }])
     if (response.text) {
@@ -745,22 +797,21 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         type: response.action,
         text: response.text
       })
-      setStore('liveState', liveState)
       addHistory([{ role: 'assistant', content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}` }])
     }
-
     switch (response.action) {
-      case "thought":
+      case 'thought':
         break
-      case "speaking":
+      case 'speaking':
         if (STATUS.isAudioPlay && response.text) {
+          let speakText = mint.filter(response.text).text
           speakTextList.push({
-            text: response.text,
+            text: speakText,
             speakIndex,
           })
         }
         break
-      case "remember":
+      case 'remember':
         if (response.text) {
           addText({
             timestamp: new Date().toLocaleString('zh-CN'),
@@ -768,71 +819,35 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
           }, 'live')
         }
         break
-      case "search":
+      case 'search':
         if (response.text) {
-          const result = await functionList['get_information_from_google']({ query_string: response.text }, additionalParam)
+          internetResult = await functionList['get_information_from_google']({ query_string: response.text }, additionalParam)
           liveState.conversationState.push({
             timestamp: new Date().toLocaleString('zh-CN'),
             speaker: 'Browser',
             type: 'internet',
-            text: result
+            text: internetResult
           })
-          setStore('liveState', liveState)
-          messageSend({
-            id: clientMessageId,
-            from,
-            messages,
-            countToken: true,
-            content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}`,
-            allowBreak: false,
-            useContext: contextFileName,
-            allowSave: true
-          })
-          messageSend({
-            id: nanoid(),
-            from: 'Browser',
-            content: result
-          })
-          STATUS.answeringId = null
-          await resolveLivePrompt()
         }
         break
-      case "view_web_page":
+      case 'view_web_page':
         if (response.text) {
-          const result = await functionList['get_text_content_of_webpage']({ url: response.text }, additionalParam)
+          internetResult = await functionList['get_text_content_of_webpage']({ url: response.text }, additionalParam)
           liveState.conversationState.push({
             timestamp: new Date().toLocaleString('zh-CN'),
             speaker: 'Browser',
             type: 'internet',
-            text: result
+            text: internetResult
           })
-          setStore('liveState', liveState)
-          messageSend({
-            id: clientMessageId,
-            from,
-            messages,
-            countToken: true,
-            content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}`,
-            allowBreak: false,
-            useContext: contextFileName,
-            allowSave: true
-          })
-          messageSend({
-            id: nanoid(),
-            from: 'Browser',
-            content: result
-          })
-          STATUS.answeringId = null
-          await resolveLivePrompt()
         }
         break
     }
     // limit the length of the conversationState and thoughtCloud
-    liveState.conversationState = _.takeRight(liveState.conversationState, 42)
-    liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 100)
+    liveState.conversationState = _.takeRight(liveState.conversationState, 24)
+    liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 42)
     setStore('liveState', liveState)
   } catch (error) {
-    messageSend({
+    messageLogAndSend({
       id: clientMessageId,
       from,
       content: `Error: ${error.message}`
@@ -847,7 +862,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
       action: 'revoke'
     })
   } else {
-    messageSend({
+    messageLogAndSend({
       id: clientMessageId,
       from,
       messages,
@@ -856,6 +871,13 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
       allowBreak: false,
       useContext: contextFileName,
       allowSave: true
+    })
+  }
+  if (internetResult) {
+    messageSend({
+      id: nanoid(),
+      from: 'Browser',
+      content: internetResult
     })
   }
   STATUS.answeringId = null
