@@ -745,13 +745,15 @@ ipcMain.handle('switch-live', async () => {
     }
     processLive = new AsyncProcessor(resolveLivePrompt)
     processLive.startProcessing()
+  } else {
+    if (processLive) processLive.stopProcessing()
   }
 })
 
 const resolveLivePrompt = async ({ prompt } = {}) => {
   if (!STATUS.isLiving) return
   const { geneMessages } = require('./live/think-script.js')
-  const { messages, liveState } = await geneMessages({ prompt })
+  const { messages, liveState, response_format } = await geneMessages({ prompt })
   const from = AI_NAME
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
@@ -770,7 +772,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
 
   const chatOption = {
     messages,
-    response_format: { 'type': 'json_object' }
+    response_format
   }
 
   let response
@@ -778,6 +780,17 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
   try {
     const responseMessage = await useOpenaiChatFunction(chatOption)
     console.log(responseMessage)
+
+    if (responseMessage.refusal) {
+      messageLogAndSend({
+        id: clientMessageId,
+        from,
+        content: `Error:\n\n${responseMessage.refusal}`
+      })
+      STATUS.answeringId = null
+      return
+    }
+
     response = JSON.parse(responseMessage.content)
 
     if (response.thoughtPiece) {
@@ -850,9 +863,10 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
     messageLogAndSend({
       id: clientMessageId,
       from,
-      content: `Error: ${error.message}`
+      content: `Error:\n\n${error.message}`
     })
-    throw error
+    STATUS.answeringId = null
+    return
   }
 
   if (_.isEmpty(response.text)) {
@@ -881,10 +895,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
     })
   }
   STATUS.answeringId = null
-  return {
-    messages,
-    response
-  }
+  return
 }
 
 ipcMain.handle('open-external', async (event, url) => {
