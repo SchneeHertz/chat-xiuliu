@@ -33,7 +33,6 @@ try {
  */
 const openaiChat = async (chatOption) => {
   chatOption.model = chatOption.model || DEFAULT_MODEL
-  chatOption.max_tokens = chatOption.max_tokens || 4096
   const response = await openai.chat.completions.create(chatOption)
   return response.data.choices[0].message
 }
@@ -52,13 +51,11 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, too
     response = await openai.chat.completions.create({
       model, messages, tools, tool_choice,
       stream: true,
-      max_tokens: 4096,
     })
   } else {
     response = await openai.chat.completions.create({
       model, messages,
       stream: true,
-      max_tokens: 4096,
     })
   }
   for await (const part of response) {
@@ -94,7 +91,6 @@ const azureOpenai = new AzureOpenAI({
 
 const azureOpenaiChat = async (chatOption) => {
   chatOption.model = chatOption.model || AZURE_CHAT_MODEL
-  chatOption.max_tokens = chatOption.max_tokens || 4096
   const response = await azureOpenai.chat.completions.create(chatOption)
   return response.data.choices[0].message
 }
@@ -105,13 +101,11 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
     response = await azureOpenai.chat.completions.create({
       model, messages, tools, tool_choice,
       stream: true,
-      max_tokens: 4096,
     })
   } else {
     response = await azureOpenai.chat.completions.create({
       model, messages,
       stream: true,
-      max_tokens: 4096,
     })
   }
   for await (const part of response) {
