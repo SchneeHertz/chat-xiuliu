@@ -78,7 +78,7 @@
     "reconnecting-websocket": "^4.4.0",
     "sequelize": "^6.37.3",
     "sound-play": "^1.1.0",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^5.1.6",
     "ws": "^8.14.1"
   }
 }
