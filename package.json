@@ -1,7 +1,7 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.2.16",
+  "version": "2.2.17",
   "description": "ChatGPT Client with Function Calling",
   "author": "SchneeHertz",
   "scripts": {
@@ -80,7 +80,7 @@
     "reconnecting-websocket": "^4.4.0",
     "sequelize": "^6.37.3",
     "sound-play": "^1.1.0",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^5.1.6",
     "ws": "^8.14.1",
     "zod": "^3.23.8"
   }
