@@ -70,6 +70,6 @@ ChatGPT客户端，通过function calling实现访问网络，执行代码，读
     ```
 
 ## 赞助
-https://afdian.net/@SeldonHorizon
+https://afdian.com/@SeldonHorizon
 
 如果你觉得休留很萌，可以请管理员喝杯奶茶
