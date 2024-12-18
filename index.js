@@ -451,16 +451,21 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt }) => {
+const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt, useFullPDF }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history') || []
   let context = _.takeRight(history, historyRoundLimit)
 
   let fullSystemPrompt = givenSystemPrompt ? givenSystemPrompt : systemPrompt
   if (contextFileName && fileContext.length > 0) {
-    let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
-    let closestChunks = findClosestEmbeddedChunks(await useOpenaiEmbeddingFunction({ input: promptText }), fileContext)
-    let contextText = closestChunks.map(chunk => chunk.text).join('\n')
+    let contextText
+    if (useFullPDF) {
+      contextText = fileContext.map(chunk => chunk.text).join('\n')
+    } else {
+      let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
+      let closestChunks = findClosestEmbeddedChunks(await useOpenaiEmbeddingFunction({ input: promptText }), fileContext)
+      contextText = closestChunks.map(chunk => chunk.text).join('\n')
+    }
     fullSystemPrompt = `${fullSystemPrompt}\n\nContext: \n\n${contextText}`
   }
 
@@ -593,7 +598,8 @@ ipcMain.handle('send-prompt', async (event, prompt) => {
   breakAnswer()
   resloveAdminPrompt({
     prompt: prompt.content,
-    promptType: prompt.type
+    promptType: prompt.type,
+    useFullPDF: prompt.useFullPDF,
   })
 })
 ipcMain.handle('break-answer', async () => {

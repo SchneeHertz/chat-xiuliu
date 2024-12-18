@@ -52,7 +52,8 @@ const sendText = (event) => {
           type: 'text',
           text: inputText.value
         },
-      ]
+      ],
+      useFullPDF: useFullPDF.value
     }
     ipcRenderer.invoke('send-prompt', userPrompt)
     messageListRef.value.addUserMessage({
@@ -65,7 +66,8 @@ const sendText = (event) => {
   } else {
     let userPrompt = {
       type: 'string',
-      content: inputText.value
+      content: inputText.value,
+      useFullPDF: useFullPDF.value
     }
     ipcRenderer.invoke('send-prompt', userPrompt)
     messageListRef.value.addUserMessage({
@@ -172,6 +174,8 @@ const choosePdfFile = async () => {
   if (filepath) await ipcRenderer.invoke('resolve-pdf', filepath)
 }
 
+const useFullPDF = ref(false)
+
 const showSavedMessage = ref(false)
 const switchMessageList = () => {
   showSavedMessage.value = !showSavedMessage.value
@@ -271,10 +275,11 @@ const switchMessageList = () => {
             </n-icon>
           </template>
         </n-button>
+        <Setting ref="setting"/>
+        <n-button :type="useFullPDF ? 'primary' : 'default'" secondary @click="useFullPDF = !useFullPDF">使用完整PDF</n-button>
         <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
         <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
         <n-button type="primary" tertiary @click="switchMessageList">{{showSavedMessage ? '显示对话' : '显示已保存内容'}}</n-button>
-        <Setting ref="setting"/>
       </n-space>
     </n-gi>
   </n-grid>
