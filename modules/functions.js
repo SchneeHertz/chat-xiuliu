@@ -190,7 +190,7 @@ if (allowPowerfulInterpreter) {
           "properties": {
             "code": {
               "type": "string",
-              "description": "The javascript code to run",
+              "description": "The javascript code to run, write the result variable in the last line to output the result.",
             }
           },
           "required": ["code"],
