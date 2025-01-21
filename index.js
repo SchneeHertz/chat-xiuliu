@@ -352,8 +352,11 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     content: ''
   })
 
+  let resTextReason = ''
+  const reasonMessageId = nanoid()
+
   try {
-    for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
+    for await (const { token, r_token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
       if (token) {
         resTextTemp += token
         resText += token
@@ -384,16 +387,31 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           }
         }
       }
-      let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
-      if (index !== undefined ) {
-        if (resToolCalls[index]) {
-          if (id) resToolCalls[index].id = id
-          if (type) resToolCalls[index].type = type
-          if (name) resToolCalls[index].function.name = name
-          if (arg) resToolCalls[index].function.arguments += arg
-        } else {
-          resToolCalls[index] = {
-            id, type, function: { name, arguments: arg }
+      if (r_token) {
+        resTextReason += r_token
+        messageSend({
+          id: clientMessageId,
+          from,
+          action: 'revoke'
+        })
+        messageSend({
+          id: reasonMessageId,
+          from: 'CoT',
+          content: resTextReason
+        })
+      }
+      if (f_token) {
+        let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
+        if (index !== undefined ) {
+          if (resToolCalls[index]) {
+            if (id) resToolCalls[index].id = id
+            if (type) resToolCalls[index].type = type
+            if (name) resToolCalls[index].function.name = name
+            if (arg) resToolCalls[index].function.arguments += arg
+          } else {
+            resToolCalls[index] = {
+              id, type, function: { name, arguments: arg }
+            }
           }
         }
       }
@@ -486,11 +504,11 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resTextTemp = ''
   let resText = ''
   let resToolCalls = []
-
+  let useFunctionCalling = config.enableFunctionCalling
   try {
     let round = 0
     while (resText === '' && round <= functionCallingRoundLimit + 1) {
-      let useFunctionCalling = round > functionCallingRoundLimit ? false : true
+      if (useFunctionCalling) useFunctionCalling = round > functionCallingRoundLimit ? false : true
       if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
       ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
         resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling

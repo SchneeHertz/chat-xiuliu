@@ -61,8 +61,9 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, too
   for await (const part of response) {
     if (['stop', 'tool_calls'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
     const token = _.get(part, 'choices[0].delta.content')
+    const r_token = _.get(part, 'choices[0].delta.reasoning_content')
     const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
-    if (token || !_.isEmpty(f_token)) yield { token, f_token }
+    if (token || r_token || !_.isEmpty(f_token)) yield { token, r_token, f_token }
   }
 }
 
@@ -80,14 +81,16 @@ const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '10
   return response.data[0]
 }
 
-
-const azureOpenai = new AzureOpenAI({
-  apiKey: AZURE_OPENAI_KEY,
-  endpoint: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/`,
-  apiVersion: AZURE_API_VERSION,
-  httpAgent,
-  timeout: 40000
-})
+let azureOpenai
+try {
+  azureOpenai = new AzureOpenAI({
+    apiKey: AZURE_OPENAI_KEY,
+    endpoint: `https://${AZURE_OPENAI_ENDPOINT}.openai.azure.com/`,
+    apiVersion: AZURE_API_VERSION,
+    httpAgent,
+    timeout: 40000
+  })
+} catch {}
 
 const azureOpenaiChat = async (chatOption) => {
   chatOption.model = chatOption.model || AZURE_CHAT_MODEL

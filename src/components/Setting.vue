@@ -182,6 +182,9 @@ defineExpose({
           <n-form-item label="上下文对话条数" path="historyRoundLimit">
             <n-input-number v-model:value="config.historyRoundLimit" :default-value="12" :precision="0" :min="0" :parse="parseNumber"/>
           </n-form-item>
+          <n-form-item label="启用函数调用" path="enableFunctionCalling">
+            <n-switch v-model:value="config.enableFunctionCalling"/>
+          </n-form-item>
           <n-form-item label="函数调用轮次限制" path="functionCallingRoundLimit">
             <n-input-number v-model:value="config.functionCallingRoundLimit" :precision="0" :min="0" :parse="parseNumber"/>
           </n-form-item>
