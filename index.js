@@ -45,40 +45,7 @@ const messageLog = (message) => {
   logFile.write(format(new Date().toLocaleString('zh-CN'), JSON.stringify(message)) + '\n')
 }
 const messageSend = (message) => {
-  // The part of Vision is not accurately calculated in the token calculation.
-  if (message.countToken) {
-    let tokenCount = 0
-    message.messages.forEach((item) => {
-      switch (item.role) {
-        case 'system':
-        case 'tool':
-          tokenCount += getTokenLength(item.content)
-          break
-        case 'assistant':
-          tokenCount += getTokenLength(item.content || JSON.stringify(item.tool_calls))
-          break
-        case 'user':
-          if (typeof item.content === 'string') {
-            tokenCount += getTokenLength(item.content)
-          } else {
-            item.content.forEach((content) => {
-              switch (content.type) {
-                case 'text':
-                  tokenCount += getTokenLength(content.text)
-                  break
-                case 'image_url':
-                  tokenCount += 85
-                  break
-              }
-            })
-          }
-          break
-      }
-    })
-    tokenCount += getTokenLength(message.content)
-    message.tokenCount = tokenCount
-  }
-  mainWindow.webContents.send('send-message', _.omit(message, 'messages'))
+  mainWindow.webContents.send('send-message', message)
 }
 const messageLogAndSend = (message) => {
   messageLog(message)
@@ -290,25 +257,15 @@ const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
-const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, model }) => {
+const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, clientMessageId, model }) => {
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
-  let clientMessageId = nanoid()
   STATUS.answeringId = clientMessageId
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
   if (!_.isEmpty(resToolCalls)) {
-    messageLogAndSend({
-      id: nanoid(),
-      from,
-      messages,
-      countToken: true,
-      content: 'use Function Calling'
-    })
-    messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
-    // addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
     for (let toolCall of resToolCalls) {
       let functionCallResult
       let functionCallResultMessageId = nanoid()
@@ -329,7 +286,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         functionCallResult = e.message
       }
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
-      // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
       messageLogAndSend({
         id: functionCallResultMessageId,
         from: 'Function Calling',
@@ -355,8 +311,10 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
   let resTextReason = ''
   const reasonMessageId = nanoid()
 
+  let _usage = {}
+
   try {
-    for await (const { token, r_token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
+    for await (const { token, r_token, f_token, usage } of useOpenaiChatStreamFunction(prepareChatOption)) {
       if (token) {
         resTextTemp += token
         resText += token
@@ -400,7 +358,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           content: resTextReason
         })
       }
-      if (f_token) {
+      if (!_.isEmpty(f_token)) {
         let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
         if (index !== undefined ) {
           if (resToolCalls[index]) {
@@ -414,6 +372,9 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
             }
           }
         }
+      }
+      if (!_.isEmpty(usage)) {
+        _usage = usage
       }
     }
   } catch (error) {
@@ -434,30 +395,13 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       })
     }
   }
-  if (_.isEmpty(resText)) {
-    messageSend({
-      id: clientMessageId,
-      from,
-      action: 'revoke'
-    })
-  } else {
-    messageSend({
-      id: clientMessageId,
-      from,
-      messages,
-      countToken: true,
-      content: resText,
-      allowBreak: false,
-      useContext: contextFileName,
-      allowSave: true
-    })
-  }
   STATUS.answeringId = null
   return {
     messages,
     resToolCalls,
     resTextTemp,
-    resText
+    resText,
+    usage: _usage
   }
 }
 
@@ -504,16 +448,46 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resTextTemp = ''
   let resText = ''
   let resToolCalls = []
+  let usage = {}
   let useFunctionCalling = config.enableFunctionCalling
   try {
     let round = 0
     while (resText === '' && round <= functionCallingRoundLimit + 1) {
       if (useFunctionCalling) useFunctionCalling = round > functionCallingRoundLimit ? false : true
       if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
-      ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
-        resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
+      const clientMessageId = nanoid()
+      ;({ messages, resToolCalls, resText, resTextTemp, usage } = await resolveMessages({
+        resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling, clientMessageId
       }))
       round += 1
+      if (!_.isEmpty(resToolCalls)) {
+        messageLogAndSend({
+          id: nanoid(),
+          from,
+          countToken: true,
+          tokenCount: usage.total_tokens,
+          content: 'use Function Calling'
+        })
+        messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
+      }
+      if (_.isEmpty(resText)) {
+        messageSend({
+          id: clientMessageId,
+          from,
+          action: 'revoke'
+        })
+      } else {
+        messageSend({
+          id: clientMessageId,
+          from,
+          countToken: true,
+          tokenCount: usage.total_tokens,
+          content: resText,
+          allowBreak: false,
+          useContext: contextFileName,
+          allowSave: true
+        })
+      }
     }
     messageLog({
       id: nanoid(),

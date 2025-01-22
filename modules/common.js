@@ -50,12 +50,12 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, too
   if (tools) {
     response = await openai.chat.completions.create({
       model, messages, tools, tool_choice,
-      stream: true,
+      stream: true, stream_options: { include_usage: true }
     })
   } else {
     response = await openai.chat.completions.create({
       model, messages,
-      stream: true,
+      stream: true, stream_options: { include_usage: true }
     })
   }
   for await (const part of response) {
@@ -63,7 +63,8 @@ const openaiChatStream = async function* ({ model = DEFAULT_MODEL, messages, too
     const token = _.get(part, 'choices[0].delta.content')
     const r_token = _.get(part, 'choices[0].delta.reasoning_content')
     const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
-    if (token || r_token || !_.isEmpty(f_token)) yield { token, r_token, f_token }
+    const usage = _.get(part, 'usage', {})
+    if (token || r_token || !_.isEmpty(f_token) || !_.isEmpty(usage)) yield { token, r_token, f_token, usage }
   }
 }
 
@@ -103,19 +104,20 @@ const azureOpenaiChatStream = async function* ({ model = AZURE_CHAT_MODEL, messa
   if (tools) {
     response = await azureOpenai.chat.completions.create({
       model, messages, tools, tool_choice,
-      stream: true,
+      stream: true, stream_options: { include_usage: true }
     })
   } else {
     response = await azureOpenai.chat.completions.create({
       model, messages,
-      stream: true,
+      stream: true, stream_options: { include_usage: true }
     })
   }
   for await (const part of response) {
     if (['stop', 'tool_calls'].includes(_.get(part, 'choices[0].delta.finish_reason'))) return
     const token = _.get(part, 'choices[0].delta.content')
     const f_token = _.get(part, 'choices[0].delta.tool_calls', [])
-    if (token || !_.isEmpty(f_token)) yield { token, f_token }
+    const usage = _.get(part, 'usage', {})
+    if (token || !_.isEmpty(f_token) || _.isEmpty(usage)) yield { token, f_token, usage }
   }
 }
 
