@@ -238,6 +238,15 @@ defineExpose({
     padding: 10px 26px 0
   .n-card-content
     padding: 0 26px
+  table
+    border-collapse: collapse
+    border: 1px solid #d9d9d9
+    th, td
+      padding: 8px
+      border-bottom: 1px solid #d9d9d9
+      border-right: 1px solid #d9d9d9
+      &:last-child
+        border-right: none
   pre
     font-family: Avenir, Helvetica, Arial, sans-serif
     white-space: break-spaces
