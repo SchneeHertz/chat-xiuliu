@@ -766,6 +766,7 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
         embeddedChunks.push({ index: batch[index].index, text: batch[index].text, embedding: result.value })
       } else {
         console.error('Embedding failed for: ', batch[index])
+        embeddedChunks.push({ index: batch[index].index, text: batch[index].text })
       }
     })
   }
