@@ -1,7 +1,7 @@
 {
   "name": "chat-xiuliu",
   "private": true,
-  "version": "2.2.17",
+  "version": "2.2.18",
   "description": "ChatGPT Client with Function Calling",
   "author": "SchneeHertz",
   "scripts": {
