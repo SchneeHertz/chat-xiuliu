@@ -433,8 +433,8 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
 
   let messages = [
     { role: 'system', content: fullSystemPrompt },
-    { role: 'user', content: `Hello, my name is ${ADMIN_NAME}` },
-    { role: 'assistant', content: `Hello, ${ADMIN_NAME}` },
+    // { role: 'user', content: `Hello, my name is ${ADMIN_NAME}` },
+    // { role: 'assistant', content: `Hello, ${ADMIN_NAME}` },
     ...context,
     { role: 'user', content: prompt }
   ]
