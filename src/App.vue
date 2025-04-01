@@ -188,6 +188,20 @@ const switchMessageList = () => {
   nextTick(messageListRef.value.applyRender)
 }
 
+const simpleContinue = () => {
+  let userPrompt = {
+    type: 'string',
+    content: '继续',
+    useFullPDF: useFullPDF.value
+  }
+  ipcRenderer.invoke('send-prompt', userPrompt)
+  messageListRef.value.addUserMessage({
+    id: nanoid(),
+    from: config.value.ADMIN_NAME,
+    ...userPrompt
+  })
+}
+
 </script>
 
 <template>
@@ -248,6 +262,7 @@ const switchMessageList = () => {
             <n-icon><Send16Regular /></n-icon>
           </template>
         </n-button>
+        <n-button type="primary" @click="simpleContinue" style="height: 36px">继续</n-button>
       </n-input-group>
     </n-gi>
     <n-gi :offset="1" :span="22">
