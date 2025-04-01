@@ -42,7 +42,9 @@ md.use(mdItKatex)
 
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
-  element.scrollTop = element.scrollHeight
+  if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+    element.scrollTop = element.scrollHeight - element.clientHeight
+  }
 }
 
 const renderUserText = (text) => {

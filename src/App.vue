@@ -79,9 +79,12 @@ const sendText = (event) => {
   nextTick(() => scrollToBottom('message-list'))
   inputText.value = ''
 }
+
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
-  element.scrollTop = element.scrollHeight
+  if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+    element.scrollTop = element.scrollHeight - element.clientHeight
+  }
 }
 
 const imageBlobUrlList = ref([])
@@ -205,7 +208,7 @@ const simpleContinue = () => {
 </script>
 
 <template>
-  <n-grid x-gap="12" :cols="24">
+  <n-grid x-gap="12" :cols="24" style="width: 100%">
     <n-gi :offset="1" :span="22">
       <MessageList
         ref="messageListRef"
