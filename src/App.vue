@@ -82,9 +82,7 @@ const sendText = (event) => {
 
 const scrollToBottom = (id) => {
   const element = document.getElementById(id)
-  if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
-    element.scrollTop = element.scrollHeight - element.clientHeight
-  }
+  element.scrollTop = element.scrollHeight
 }
 
 const imageBlobUrlList = ref([])
@@ -203,6 +201,7 @@ const simpleContinue = () => {
     from: config.value.ADMIN_NAME,
     ...userPrompt
   })
+  nextTick(() => scrollToBottom('message-list'))
 }
 
 </script>
