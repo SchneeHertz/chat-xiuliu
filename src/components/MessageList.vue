@@ -1,7 +1,7 @@
 <script setup>
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, nextTick } from 'vue'
 import { UserCircle, StopCircleRegular } from '@vicons/fa'
-import { LogoOctocat, IosSave, MdRemoveCircleOutline } from '@vicons/ionicons4'
+import { LogoOctocat, IosSave, MdRemoveCircleOutline, MdArrowDown } from '@vicons/ionicons4'
 import { nanoid } from 'nanoid'
 
 import MarkdownIt from 'markdown-it'
@@ -40,9 +40,9 @@ const md = new MarkdownIt({
 
 md.use(mdItKatex)
 
-const scrollToBottom = (id) => {
+const scrollToBottom = (id, force) => {
   const element = document.getElementById(id)
-  if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+  if (element.scrollHeight - element.scrollTop - element.clientHeight < 200 || force) {
     element.scrollTop = element.scrollHeight - element.clientHeight
   }
 }
@@ -228,6 +228,15 @@ defineExpose({
       </template>
     </n-empty>
   </n-list>
+  <n-float-button
+    right="6vw" bottom="110px" shape="circle" position="absolute"
+    style="background-color: rgba(255, 255, 255, 0.2)"
+    @click="scrollToBottom('message-list', true)"
+  >
+    <n-icon>
+      <MdArrowDown />
+    </n-icon>
+  </n-float-button>
 </template>
 
 <style lang="stylus">
