@@ -222,11 +222,10 @@ defineExpose({
             <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" filterable tag/>
           </n-form-item>
           <n-form-item label="设定" path="systemPrompt">
-            <n-input v-model:value="config.systemPrompt" placeholder="AI的设定, ChatGPT的默认值是'You are a helpful assistant.'"
-              type="textarea" :autosize="{
-                minRows: 2,
-                maxRows: 4
-              }" />
+            <n-input v-model:value="config.systemPrompt"
+              placeholder="AI的设定, ChatGPT的默认值是'You are a helpful assistant.'"
+              type="textarea"
+            />
           </n-form-item>
           <n-form-item label="API配置管理" v-show="!config.useAzureOpenai">
             <n-card size="small" style="margin-bottom: 10px">
