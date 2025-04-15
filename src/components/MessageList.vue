@@ -111,6 +111,9 @@ onMounted(async () => {
     nextTick(applyRender)
   })
   ipcRenderer.invoke('load-history')
+  setTimeout(() => {
+    scrollToBottom('message-list', true)
+  }, 1000)
   mainStore.savedMessageList = await ipcRenderer.invoke('load-saved-message')
 })
 
@@ -232,6 +235,7 @@ defineExpose({
     right="6vw" bottom="110px" shape="circle" position="absolute"
     style="background-color: rgba(255, 255, 255, 0.2)"
     @click="scrollToBottom('message-list', true)"
+    v-if="mainStore.messageList.length > 5"
   >
     <n-icon>
       <MdArrowDown />

@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, h } from 'vue'
 import { MdSettings, MdFolderOpen } from '@vicons/ionicons4'
+import { NSpace, NButton } from 'naive-ui'
 
 import Dialog from './Dialog.vue'
 
@@ -11,6 +12,22 @@ const showSettingModal = ref(false)
 const config = ref({})
 const openConfig = async () => {
   config.value = await ipcRenderer.invoke('load-setting')
+  if (config.value.savedApiConfigs) {
+    savedConfigs.value = config.value.savedApiConfigs
+
+    const matchingConfig = savedConfigs.value.find(c =>
+      c.OPENAI_API_KEY === config.value.OPENAI_API_KEY &&
+      c.OPENAI_API_ENDPOINT === config.value.OPENAI_API_ENDPOINT &&
+      c.DEFAULT_MODEL === config.value.DEFAULT_MODEL &&
+      c.systemPrompt === config.value.systemPrompt
+    )
+
+    if (matchingConfig) {
+      currentConfigName.value = matchingConfig.name
+    } else {
+      currentConfigName.value = ''
+    }
+  }
   showSettingModal.value = true
 }
 const saveSettingAndRestart = async () => {
@@ -19,6 +36,77 @@ const saveSettingAndRestart = async () => {
 }
 const cancelSetting = () => {
   showSettingModal.value = false
+}
+
+const savedConfigs = ref([])
+const currentConfigName = ref('')
+
+const saveCurrentConfig = async () => {
+  if (!currentConfigName.value) {
+    dialogRef.value.dialog.error({
+      title: '错误',
+      content: '请输入配置名称',
+      positiveText: '确定'
+    })
+    return
+  }
+
+  const configToSave = {
+    name: currentConfigName.value,
+    OPENAI_API_KEY: config.value.OPENAI_API_KEY,
+    OPENAI_API_ENDPOINT: config.value.OPENAI_API_ENDPOINT,
+    DEFAULT_MODEL: config.value.DEFAULT_MODEL,
+    systemPrompt: config.value.systemPrompt,
+  }
+
+  const existingIndex = savedConfigs.value.findIndex(c => c.name === currentConfigName.value)
+  if (existingIndex !== -1) {
+    savedConfigs.value[existingIndex] = configToSave
+  } else {
+    savedConfigs.value.push(configToSave)
+  }
+
+  config.value.savedApiConfigs = savedConfigs.value
+
+  await ipcRenderer.invoke('save-setting', JSON.parse(JSON.stringify(config.value)))
+}
+
+const applyConfig = (configName) => {
+  const selectedConfig = savedConfigs.value.find(c => c.name === configName)
+  if (selectedConfig) {
+    config.value.OPENAI_API_KEY = selectedConfig.OPENAI_API_KEY
+    config.value.OPENAI_API_ENDPOINT = selectedConfig.OPENAI_API_ENDPOINT
+    config.value.DEFAULT_MODEL = selectedConfig.DEFAULT_MODEL
+    config.value.systemPrompt = selectedConfig.systemPrompt
+
+    currentConfigName.value = configName
+  }
+}
+
+const deleteConfig = (configName) => {
+  savedConfigs.value = savedConfigs.value.filter(c => c.name !== configName)
+  config.value.savedApiConfigs = savedConfigs.value
+}
+
+const renderRow = (row) => {
+  return h(
+    NSpace,
+    { justify: 'center' },
+    {
+      default: () => [
+        h(
+          NButton,
+          { size: 'small', onClick: () => applyConfig(row.name) },
+          { default: () => '应用' }
+        ),
+        h(
+          NButton,
+          { size: 'small', type: 'error', onClick: () => deleteConfig(row.name) },
+          { default: () => '删除' }
+        )
+      ]
+    }
+  )
 }
 
 const model_options = [
@@ -116,7 +204,7 @@ defineExpose({
     </template>
   </n-button>
   <n-modal v-model:show="showSettingModal" preset="dialog" title="设置" positive-text="保存后重启应用" negative-text="取消"
-    @positive-click="saveSettingAndRestart" @negative-click="cancelSetting" :show-icon="false" :style="{ width: '52em' }">
+    @positive-click="saveSettingAndRestart" @negative-click="cancelSetting" :show-icon="false" :style="{ width: '80em' }">
     <n-tabs type="line" animated default-value="general">
       <n-tab-pane name="general" tab="常用">
         <n-form ref="formRef" :model="config" label-placement="left" label-width="230px" size="small" :rules="rules">
@@ -133,6 +221,40 @@ defineExpose({
           <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
             <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" filterable tag/>
           </n-form-item>
+          <n-form-item label="设定" path="systemPrompt">
+            <n-input v-model:value="config.systemPrompt" placeholder="AI的设定, ChatGPT的默认值是'You are a helpful assistant.'"
+              type="textarea" :autosize="{
+                minRows: 2,
+                maxRows: 4
+              }" />
+          </n-form-item>
+          <n-form-item label="API配置管理" v-show="!config.useAzureOpenai">
+            <n-card size="small" style="margin-bottom: 10px">
+              <n-space vertical>
+                <n-input-group>
+                  <n-input v-model:value="currentConfigName" placeholder="输入配置名称"/>
+                  <n-button type="primary" @click="saveCurrentConfig">保存当前配置</n-button>
+                </n-input-group>
+                <n-data-table
+                  v-if="savedConfigs.length > 0"
+                  :columns="[
+                    { title: '配置名称', key: 'name' },
+                    { title: 'MODEL', key: 'DEFAULT_MODEL' },
+                    {
+                      title: '操作',
+                      key: 'actions',
+                      render: renderRow
+                    }
+                  ]"
+                  :data="savedConfigs"
+                  :bordered="false"
+                  size="small"
+                />
+                <n-empty v-else description="暂无保存的配置" />
+              </n-space>
+            </n-card>
+          </n-form-item>
+
           <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-show="config.useAzureOpenai">
             <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
           </n-form-item>
@@ -156,13 +278,6 @@ defineExpose({
           </n-form-item>
           <n-form-item label="AI的名字" path="AI_NAME">
             <n-input v-model:value="config.AI_NAME" />
-          </n-form-item>
-          <n-form-item label="设定" path="systemPrompt">
-            <n-input v-model:value="config.systemPrompt" placeholder="AI的设定, ChatGPT的默认值是'You are a helpful assistant.'"
-              type="textarea" :autosize="{
-                minRows: 2,
-                maxRows: 4
-              }" />
           </n-form-item>
           <n-form-item label="使用代理服务器" path="useProxy">
             <n-switch v-model:value="config.useProxy" />

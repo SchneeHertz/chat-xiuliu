@@ -160,6 +160,16 @@ const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : opena
 app.whenReady().then(async () => {
   mainWindow = createWindow()
   setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
+
+  const currentArchiveId = getStore('current_archive_id')
+  if (currentArchiveId) {
+    const archives = getStore('history_archives') || []
+    const archive = archives.find(a => a.id === currentArchiveId)
+
+    if (archive) {
+      setStore('history', archive.history)
+    }
+  }
 })
 
 
@@ -805,4 +815,78 @@ function findClosestEmbeddedChunks(newEmbedded, embeddedChunks) {
 ipcMain.handle('remove-context', async (event) => {
   fileContext = []
   contextFileName = undefined
+})
+
+// 存档相关功能
+ipcMain.handle('archive-history', async (event, name) => {
+  const history = getStore('history') || []
+  const archives = getStore('history_archives') || []
+
+  const newArchive = {
+    id: nanoid(),
+    name,
+    date: Date.now(),
+    history: _.cloneDeep(history)
+  }
+
+  archives.push(newArchive)
+  setStore('history_archives', archives)
+  return newArchive.id
+})
+
+ipcMain.handle('get-history-archives', async () => {
+  const archives = getStore('history_archives') || []
+  return archives.map(archive => ({
+    id: archive.id,
+    name: archive.name,
+    date: archive.date
+  }))
+})
+
+ipcMain.handle('switch-to-archive', async (event, archiveId) => {
+  const archives = getStore('history_archives') || []
+  const archive = archives.find(a => a.id === archiveId)
+
+  if (archive) {
+    setStore('history', archive.history)
+    return true
+  }
+  return false
+})
+
+ipcMain.handle('update-archive', async (event, archiveId, newName) => {
+  const archives = getStore('history_archives') || []
+  const archiveIndex = archives.findIndex(a => a.id === archiveId)
+
+  if (archiveIndex !== -1) {
+    const currentHistory = getStore('history') || []
+
+    archives[archiveIndex] = {
+      ...archives[archiveIndex],
+      name: newName,
+      date: Date.now(),
+      history: _.cloneDeep(currentHistory)
+    }
+
+    setStore('history_archives', archives)
+    return true
+  }
+  return false
+})
+
+ipcMain.handle('delete-archive', async (event, archiveId) => {
+  const archives = getStore('history_archives') || []
+  const newArchives = archives.filter(a => a.id !== archiveId)
+
+  setStore('history_archives', newArchives)
+  return true
+})
+
+ipcMain.handle('save-current-archive-id', async (event, archiveId) => {
+  setStore('current_archive_id', archiveId)
+  return true
+})
+
+ipcMain.handle('get-current-archive-id', async () => {
+  return getStore('current_archive_id') || null
 })

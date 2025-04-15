@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, ref, nextTick, h, watch } from 'vue'
 import { nanoid } from 'nanoid'
 import { Microphone, MicrophoneSlash, ImageRegular } from '@vicons/fa'
-import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular, Send16Regular } from '@vicons/fluent'
+import { Speaker216Filled, SpeakerOff16Filled, DismissCircle16Regular, DocumentPdf16Regular, Send16Regular, Archive16Regular, Delete16Regular } from '@vicons/fluent'
 import html2canvas from 'html2canvas'
+import { NInput, NButton } from 'naive-ui'
 
 import { useMainStore } from './pinia.js'
 const mainStore = useMainStore()
@@ -11,6 +12,9 @@ const mainStore = useMainStore()
 import Setting from './components/Setting.vue'
 import Message from './components/Message.vue'
 import MessageList from './components/MessageList.vue'
+import Dialog from './components/Dialog.vue'
+
+const dialogRef = ref(null)
 
 const messageRef = ref(null)
 const printMessage = (type, msg, option) => {
@@ -150,6 +154,7 @@ const emptyHistory = () => {
   ipcRenderer.invoke('empty-history')
   mainStore.messageList = []
   ipcRenderer.invoke('remove-context')
+  currentArchive.value = null
 }
 const saveCapture = async () => {
   const screenshotTarget = document.querySelector('#message-list')
@@ -204,6 +209,124 @@ const simpleContinue = () => {
   nextTick(() => scrollToBottom('message-list'))
 }
 
+const archiveName = ref('')
+const currentArchive = ref(null)
+
+const saveCurrentArchiveId = async (archiveId) => {
+  await ipcRenderer.invoke('save-current-archive-id', archiveId)
+}
+
+watch(() => currentArchive.value?.id, (newId) => {
+  saveCurrentArchiveId(newId || null)
+})
+
+const loadLastUsedArchive = async () => {
+  const currentArchiveId = await ipcRenderer.invoke('get-current-archive-id')
+  if (currentArchiveId) {
+    const archives = await ipcRenderer.invoke('get-history-archives')
+    const archive = archives.find(a => a.id === currentArchiveId)
+    if (archive) {
+      currentArchive.value = archive
+    }
+  }
+}
+
+const archiveCurrentHistory = async () => {
+  archiveName.value = currentArchive.value ? currentArchive.value.name : new Date().toLocaleString()
+
+  const isUpdate = currentArchive.value !== null
+
+  dialogRef.value.dialog.info({
+    title: isUpdate ? '更新当前存档' : '存档当前对话',
+    content: () => {
+      return h(NInput, {
+        value: archiveName.value,
+        onUpdateValue: (value) => {
+          archiveName.value = value
+        },
+        type: 'text',
+        placeholder: '请输入存档名称'
+      })
+    },
+    positiveText: isUpdate ? '覆盖' : '确定',
+    negativeText: isUpdate ? '另存为新存档' : '取消',
+    onPositiveClick: async () => {
+      if (archiveName.value) {
+        if (isUpdate) {
+          await ipcRenderer.invoke('update-archive', currentArchive.value.id, archiveName.value)
+          printMessage('success', `已更新存档: ${archiveName.value}`, { duration: 3000 })
+        } else {
+          const newArchiveId = await ipcRenderer.invoke('archive-history', archiveName.value)
+          currentArchive.value = {
+            id: newArchiveId,
+            name: archiveName.value,
+            date: Date.now()
+          }
+          printMessage('success', `已存档当前对话: ${archiveName.value}`, { duration: 3000 })
+        }
+        loadHistoryArchives()
+        return true
+      }
+    },
+    onNegativeClick: async () => {
+      if (isUpdate && archiveName.value) {
+        const newArchiveId = await ipcRenderer.invoke('archive-history', archiveName.value)
+        currentArchive.value = {
+          id: newArchiveId,
+          name: archiveName.value,
+          date: Date.now()
+        }
+        printMessage('success', `已存档当前对话: ${archiveName.value}`, { duration: 3000 })
+        loadHistoryArchives()
+      }
+      return true
+    }
+  })
+}
+
+const historyArchives = ref([])
+const loadHistoryArchives = async () => {
+  historyArchives.value = await ipcRenderer.invoke('get-history-archives')
+  await loadLastUsedArchive()
+}
+
+const archivePopoverRef = ref(null)
+
+const switchToArchive = async (archiveId) => {
+  await ipcRenderer.invoke('switch-to-archive', archiveId)
+  mainStore.messageList = []
+
+  currentArchive.value = historyArchives.value.find(a => a.id === archiveId)
+
+  if (archivePopoverRef.value) {
+    archivePopoverRef.value.setShow(false)
+  }
+
+  ipcRenderer.invoke('load-history')
+  setTimeout(() => {
+    scrollToBottom('message-list')
+  }, 100)
+  printMessage('success', `已切换到存档: ${currentArchive.value.name}`, { duration: 3000 })
+}
+
+const deleteArchive = async (archive) => {
+  dialogRef.value.dialog.warning({
+    title: '删除存档',
+    content: `确定要删除存档 "${archive.name}" 吗？此操作不可恢复。`,
+    positiveText: '确定删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      if (currentArchive.value && currentArchive.value.id === archive.id) {
+        emptyHistory()
+      }
+      await ipcRenderer.invoke('delete-archive', archive.id)
+      printMessage('success', `已删除存档: ${archive.name}`, { duration: 3000 })
+      loadHistoryArchives()
+    }
+  })
+}
+
+onMounted(loadHistoryArchives)
 </script>
 
 <template>
@@ -295,12 +418,53 @@ const simpleContinue = () => {
         <Setting ref="setting"/>
         <n-button :type="useFullPDF ? 'primary' : 'default'" secondary @click="useFullPDF = !useFullPDF">使用完整PDF</n-button>
         <n-button type="primary" tertiary @click="saveCapture">保存对话截图</n-button>
-        <n-button type="primary" tertiary @click="emptyHistory">清除对话历史</n-button>
         <n-button type="primary" tertiary @click="switchMessageList">{{showSavedMessage ? '显示对话' : '显示已保存内容'}}</n-button>
+
+        <n-divider vertical />
+        <n-button type="primary" tertiary @click="emptyHistory">新对话</n-button>
+        <n-button type="primary" tertiary @click="archiveCurrentHistory">
+          <template #icon>
+            <n-icon><Archive16Regular /></n-icon>
+          </template>
+          {{ currentArchive ? '保存当前存档' : '存档当前对话' }}
+        </n-button>
+
+        <div style="display: flex; align-items: center; gap: 8px">
+          <n-popover ref="archivePopoverRef" trigger="click" placement="bottom">
+            <template #trigger>
+              <n-button type="primary" tertiary :disabled="historyArchives.length === 0">
+                切换历史存档
+              </n-button>
+            </template>
+            <div style="max-height: 300px; overflow-y: auto; min-width: 240px">
+              <n-empty v-if="historyArchives.length === 0" description="暂无存档" />
+              <n-list v-else>
+                <n-list-item v-for="archive in historyArchives" :key="archive.id">
+                  <div style="display: flex; width: 100%; align-items: center; justify-content: space-between">
+                    <n-button text style="text-align: left; flex-grow: 1"
+                            :type="currentArchive && currentArchive.id === archive.id ? 'primary' : 'default'"
+                            @click="switchToArchive(archive.id)">
+                      {{ archive.name }} ({{ new Date(archive.date).toLocaleString() }})
+                    </n-button>
+                    <n-button quaternary circle type="error" size="small" @click.stop="deleteArchive(archive)">
+                      <template #icon>
+                        <n-icon><Delete16Regular /></n-icon>
+                      </template>
+                    </n-button>
+                  </div>
+                </n-list-item>
+              </n-list>
+            </div>
+          </n-popover>
+          <span v-if="currentArchive" style="color: #18a058; font-weight: 500">
+            当前存档: {{ currentArchive.name }}
+          </span>
+        </div>
       </n-space>
     </n-gi>
   </n-grid>
   <n-message-provider><Message ref="messageRef"/></n-message-provider>
+  <n-dialog-provider><Dialog ref="dialogRef" /></n-dialog-provider>
 </template>
 
 <style lang="stylus">
