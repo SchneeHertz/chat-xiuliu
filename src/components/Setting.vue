@@ -22,9 +22,17 @@ const cancelSetting = () => {
 }
 
 const model_options = [
-  { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo' },
-  { label: 'gpt-4-turbo', value: 'gpt-4-turbo' },
   { label: 'gpt-4o', value: 'gpt-4o' },
+  { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
+  { label: 'gpt-4.1', value: 'gpt-4.1' },
+  { label: 'gpt-4.1-mini', value: 'gpt-4.1-mini' },
+  { label: 'gpt-4.1-nano', value: 'gpt-4.1-nano' },
+  { label: 'deepseek-chat', value: 'deepseek-chat' },
+  { label: 'deepseek-reasoner', value: 'deepseek-reasoner' },
+  { label: 'grok-3-beta', value: 'grok-3-beta' },
+  { label: 'grok-3-fast-beta', value: 'grok-3-fast-beta' },
+  { label: 'grok-3-mini-beta', value: 'grok-3-mini-beta' },
+  { label: 'grok-3-mini-fast-beta', value: 'grok-3-mini-fast-beta' },
 ]
 
 const parseNumber = (str) => {
