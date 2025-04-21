@@ -34,7 +34,7 @@ try {
 const openaiChat = async (chatOption) => {
   chatOption.model = chatOption.model || DEFAULT_MODEL
   const response = await openai.chat.completions.create(chatOption)
-  return response.choices[0].message
+  return [response.choices[0].message, response.usage]
 }
 
 /**

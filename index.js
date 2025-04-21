@@ -785,9 +785,11 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
 
   let response
   let internetResult
+  let usage
   try {
-    const responseMessage = await useOpenaiChatFunction(chatOption)
-    console.log(responseMessage)
+    const [responseMessage, _usage] = await useOpenaiChatFunction(chatOption)
+    console.log(responseMessage, _usage)
+    usage = _usage
 
     if (responseMessage.refusal) {
       messageLogAndSend({
@@ -834,10 +836,12 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         break
       case 'remember':
         if (response.text) {
-          addText({
+          liveState.longTermMemory.push({
             timestamp: new Date().toLocaleString('zh-CN'),
+            speaker: AI_NAME,
+            type: 'long-term-memory',
             text: response.text
-          }, 'live')
+          })
         }
         break
       case 'search':
@@ -868,6 +872,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
     liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 42)
     setStore('liveState', liveState)
   } catch (error) {
+    console.log(error)
     messageLogAndSend({
       id: clientMessageId,
       from,
@@ -889,6 +894,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
       from,
       messages,
       countToken: true,
+      tokenCount: usage?.total_tokens,
       content: `${response.action}: \n\n${response.text}\n\nthoughtPiece:\n\n${response?.thoughtPiece?.text}`,
       allowBreak: false,
       useContext: contextFileName,
