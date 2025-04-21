@@ -788,7 +788,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
   let usage
   try {
     const [responseMessage, _usage] = await useOpenaiChatFunction(chatOption)
-    console.log(responseMessage, _usage)
+    console.log(responseMessage, _usage, liveState.conversationState.length, liveState.thoughtCloud.length)
     usage = _usage
 
     if (responseMessage.refusal) {
@@ -868,8 +868,8 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         break
     }
     // limit the length of the conversationState and thoughtCloud
-    liveState.conversationState = _.takeRight(liveState.conversationState, 24)
-    liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 42)
+    // liveState.conversationState = _.takeRight(liveState.conversationState, 240)
+    // liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 420)
     setStore('liveState', liveState)
   } catch (error) {
     console.log(error)
