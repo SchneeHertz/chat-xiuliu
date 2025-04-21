@@ -14,8 +14,8 @@ const env = {
 const context = new vm.createContext(env)
 
 const nodejs_interpreter = ({ code }) => {
-  const script = new vm.Script(`{${code}}`)
-  let result = script.runInContext(context)
+  const script = new vm.Script(`${code}`)
+  const result = script.runInContext(context)
   return JSON.stringify(result)
 }
 

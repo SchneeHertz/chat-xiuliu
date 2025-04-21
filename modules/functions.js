@@ -182,6 +182,7 @@ if (allowPowerfulInterpreter) {
       function: {
         "name": "nodejs_interpreter",
         "description": `Useful for running JavaScript code in node.js(version 18) VM.
+  You need to use global.variable = value when declaring global variables.
   Input is a string of JavaScript code, output is the result of the code.
   You can require node modules except fs, and use lodash directly.
   You can only store variables in the "global" object for future use, like "global.hello = function () {return 'hello'}"`,
@@ -190,7 +191,7 @@ if (allowPowerfulInterpreter) {
           "properties": {
             "code": {
               "type": "string",
-              "description": "The javascript code to run",
+              "description": "The javascript code to run, write the result variable in the last line to output the result.",
             }
           },
           "required": ["code"],

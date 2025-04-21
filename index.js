@@ -45,40 +45,7 @@ const messageLog = (message) => {
   logFile.write(format(new Date().toLocaleString('zh-CN'), JSON.stringify(message)) + '\n')
 }
 const messageSend = (message) => {
-  // The part of Vision is not accurately calculated in the token calculation.
-  if (message.countToken) {
-    let tokenCount = 0
-    message.messages.forEach((item) => {
-      switch (item.role) {
-        case 'system':
-        case 'tool':
-          tokenCount += getTokenLength(item.content)
-          break
-        case 'assistant':
-          tokenCount += getTokenLength(item.content || JSON.stringify(item.tool_calls))
-          break
-        case 'user':
-          if (typeof item.content === 'string') {
-            tokenCount += getTokenLength(item.content)
-          } else {
-            item.content.forEach((content) => {
-              switch (content.type) {
-                case 'text':
-                  tokenCount += getTokenLength(content.text)
-                  break
-                case 'image_url':
-                  tokenCount += 85
-                  break
-              }
-            })
-          }
-          break
-      }
-    })
-    tokenCount += getTokenLength(message.content)
-    message.tokenCount = tokenCount
-  }
-  mainWindow.webContents.send('send-message', _.omit(message, 'messages'))
+  mainWindow.webContents.send('send-message', message)
 }
 const messageLogAndSend = (message) => {
   messageLog(message)
@@ -197,6 +164,16 @@ const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : opena
 app.whenReady().then(async () => {
   mainWindow = createWindow()
   setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
+
+  const currentArchiveId = getStore('current_archive_id')
+  if (currentArchiveId) {
+    const archives = getStore('history_archives') || []
+    const archive = archives.find(a => a.id === currentArchiveId)
+
+    if (archive) {
+      setStore('history', archive.history)
+    }
+  }
 })
 
 
@@ -295,25 +272,15 @@ const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
-const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, model }) => {
+const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, clientMessageId, model }) => {
 
   console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
 
-  let clientMessageId = nanoid()
   STATUS.answeringId = clientMessageId
   let speakIndex = STATUS.speakIndex
   STATUS.speakIndex += 1
 
   if (!_.isEmpty(resToolCalls)) {
-    messageLogAndSend({
-      id: nanoid(),
-      from,
-      messages,
-      countToken: true,
-      content: 'use Function Calling'
-    })
-    messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
-    // addHistory([{ role: 'assistant', content: null, tool_calls: resToolCalls }])
     for (let toolCall of resToolCalls) {
       let functionCallResult
       let functionCallResultMessageId = nanoid()
@@ -334,7 +301,6 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
         functionCallResult = e.message
       }
       messages.push({ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' })
-      // addHistory([{ role: 'tool', tool_call_id: toolCall.id, content: functionCallResult + '' }])
       messageLogAndSend({
         id: functionCallResultMessageId,
         from: 'Function Calling',
@@ -357,8 +323,13 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
     content: ''
   })
 
+  let resTextReason = ''
+  const reasonMessageId = nanoid()
+
+  let _usage = {}
+
   try {
-    for await (const { token, f_token } of useOpenaiChatStreamFunction(prepareChatOption)) {
+    for await (const { token, r_token, f_token, usage } of useOpenaiChatStreamFunction(prepareChatOption)) {
       if (token) {
         resTextTemp += token
         resText += token
@@ -389,18 +360,36 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
           }
         }
       }
-      let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
-      if (index !== undefined ) {
-        if (resToolCalls[index]) {
-          if (id) resToolCalls[index].id = id
-          if (type) resToolCalls[index].type = type
-          if (name) resToolCalls[index].function.name = name
-          if (arg) resToolCalls[index].function.arguments += arg
-        } else {
-          resToolCalls[index] = {
-            id, type, function: { name, arguments: arg }
+      if (r_token) {
+        resTextReason += r_token
+        messageSend({
+          id: clientMessageId,
+          from,
+          action: 'revoke'
+        })
+        messageSend({
+          id: reasonMessageId,
+          from: 'CoT',
+          content: resTextReason
+        })
+      }
+      if (!_.isEmpty(f_token)) {
+        let [{ index, id, type, function: { name, arguments: arg} } = { function: {} }] = f_token
+        if (index !== undefined ) {
+          if (resToolCalls[index]) {
+            if (id) resToolCalls[index].id = id
+            if (type) resToolCalls[index].type = type
+            if (name) resToolCalls[index].function.name = name
+            if (arg) resToolCalls[index].function.arguments += arg
+          } else {
+            resToolCalls[index] = {
+              id, type, function: { name, arguments: arg }
+            }
           }
         }
+      }
+      if (!_.isEmpty(usage)) {
+        _usage = usage
       }
     }
   } catch (error) {
@@ -421,30 +410,13 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
       })
     }
   }
-  if (_.isEmpty(resText)) {
-    messageSend({
-      id: clientMessageId,
-      from,
-      action: 'revoke'
-    })
-  } else {
-    messageSend({
-      id: clientMessageId,
-      from,
-      messages,
-      countToken: true,
-      content: resText,
-      allowBreak: false,
-      useContext: contextFileName,
-      allowSave: true
-    })
-  }
   STATUS.answeringId = null
   return {
     messages,
     resToolCalls,
     resTextTemp,
-    resText
+    resText,
+    usage: _usage
   }
 }
 
@@ -456,23 +428,28 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
  * @param {Object} options.triggerRecord - The trigger record object.
  * @return {Promise<void>} - A promise that resolves with the generated response.
  */
-const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt }) => {
+const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord, givenSystemPrompt, useFullPDF }) => {
   let from = triggerRecord ? `(${AI_NAME})` : AI_NAME
   let history = getStore('history') || []
   let context = _.takeRight(history, historyRoundLimit)
 
   let fullSystemPrompt = givenSystemPrompt ? givenSystemPrompt : systemPrompt
   if (contextFileName && fileContext.length > 0) {
-    let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
-    let closestChunks = findClosestEmbeddedChunks(await useOpenaiEmbeddingFunction({ input: promptText }), fileContext)
-    let contextText = closestChunks.map(chunk => chunk.text).join('\n')
+    let contextText
+    if (useFullPDF) {
+      contextText = fileContext.map(chunk => chunk.text).join('\n')
+    } else {
+      let promptText = Array.isArray(prompt) ? prompt.filter(part => part.type === 'text').map(part => part.text).join('\n') : prompt
+      let closestChunks = findClosestEmbeddedChunks(await useOpenaiEmbeddingFunction({ input: promptText }), fileContext)
+      contextText = closestChunks.map(chunk => chunk.text).join('\n')
+    }
     fullSystemPrompt = `${fullSystemPrompt}\n\nContext: \n\n${contextText}`
   }
 
   let messages = [
     { role: 'system', content: fullSystemPrompt },
-    { role: 'user', content: `Hello, my name is ${ADMIN_NAME}` },
-    { role: 'assistant', content: `Hello, ${ADMIN_NAME}` },
+    // { role: 'user', content: `Hello, my name is ${ADMIN_NAME}` },
+    // { role: 'assistant', content: `Hello, ${ADMIN_NAME}` },
     ...context,
     { role: 'user', content: prompt }
   ]
@@ -486,16 +463,46 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let resTextTemp = ''
   let resText = ''
   let resToolCalls = []
-
+  let useFunctionCalling = config.enableFunctionCalling
   try {
     let round = 0
     while (resText === '' && round <= functionCallingRoundLimit + 1) {
-      let useFunctionCalling = round > functionCallingRoundLimit ? false : true
+      let usage = {}
+      if (useFunctionCalling) useFunctionCalling = round > functionCallingRoundLimit ? false : true
       if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
-      ;({ messages, resToolCalls, resText, resTextTemp } = await resolveMessages({
-        resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling
+      const clientMessageId = nanoid()
+      ;({ messages, resToolCalls, resText, resTextTemp, usage } = await resolveMessages({
+        resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling, clientMessageId
       }))
       round += 1
+      if (!_.isEmpty(resToolCalls)) {
+        messageLogAndSend({
+          id: nanoid(),
+          from,
+          countToken: true,
+          tokenCount: usage.total_tokens,
+          content: 'use Function Calling'
+        })
+        messages.push({ role: 'assistant', content: null, tool_calls: resToolCalls })
+      }
+      if (_.isEmpty(resText)) {
+        messageSend({
+          id: clientMessageId,
+          from,
+          action: 'revoke'
+        })
+      } else {
+        messageSend({
+          id: clientMessageId,
+          from,
+          countToken: true,
+          tokenCount: usage.total_tokens,
+          content: resText,
+          allowBreak: false,
+          useContext: contextFileName,
+          allowSave: true
+        })
+      }
     }
     messageLog({
       id: nanoid(),
@@ -602,7 +609,8 @@ ipcMain.handle('send-prompt', async (event, prompt) => {
   breakAnswer()
   await resloveAdminPrompt({
     prompt: prompt.content,
-    promptType: prompt.type
+    promptType: prompt.type,
+    useFullPDF: prompt.useFullPDF,
   })
 })
 ipcMain.handle('break-answer', async () => {
@@ -996,6 +1004,7 @@ ipcMain.handle('resolve-pdf', async (event, pdfPath) => {
         embeddedChunks.push({ index: batch[index].index, text: batch[index].text, embedding: result.value })
       } else {
         console.error('Embedding failed for: ', batch[index])
+        embeddedChunks.push({ index: batch[index].index, text: batch[index].text })
       }
     })
   }
@@ -1034,4 +1043,78 @@ function findClosestEmbeddedChunks(newEmbedded, embeddedChunks) {
 ipcMain.handle('remove-context', async (event) => {
   fileContext = []
   contextFileName = undefined
+})
+
+// 存档相关功能
+ipcMain.handle('archive-history', async (event, name) => {
+  const history = getStore('history') || []
+  const archives = getStore('history_archives') || []
+
+  const newArchive = {
+    id: nanoid(),
+    name,
+    date: Date.now(),
+    history: _.cloneDeep(history)
+  }
+
+  archives.push(newArchive)
+  setStore('history_archives', archives)
+  return newArchive.id
+})
+
+ipcMain.handle('get-history-archives', async () => {
+  const archives = getStore('history_archives') || []
+  return archives.map(archive => ({
+    id: archive.id,
+    name: archive.name,
+    date: archive.date
+  }))
+})
+
+ipcMain.handle('switch-to-archive', async (event, archiveId) => {
+  const archives = getStore('history_archives') || []
+  const archive = archives.find(a => a.id === archiveId)
+
+  if (archive) {
+    setStore('history', archive.history)
+    return true
+  }
+  return false
+})
+
+ipcMain.handle('update-archive', async (event, archiveId, newName) => {
+  const archives = getStore('history_archives') || []
+  const archiveIndex = archives.findIndex(a => a.id === archiveId)
+
+  if (archiveIndex !== -1) {
+    const currentHistory = getStore('history') || []
+
+    archives[archiveIndex] = {
+      ...archives[archiveIndex],
+      name: newName,
+      date: Date.now(),
+      history: _.cloneDeep(currentHistory)
+    }
+
+    setStore('history_archives', archives)
+    return true
+  }
+  return false
+})
+
+ipcMain.handle('delete-archive', async (event, archiveId) => {
+  const archives = getStore('history_archives') || []
+  const newArchives = archives.filter(a => a.id !== archiveId)
+
+  setStore('history_archives', newArchives)
+  return true
+})
+
+ipcMain.handle('save-current-archive-id', async (event, archiveId) => {
+  setStore('current_archive_id', archiveId)
+  return true
+})
+
+ipcMain.handle('get-current-archive-id', async () => {
+  return getStore('current_archive_id') || null
 })
