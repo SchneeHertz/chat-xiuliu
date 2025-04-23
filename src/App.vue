@@ -144,6 +144,7 @@ onMounted(() => {
     isAudioPlay.value = arg.isAudioPlay
     recordStatus.value = arg.recordStatus
     isLiving.value = arg.isLiving
+    mainStore.isLiving = arg.isLiving
   })
 })
 const switchSpeechTalk = () => {

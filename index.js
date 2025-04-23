@@ -789,6 +789,8 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
   try {
     const [responseMessage, _usage] = await useOpenaiChatFunction(chatOption)
     console.log(responseMessage, _usage, liveState.conversationState.length, liveState.thoughtCloud.length)
+    // { completion_tokens: 1232, prompt_tokens: 20935, total_tokens: 22167 } 55 71
+
     usage = _usage
 
     if (responseMessage.refusal) {

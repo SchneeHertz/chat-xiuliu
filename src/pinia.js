@@ -4,6 +4,7 @@ export const useMainStore = defineStore('main', {
   state:() => ({
     messageList: [],
     savedMessageList: [],
-    tempMessageList: []
+    tempMessageList: [],
+    isLiving: false,
   })
 })

@@ -118,7 +118,7 @@ onMounted(async () => {
 })
 
 const applyRender = () => {
-  scrollToBottom('message-list')
+  scrollToBottom('message-list', mainStore.isLiving)
   document.querySelectorAll('pre.code-block code:not(.hljs)').forEach((el) => {
     hljs.highlightElement(el)
   })
