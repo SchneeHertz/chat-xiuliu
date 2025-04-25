@@ -73,9 +73,11 @@ const openaiEmbedding = async ({ input, model = 'text-embedding-3-small' }) => {
   return _.get(res, 'data[0].embedding')
 }
 
-const openaiImageCreate = async ({ model = 'dall-e-3', prompt, n = 1, size = '1024x1024', quality = 'standard', style = 'vivid' }) => {
+const openaiImageCreate = async ({ model = 'gpt-image-1', prompt, n = 1, size = 'auto', quality = 'auto', background = 'auto' }) => {
   const response = await openai.images.generate({
-    model, prompt, n, size, quality, style
+    model, prompt, n, size, quality, background,
+    moderation: 'low',
+    output_format: 'png'
   })
   return response.data[0]
 }

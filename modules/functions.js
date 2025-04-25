@@ -137,31 +137,33 @@ const functionInfo = [
     }
   },
   {
-    "name": "create_image_use_DALLE3",
-    "description": `Create image using DALL·E 3.
-If the description is not in English, then translate it.
-Always mention the image type (photo, oil painting, watercolor painting, illustration, cartoon, drawing, vector, render, etc.) at the beginning of the caption.`,
+    "name": "create_image_use_GPT",
+    "description": `Create image using gpt-image-1. If the description is not in English, then translate it.`,
     "parameters": {
       "type": "object",
       "properties": {
         "prompt": {
           "type": "string",
-          "description": "A text description of the desired image",
+          "description": "A text description of the desired image(s). The maximum length is 32000 characters",
+        },
+        "background": {
+          "type": "string",
+          "description": "Allows to set transparency for the background of the generated image(s).",
+          "enum": ["auto", "transparent", "opaque"],
         },
         "size": {
           "type": "string",
-          "description": "The size of the generated images, landscape means 1792x1024 and portrait means 1024x1792",
-          "enum": ["1024x1024", "1792x1024", "1024x1792"],
+          "description": "The size of the generated images. Must be one of 1024x1024, 1536x1024 (landscape), 1024x1536 (portrait), or auto (default value)",
+          "enum": ["1024x1024", "1536x1024", "1024x1536", "auto"],
         },
         "quality": {
           "type": "string",
-          "description": "The quality of the image that will be generated",
-          "enum": ["standard", "hd"],
+          "description": "The quality of the image that will be generated.auto (default value) will automatically select the best quality for the given model. high, medium and low are supported",
+          "enum": ["auto", "high", "medium", "low"],
         },
-        "style": {
-          "type": "string",
-          "description": "The style of the generated images",
-          "enum": ["vivid", "natural"]
+        "n": {
+          "type": "number",
+          "description": "The number of images to generate. Must be between 1 and 10."
         }
       },
       "required": ["prompt"],
@@ -236,9 +238,9 @@ const functionAction = {
   open_local_file_or_webpage ({ file_path, url, type }) {
     return `${AI_NAME}请求打开 ${type === 'file' ? file_path : url}`
   },
-  create_image_use_DALLE3 ({ prompt, size, quality, style }) {
-    return `${AI_NAME}正在生成一张\`${size ? size : '1024x1024'}\`大小,
-质量为\`${quality ? quality : 'standard'}\`, 风格为\`${style ? style : 'vivid'}\`的图片.
+  create_image_use_GPT ({ prompt, n, size, quality, background }) {
+    return `${AI_NAME}正在生成${n ? n : 1}张\`${size ? size : 'auto'}\`大小,
+质量为\`${quality ? quality : 'auto'}\`, 背景为\`${background ? background : 'auto'}\`的图片.
 Prompt: \n\n\`\`\`json\n${prompt}\n\`\`\``
   }
 }
@@ -307,23 +309,24 @@ const open_local_file_or_webpage = async ({ file_path, url, type }) => {
   return `${AI_NAME}打开了 ${type === 'file' ? file_path : url}`
 }
 
-const _downloadImage = async (result) => {
+const _downloadImage = async (rsp) => {
   try {
     const fileId = dayjs().format('YYYYMMDDTHHmmssSSS')
-    await download_file_to_local({ file_url: result.url, file_name: fileId + '_image.png' })
-    await fs.promises.writeFile(path.join(writeFolder, fileId + '_prompt.txt'), result.revised_prompt)
+    const image_base64 = rsp.data[0].b64_json
+    const image_bytes = Buffer.from(image_base64, "base64")
+    const imagePath = path.join(writeFolder, fileId + '_image.png')
+    fs.writeFileSync(imagePath, image_bytes)
+    await fs.promises.writeFile(path.join(writeFolder, fileId + '_prompt.txt'), rsp.revised_prompt)
   } catch (e) {
     console.error(e)
   }
 }
 
-const create_image_use_DALLE3 = async ({ prompt, size, quality, style }) => {
+const create_image_use_GPT = async ({ prompt, n, size, quality, background }) => {
   let result = await openaiImageCreate({
-    prompt,
-    size,
-    quality,
-    style
+    prompt, n, size, quality, background
   })
+  console.log(result)
   _downloadImage(result)
   return JSON.stringify(result)
 }
@@ -340,6 +343,6 @@ module.exports = {
     java_script_interpreter,
     nodejs_interpreter,
     open_local_file_or_webpage,
-    create_image_use_DALLE3
+    create_image_use_GPT
   }
 }
