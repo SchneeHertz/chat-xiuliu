@@ -126,7 +126,7 @@ const setting = ref(null)
 const config = ref({})
 onMounted(async () => {
   config.value = await ipcRenderer.invoke('load-setting')
-  if (!config.value.OPENAI_API_KEY && !config.value.AZURE_OPENAI_KEY) {
+  if (!config.value.OPENAI_API_KEY) {
     setting.value.openConfig()
     printMessage('error', '请先设置 API_KEY', { duration: 5000 })
   }

@@ -1,11 +1,10 @@
 const { Sequelize, DataTypes } = require('sequelize')
-const { openaiEmbedding, azureOpenaiEmbedding } = require('./common.js')
-const { config: { useAzureOpenai } } = require('../utils/loadConfig.js')
+const { openaiEmbedding } = require('./common.js')
 const { join } = require('path')
 
 const { STORE_PATH } = require('../utils/fileTool.js')
 
-const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : openaiEmbedding
+const useOpenaiEmbeddingFunction = openaiEmbedding
 
 function dotProduct(vecA, vecB) {
   return vecA.reduce((sum, a, i) => sum + a * vecB[i], 0)

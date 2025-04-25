@@ -208,17 +208,14 @@ defineExpose({
     <n-tabs type="line" animated default-value="general">
       <n-tab-pane name="general" tab="常用">
         <n-form ref="formRef" :model="config" label-placement="left" label-width="230px" size="small" :rules="rules">
-          <n-form-item label="使用Azure OpenAI" path="useAzureOpenai">
-            <n-switch v-model:value="config.useAzureOpenai" />
-          </n-form-item>
-          <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY" v-show="!config.useAzureOpenai">
+          <n-form-item label="OPENAI_API_KEY" path="OPENAI_API_KEY">
             <n-input v-model:value="config.OPENAI_API_KEY" placeholder="sk-48chars" type="password"
               show-password-on="click" />
           </n-form-item>
-          <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT" v-show="!config.useAzureOpenai">
+          <n-form-item label="OPENAI_API_ENDPOINT" path="OPENAI_API_ENDPOINT">
             <n-input v-model:value="config.OPENAI_API_ENDPOINT" placeholder="default https://api.openai.com/v1" />
           </n-form-item>
-          <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL" v-show="!config.useAzureOpenai">
+          <n-form-item label="DEFAULT_MODEL" path="DEFAULT_MODEL">
             <n-select v-model:value="config.DEFAULT_MODEL" :options="model_options" filterable tag/>
           </n-form-item>
           <n-form-item label="设定" path="systemPrompt">
@@ -227,7 +224,7 @@ defineExpose({
               type="textarea"
             />
           </n-form-item>
-          <n-form-item label="API配置管理" v-show="!config.useAzureOpenai">
+          <n-form-item label="API配置管理">
             <n-card size="small" style="margin-bottom: 10px">
               <n-space vertical>
                 <n-input-group>
@@ -252,25 +249,6 @@ defineExpose({
                 <n-empty v-else description="暂无保存的配置" />
               </n-space>
             </n-card>
-          </n-form-item>
-
-          <n-form-item label="AZURE_OPENAI_KEY" path="AZURE_OPENAI_KEY" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_OPENAI_KEY" placeholder="32chars" type="password" show-password-on="click" />
-          </n-form-item>
-          <n-form-item label="AZURE_OPENAI_ENDPOINT" path="AZURE_OPENAI_ENDPOINT" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_OPENAI_ENDPOINT" placeholder="like endpoint-xxx" />
-          </n-form-item>
-          <n-form-item label="AZURE_API_VERSION" path="AZURE_API_VERSION" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_API_VERSION" placeholder="like 2023-07-01-preview" />
-          </n-form-item>
-          <n-form-item label="AZURE_CHAT_MODEL" path="AZURE_CHAT_MODEL" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_CHAT_MODEL" placeholder="like gpt-35-turbo-16k" />
-          </n-form-item>
-          <n-form-item label="AZURE_EMBEDDING_MODEL" path="AZURE_EMBEDDING_MODEL" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_EMBEDDING_MODEL" placeholder="like text-embedding-ada-002" />
-          </n-form-item>
-          <n-form-item label="AZURE_IMAGE_MODEL" path="AZURE_IMAGE_MODEL" v-show="config.useAzureOpenai">
-            <n-input v-model:value="config.AZURE_IMAGE_MODEL" placeholder="like dall-e-3" />
           </n-form-item>
           <n-form-item label="你的称呼" path="ADMIN_NAME">
             <n-input v-model:value="config.ADMIN_NAME" />

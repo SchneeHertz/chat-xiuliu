@@ -7,12 +7,12 @@ const { shell } = require('electron')
 const { js: beautify } = require('js-beautify/js')
 const dayjs = require('dayjs')
 
-let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, useAzureOpenai, CustomSearchAPI } } = require('../utils/loadConfig.js')
+let { config: { useProxy, proxyObject, AI_NAME, writeFolder, allowPowerfulInterpreter, CustomSearchAPI } } = require('../utils/loadConfig.js')
 const proxyString = `${proxyObject.protocol}://${proxyObject.host}:${proxyObject.port}`
 
 const { sliceStringbyTokenLength } = require('./tiktoken.js')
 const { nodejs_interpreter } = require('./vm.js')
-const { openaiImageCreate, azureOpenaiImageCreate } = require('./common.js')
+const { openaiImageCreate } = require('./common.js')
 const { STORE_PATH } = require('../utils/fileTool.js')
 
 if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
@@ -318,22 +318,12 @@ const _downloadImage = async (result) => {
 }
 
 const create_image_use_DALLE3 = async ({ prompt, size, quality, style }) => {
-  let result
-  if (useAzureOpenai) {
-    result = await azureOpenaiImageCreate({
-      prompt,
-      size,
-      quality,
-      style
-    })
-  } else {
-    result = await openaiImageCreate({
-      prompt,
-      size,
-      quality,
-      style
-    })
-  }
+  let result = await openaiImageCreate({
+    prompt,
+    size,
+    quality,
+    style
+  })
   _downloadImage(result)
   return JSON.stringify(result)
 }

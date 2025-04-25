@@ -14,13 +14,12 @@ const { getRootPath } = require('./utils/fileTool.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { getTokenLength } = require('./modules/tiktoken.js')
-const { openaiChatStream, openaiEmbedding, azureOpenaiChatStream, azureOpenaiEmbedding } = require('./modules/common.js')
+const { openaiChatStream, openaiEmbedding } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const { addText, searchSimilarText, cosineSimilarity } = require('./modules/vectorDb.js')
 const { config } = require('./utils/loadConfig.js')
 const {
-  useAzureOpenai,
-  DEFAULT_MODEL, AZURE_CHAT_MODEL,
+  DEFAULT_MODEL,
   SpeechSynthesisVoiceName,
   ADMIN_NAME, AI_NAME,
   systemPrompt,
@@ -156,7 +155,7 @@ const createWindow = () => {
   return win
 }
 
-const useOpenaiEmbeddingFunction = useAzureOpenai ? azureOpenaiEmbedding : openaiEmbedding
+const useOpenaiEmbeddingFunction = openaiEmbedding
 app.whenReady().then(async () => {
   mainWindow = createWindow()
   setInterval(() => mainWindow.webContents.send('send-status', STATUS), 1000)
@@ -262,14 +261,14 @@ const addHistory = (lines) => {
   setStore('history', history)
 }
 
-const useOpenaiChatStreamFunction = useAzureOpenai ? azureOpenaiChatStream : openaiChatStream
+const useOpenaiChatStreamFunction = openaiChatStream
 const additionalParam = {
   searchResultLimit,
   webPageContentTokenLengthLimit
 }
 const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, from, useFunctionCalling = false, clientMessageId, model }) => {
 
-  console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
+  console.log(`use ${DEFAULT_MODEL}`)
 
   STATUS.answeringId = clientMessageId
   let speakIndex = STATUS.speakIndex
