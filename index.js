@@ -14,7 +14,7 @@ const { getRootPath } = require('./utils/fileTool.js')
 const { getStore, setStore } = require('./modules/store.js')
 const { getSpeechText } = require('./modules/whisper.js')
 const { getTokenLength } = require('./modules/tiktoken.js')
-const { openaiChat, openaiChatStream, openaiEmbedding } = require('./modules/common.js')
+const { openaiChat, openaiChatStream, openaiEmbedding, reloadOpenAI } = require('./modules/common.js')
 const { functionAction, functionInfo, functionList } = require('./modules/functions.js')
 const { addText, cosineSimilarity } = require('./modules/vectorDb.js')
 const { config } = require('./utils/loadConfig.js')
@@ -73,7 +73,8 @@ const STATUS = {
   speakIndex: 0,
   answeringId: null,
   breakAnswerId: null,
-  isLiving: false
+  isLiving: false,
+  apikeyIndex: 0
 }
 
 const { prepareMint } = require('./modules/sensitive-word.js')
@@ -697,7 +698,7 @@ class AsyncProcessor {
    * @param {Function} asyncFunction - 异步处理函数
    * @param {number} waitTime - 等待时间(毫秒)
    */
-  constructor(asyncFunction, waitTime = 30000) {
+  constructor(asyncFunction, waitTime = 60000) {
     this.queue = []
     this.asyncFunction = asyncFunction
     this.waitTime = waitTime
@@ -760,10 +761,11 @@ ipcMain.handle('switch-live', async () => {
 const resolveLivePrompt = async ({ prompt } = {}) => {
   if (!STATUS.isLiving) return
   const { geneMessages } = require('./live/think-script.js')
+  const backup_apikey = require('./live/backup_apikey.js')
   const { messages, liveState, response_format } = await geneMessages({ prompt })
   const from = AI_NAME
 
-  console.log(`use ${useAzureOpenai ? 'azure ' + AZURE_CHAT_MODEL : 'openai ' + DEFAULT_MODEL}`)
+  console.log(`use openai ${DEFAULT_MODEL}`)
 
   let clientMessageId = nanoid()
   STATUS.answeringId = clientMessageId
@@ -789,7 +791,8 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
     const [responseMessage, _usage] = await useOpenaiChatFunction(chatOption)
     console.log(responseMessage, _usage, liveState.conversationState.length, liveState.thoughtCloud.length)
     // { completion_tokens: 1232, prompt_tokens: 20935, total_tokens: 22167 } 55 71
-
+    // { completion_tokens: 516, prompt_tokens: 49281, total_tokens: 50511 } 130 144
+    // { completion_tokens: 333, prompt_tokens: 66527, total_tokens: 67639 } 174 184
     usage = _usage
 
     if (responseMessage.refusal) {
@@ -880,6 +883,25 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
       content: `Error:\n\n${error.message}`
     })
     STATUS.answeringId = null
+    if (error.status === 429) {
+      // switch to backup apikey
+      STATUS.apikeyIndex += 1
+      if (backup_apikey[STATUS.apikeyIndex]) {
+        messageLogAndSend({
+          id: nanoid(),
+          from,
+          content: `switch to backup apikey: ${STATUS.apikeyIndex}`
+        })
+        reloadOpenAI(backup_apikey[STATUS.apikeyIndex])
+        resolveLivePrompt()
+      } else {
+        messageLogAndSend({
+          id: nanoid(),
+          from,
+          content: 'apiKey used up, please check your apiKey.'
+        })
+      }
+    }
     return
   }
 
