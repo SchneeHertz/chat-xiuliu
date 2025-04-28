@@ -249,7 +249,12 @@ const get_information_from_google = async ({ query_string }, { searchResultLimit
   const response = await axios.get(`${CustomSearchAPI}${encodeURIComponent(query_string)}`, {
     proxy: useProxy ? proxyObject : undefined
   })
-  return response.data.items.filter(i => i.title && i.snippet).map(i => `[${i.title}](${i.link}): ${i.snippet}`).slice(0, searchResultLimit).join('\n')
+  if (response.data.items) {
+    return response.data.items.filter(i => i.title && i.snippet).map(i => `[${i.title}](${i.link}): ${i.snippet}`).slice(0, searchResultLimit).join('\n')
+  } else {
+    console.log('Google Search API Error:', response)
+    return '没有找到相关信息'
+  }
 }
 
 const get_text_content_of_webpage = async ({ url }, { webPageContentTokenLengthLimit }) => {

@@ -86,7 +86,7 @@ const openaiImageCreate = async ({ model = 'gpt-image-1', prompt, n = 1, size = 
 const reloadOpenAI = (apiKey, apiEndpoint) => {
   openai = new OpenAI({
     apiKey,
-    baseURL: apiEndpoint ? apiEndpoint : 'https://api.openai.com/v1',
+    baseURL: apiEndpoint ? apiEndpoint : OPENAI_API_ENDPOINT,
     httpAgent,
     timeout: 40000
   })
