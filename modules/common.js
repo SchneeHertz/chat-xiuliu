@@ -82,10 +82,22 @@ const openaiImageCreate = async ({ model = 'gpt-image-1', prompt, n = 1, size = 
   return response.data[0]
 }
 
+// reload OpenAI instance by providing new API key and endpoint
+const reloadOpenAI = (apiKey, apiEndpoint) => {
+  openai = new OpenAI({
+    apiKey,
+    baseURL: apiEndpoint ? apiEndpoint : 'https://api.openai.com/v1',
+    httpAgent,
+    timeout: 40000
+  })
+}
+
+
 
 module.exports = {
   openaiChat,
   openaiChatStream,
   openaiEmbedding,
   openaiImageCreate,
+  reloadOpenAI
 }
