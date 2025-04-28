@@ -21,7 +21,6 @@ ChatGPT客户端，通过function calling实现访问网络，执行代码，读
   - 打开本地文件或网页
 - 可定制的猫娘发言风格
 - 保存对话截图
-- 支持Azure openai
 - 支持兼容openai api格式的其他api端点
 - 支持设置代理
 
@@ -57,7 +56,6 @@ ChatGPT客户端，通过function calling实现访问网络，执行代码，读
   ```
 
 ### 设置参考
-  - 如果你使用Azure openai，修改AZURE前缀的设置项，需要同时部署chat, embedding和image的模型
   - AI的语音模型，在[微软文档](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts)查看可用值
   - 默认设定
     ```
