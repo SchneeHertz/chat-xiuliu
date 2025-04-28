@@ -252,7 +252,6 @@ const get_information_from_google = async ({ query_string }, { searchResultLimit
   if (response.data.items) {
     return response.data.items.filter(i => i.title && i.snippet).map(i => `[${i.title}](${i.link}): ${i.snippet}`).slice(0, searchResultLimit).join('\n')
   } else {
-    console.log('Google Search API Error:', response)
     return '没有找到相关信息'
   }
 }
