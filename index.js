@@ -74,7 +74,8 @@ const STATUS = {
   answeringId: null,
   breakAnswerId: null,
   isLiving: false,
-  apikeyIndex: 0
+  apikeyIndex: 0,
+  adminTyping: false
 }
 
 const { prepareMint } = require('./modules/sensitive-word.js')
@@ -723,7 +724,7 @@ class AsyncProcessor {
   async delayOrCheckQueue(ms) {
     const checkInterval = 1000
     const start = Date.now()
-    while (Date.now() - start < ms) {
+    while (Date.now() - start < ms || STATUS.adminTyping) {
       if (this.queue.length > 0) {
         return
       }
@@ -740,6 +741,15 @@ class AsyncProcessor {
     this.queue.push(item)
   }
 }
+
+let resetAdminTyping = null
+ipcMain.handle('admin-typing', async () => {
+  STATUS.adminTyping = true
+  clearTimeout(resetAdminTyping)
+  resetAdminTyping = setTimeout(() => {
+    STATUS.adminTyping = false
+  }, 5000)
+})
 
 let processLive
 

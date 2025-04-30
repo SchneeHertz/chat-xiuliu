@@ -333,6 +333,10 @@ const deleteArchive = async (archive) => {
   })
 }
 
+const sendInputStatus = () => {
+  ipcRenderer.invoke('admin-typing')
+}
+
 onMounted(loadHistoryArchives)
 </script>
 
@@ -381,7 +385,7 @@ onMounted(loadHistoryArchives)
           </template>
         </n-button>
         <n-input :value="inputText" @update:value="updateInputText" @keydown.enter="sendText"
-          @paste="handleImagePaste"
+          @paste="handleImagePaste" @keyup="sendInputStatus"
           ref="inputArea" class="input-text" type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
           :disabled="showSavedMessage"
         ></n-input>
