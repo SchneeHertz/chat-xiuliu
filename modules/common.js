@@ -19,7 +19,7 @@ try {
     apiKey: OPENAI_API_KEY,
     baseURL: OPENAI_API_ENDPOINT ? OPENAI_API_ENDPOINT : 'https://api.openai.com/v1',
     httpAgent,
-    timeout: 40000
+    timeout: 60000
   })
 } catch {}
 
@@ -88,7 +88,7 @@ const reloadOpenAI = (apiKey, apiEndpoint) => {
     apiKey,
     baseURL: apiEndpoint ? apiEndpoint : OPENAI_API_ENDPOINT,
     httpAgent,
-    timeout: 40000
+    timeout: 60000
   })
 }
 

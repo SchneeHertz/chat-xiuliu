@@ -793,6 +793,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
     // { completion_tokens: 1232, prompt_tokens: 20935, total_tokens: 22167 } 55 71
     // { completion_tokens: 516, prompt_tokens: 49281, total_tokens: 50511 } 130 144
     // { completion_tokens: 333, prompt_tokens: 66527, total_tokens: 67639 } 174 184
+    // { completion_tokens: 491, prompt_tokens: 106028, total_tokens: 107645 } 256 256
     usage = _usage
 
     if (responseMessage.refusal) {
@@ -872,8 +873,8 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
         break
     }
     // limit the length of the conversationState and thoughtCloud
-    // liveState.conversationState = _.takeRight(liveState.conversationState, 240)
-    // liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 420)
+    liveState.conversationState = _.takeRight(liveState.conversationState, 256)
+    liveState.thoughtCloud = _.takeRight(liveState.thoughtCloud, 256)
     setStore('liveState', liveState)
   } catch (error) {
     console.log(error)
@@ -893,7 +894,7 @@ const resolveLivePrompt = async ({ prompt } = {}) => {
           content: `switch to backup apikey: ${STATUS.apikeyIndex}`
         })
         reloadOpenAI(backup_apikey[STATUS.apikeyIndex])
-        resolveLivePrompt()
+        resolveLivePrompt({ prompt })
       } else {
         messageLogAndSend({
           id: nanoid(),
