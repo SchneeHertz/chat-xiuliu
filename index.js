@@ -348,7 +348,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
             resTextTemp = ''
           }
           if (STATUS.isAudioPlay) {
-            let speakText = splitResText.join('\n').replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+            let speakText = splitResText.join('\n')
             speakTextList.push({
               text: speakText,
               speakIndex,
@@ -403,7 +403,7 @@ const resolveMessages = async ({ resToolCalls, resText, resTextTemp, messages, f
 
   if (STATUS.isAudioPlay) {
     if (resTextTemp) {
-      let speakText = resTextTemp.replace(/[^a-zA-Z0-9一-龟]+[喵嘻捏][^a-zA-Z0-9一-龟]*$/, '喵~')
+      let speakText = resTextTemp
       speakTextList.push({
         text: speakText,
         speakIndex,
