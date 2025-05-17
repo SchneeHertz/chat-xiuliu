@@ -17,7 +17,11 @@ const { STORE_PATH } = require('../utils/fileTool.js')
 
 if (!writeFolder) writeFolder = path.join(STORE_PATH, 'storage')
 if (!fs.existsSync(writeFolder)) {
-  fs.mkdirSync(writeFolder)
+  try {
+    fs.mkdirSync(writeFolder, { recursive: true })
+  } catch (error) {
+    console.error(`Error creating write folder: ${error.message}`)
+  }
 }
 
 const functionInfo = [
