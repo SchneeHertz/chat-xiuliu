@@ -460,7 +460,7 @@ const resloveAdminPrompt = async ({ prompt, promptType = 'string', triggerRecord
   let useFunctionCalling = config.enableFunctionCalling
   try {
     let round = 0
-    while (resText === '' && round <= functionCallingRoundLimit + 1) {
+    while ((resText === '' || resToolCalls.length > 0) && round <= functionCallingRoundLimit + 1) {
       let usage = {}
       if (useFunctionCalling) useFunctionCalling = round > functionCallingRoundLimit ? false : true
       if (!useFunctionCalling) console.log('Reached the functionCallingRoundlimit')
